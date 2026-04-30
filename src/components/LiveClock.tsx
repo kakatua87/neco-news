@@ -1,24 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function LiveClock() {
-  const [now, setNow] = useState(() => new Date());
+  const [mounted, setMounted] = useState(false);
+  const [time, setTime] = useState("");
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    setMounted(true);
+    const updateTime = () => {
+      setTime(
+        new Date().toLocaleTimeString("es-AR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      );
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const formatted = useMemo(
-    () =>
-      now.toLocaleTimeString("es-AR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      }),
-    [now],
-  );
+  if (!mounted) {
+    return <span className="text-sm tracking-wide opacity-0">00:00:00 p.m.</span>;
+  }
 
-  return <span className="text-sm tracking-wide">{formatted}</span>;
+  return <span className="text-sm tracking-wide">{time}</span>;
 }

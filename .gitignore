@@ -53,3 +53,8 @@ __pycache__/
 *.pyc
 *.pyo
 .playwright/
+# PDFs y archivos grandes
+*.pdf
+*.docx
+*.xlsx
+

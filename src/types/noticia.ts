@@ -1,7 +1,7 @@
 export type EstadoNoticia = "pendiente" | "publicada" | "descartada";
 
 export type Noticia = {
-  id: number;
+  id: string | number;
   titulo: string;
   cuerpo: string;
   resumen_seo: string | null;

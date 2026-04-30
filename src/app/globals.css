@@ -1,47 +1,146 @@
 @import "tailwindcss";
 
+/* ═══ Neco News — Split Header Design System ═══ */
+
 :root {
-  --background: #f8f6f1;
-  --foreground: #0f0f0f;
-  --accent: #c8102e;
+  --cream: #FFFFFF;
+  --ink: #111827;
+  --accent: #059669;
+  --accent-dark: #047857;
+  --accent-light: #ECFDF5;
+  --muted: #6B7280;
+  --charcoal: #111827;
+  --border: rgba(0, 0, 0, 0.08);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
   --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-light: var(--accent-light);
+  --color-muted: var(--muted);
+  --color-charcoal: var(--charcoal);
+  --color-border: var(--border);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-merriweather);
+}
+
+/* ═══ Global font rendering — elimina el pixelado ═══ */
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+}
+
+*, *::before, *::after {
+  -webkit-font-smoothing: inherit;
+  -moz-osx-font-smoothing: inherit;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-inter), "Inter", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-.ticker-track {
+/* ═══ Tipografía editorial ═══ */
+
+.font-editorial {
+  font-family: var(--font-merriweather), "Merriweather", Georgia, serif;
+}
+
+/* Texto del logo — extra suavizado para letras grandes */
+.logo-text {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+  font-variant-ligatures: common-ligatures;
+  /* Fuerza el uso de la GPU para el renderizado, lo que suele suavizar los bordes */
+  transform: translateZ(0);
+  will-change: transform;
+  /* Un truco común para suavizar fuentes en navegadores basados en Chromium */
+  perspective: 1000px;
+  backface-visibility: hidden;
+}
+
+/* ═══ Animaciones de imágenes y cards ═══ */
+
+.img-zoom {
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.group:hover .img-zoom {
+  transform: scale(1.04);
+}
+
+.title-hover {
+  transition: color 0.2s ease;
+}
+.group:hover .title-hover {
+  color: var(--accent);
+}
+
+.card-lift {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.card-lift:hover {
+  box-shadow: 0 14px 36px -8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+}
+
+/* ═══ Ticker de mercados ═══ */
+
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.ticker-scroll {
+  display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+}
+.ticker-scroll:hover {
+  animation-play-state: paused;
+}
+
+/* ═══ Marquesina del subtítulo (DIARIO DIGITAL | NECOCHEA, ARGENTINA) ═══ */
+
+@keyframes marquee-subtitle {
+  0%   { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.subtitle-marquee {
   display: inline-block;
-  min-width: 100%;
-  animation: ticker-scroll 32s linear infinite;
+  white-space: nowrap;
+  animation: marquee-subtitle 20s linear infinite;
 }
 
-@keyframes ticker-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+.subtitle-marquee:hover {
+  animation-play-state: paused;
 }
 
-.ad-slot {
-  border: 1px dashed color-mix(in oklab, var(--foreground) 50%, transparent);
-  background: color-mix(in oklab, var(--background) 80%, var(--foreground) 8%);
-  color: color-mix(in oklab, var(--foreground) 70%, transparent);
-  padding: 0.75rem;
-  text-align: center;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+/* ═══ Skeleton shimmer ═══ */
+
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
 }
+
+.skeleton {
+  background: linear-gradient(to right, #f1f5f9 8%, #e2e8f0 18%, #f1f5f9 33%);
+  background-size: 800px 100%;
+  animation: shimmer 2s linear infinite;
+  border-radius: 12px;
+}
+
+/* ═══ Utilidades ═══ */
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

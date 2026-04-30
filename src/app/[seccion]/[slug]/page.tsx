@@ -1,130 +1,136 @@
-import type { Metadata } from "next";
+import { getNoticiaBySlug } from "@/lib/noticias";
 import { notFound } from "next/navigation";
-import Script from "next/script";
+import Image from "next/image";
 import Link from "next/link";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Noticia } from "@/types/noticia";
+import LiveClock from "@/components/LiveClock";
 
-export const revalidate = 60;
+type Props = { params: { seccion: string; slug: string } };
 
-type NotaPageProps = {
-  params: Promise<{ seccion: string; slug: string }>;
-};
-
-async function getNotaBySlug(slug: string): Promise<Noticia | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("noticias")
-    .select("*")
-    .eq("slug", slug)
-    .eq("estado", "publicada")
-    .maybeSingle();
-
-  if (error) return null;
-  return (data as Noticia | null) ?? null;
-}
-
-async function getRelacionadas(seccion: string, id: number): Promise<Noticia[]> {
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
-    .from("noticias")
-    .select("*")
-    .eq("estado", "publicada")
-    .eq("seccion", seccion)
-    .neq("id", id)
-    .order("fecha_publicacion", { ascending: false })
-    .limit(4);
-
-  return (data as Noticia[]) ?? [];
-}
-
-export async function generateMetadata({ params }: NotaPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const nota = await getNotaBySlug(slug);
-  if (!nota) return { title: "Nota no encontrada | Neco News" };
-
-  const description = nota.resumen_seo ?? nota.cuerpo.slice(0, 160);
-  const url = `/${nota.seccion.toLowerCase()}/${nota.slug}`;
-
+export async function generateMetadata({ params }: Props) {
+  const noticia = await getNoticiaBySlug(params.slug);
+  if (!noticia) return { title: "Noticia no encontrada" };
   return {
-    title: `${nota.titulo} | Neco News`,
-    description,
+    title: `${noticia.titulo} | Neco News`,
+    description: noticia.resumen_seo || noticia.cuerpo.slice(0, 160),
     openGraph: {
-      title: nota.titulo,
-      description,
-      type: "article",
-      url,
-      images: nota.imagen_url ? [{ url: nota.imagen_url }] : undefined,
+      title: noticia.titulo,
+      description: noticia.resumen_seo || noticia.cuerpo.slice(0, 160),
+      images: noticia.imagen_url ? [{ url: noticia.imagen_url }] : [],
     },
   };
 }
 
-export default async function NotaPage({ params }: NotaPageProps) {
-  const { slug } = await params;
-  const nota = await getNotaBySlug(slug);
-  if (!nota) notFound();
+export default async function NoticiaPage({ params }: Props) {
+  const noticia = await getNoticiaBySlug(params.slug);
+  if (!noticia) notFound();
 
-  const relacionadas = await getRelacionadas(nota.seccion, nota.id);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
-    headline: nota.titulo,
-    datePublished: nota.fecha_publicacion ?? nota.created_at,
-    dateModified: nota.fecha_publicacion ?? nota.created_at,
-    articleSection: nota.seccion,
-    description: nota.resumen_seo ?? nota.cuerpo.slice(0, 180),
-    author: {
-      "@type": "Organization",
-      name: "Neco News",
-    },
-    publisher: {
-      "@type": "Organization",
-      name: "Neco News",
-    },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `/${nota.seccion.toLowerCase()}/${nota.slug}`,
-    },
-    image: nota.imagen_url ? [nota.imagen_url] : undefined,
+    headline: noticia.titulo,
+    image: noticia.imagen_url ? [noticia.imagen_url] : [],
+    datePublished: noticia.fecha_publicacion || noticia.created_at,
+    author: [{ "@type": "Organization", name: "Neco News Redacción" }],
   };
 
+  const fecha = new Date(noticia.fecha_publicacion || noticia.created_at).toLocaleDateString("es-AR", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+
+  const parrafos = noticia.cuerpo.split("\n\n").filter((p) => p.trim());
+
   return (
-    <article className="mx-auto max-w-4xl px-4 py-8 bg-[#f8f6f1] text-[#0f0f0f] min-h-screen">
-      <Script
-        id="newsarticle-jsonld"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <p className="text-xs uppercase tracking-widest text-[#c8102e]">{nota.seccion}</p>
-      <h1 className="font-serif text-4xl md:text-5xl mt-2">{nota.titulo}</h1>
-      <p className="text-sm text-[#0f0f0f]/70 mt-3">
-        Publicado:{" "}
-        {new Date(nota.fecha_publicacion ?? nota.created_at).toLocaleString("es-AR")}
-      </p>
+    <div className="min-h-screen bg-white text-ink font-sans flex flex-col">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <div className="ad-slot mt-6">Espacio publicitario 728x90</div>
-
-      <div className="prose prose-zinc max-w-none mt-8 whitespace-pre-line">
-        {nota.cuerpo}
-      </div>
-
-      {relacionadas.length > 0 && (
-        <section className="mt-12 border-t border-[#0f0f0f]/30 pt-6">
-          <h2 className="font-serif text-2xl mb-4">Notas relacionadas</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {relacionadas.map((item) => (
-              <Link
-                key={item.id}
-                href={`/${item.seccion.toLowerCase()}/${item.slug}`}
-                className="border border-[#0f0f0f]/20 p-4 hover:border-[#c8102e]"
-              >
-                <p className="text-xs uppercase text-[#c8102e]">{item.seccion}</p>
-                <h3 className="font-serif text-xl mt-1">{item.titulo}</h3>
-              </Link>
-            ))}
+      {/* ── Split Header (lectura) ── */}
+      <header className="sticky top-0 z-50 shadow-lg flex h-14">
+        <div className="bg-charcoal flex items-center px-5 md:px-8">
+          <Link href="/">
+            <Image src="/logo-dark.png" alt="Neco News" width={536} height={239} className="h-8 md:h-9 w-auto object-contain" priority />
+          </Link>
+        </div>
+        <div className="bg-white flex-1 flex items-center justify-between px-4 md:px-8 border-b border-border">
+          <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-widest text-muted">
+            <Link href={`/${noticia.seccion.toLowerCase()}`} className="hover:text-accent transition-colors">{noticia.seccion}</Link>
+            <span className="text-border">|</span>
+            <LiveClock />
           </div>
-        </section>
-      )}
-    </article>
+          <Link href="/" className="text-[13px] font-semibold text-ink/60 hover:text-accent transition-colors">
+            ← Volver al inicio
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-[880px] px-4 md:px-8 py-10 md:py-16 flex-1">
+        {/* Breadcrumb */}
+        <nav className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted mb-8 flex items-center gap-2">
+          <Link href="/" className="hover:text-accent transition-colors">Inicio</Link>
+          <span>/</span>
+          <Link href={`/${noticia.seccion.toLowerCase()}`} className="hover:text-accent transition-colors">{noticia.seccion}</Link>
+        </nav>
+
+        <h1 className="font-editorial text-4xl md:text-5xl lg:text-[3.5rem] leading-[1.08] font-bold mb-6">
+          {noticia.titulo}
+        </h1>
+
+        {noticia.resumen_seo && (
+          <p className="text-lg md:text-xl text-muted font-editorial leading-relaxed border-l-4 border-accent pl-6 mb-8">
+            {noticia.resumen_seo}
+          </p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-muted uppercase tracking-wider py-4 border-y border-border mb-10">
+          <span>Por <strong className="text-ink">Redacción Neco News</strong></span>
+          <span>•</span>
+          <span>{fecha}</span>
+          {noticia.fuente && (<><span>•</span><span>Fuente: {noticia.fuente}</span></>)}
+        </div>
+
+        {noticia.imagen_url && (
+          <figure className="mb-10 rounded-xl overflow-hidden shadow-md">
+            <img src={noticia.imagen_url} alt={noticia.titulo} className="w-full h-auto object-cover max-h-[480px]" />
+          </figure>
+        )}
+
+        <div className="font-editorial text-lg md:text-xl leading-[1.85] space-y-6">
+          {parrafos.map((p, i) =>
+            i === 0 ? (
+              <p key={i} className="text-xl md:text-2xl font-medium text-ink/90 leading-relaxed">{p}</p>
+            ) : (
+              <p key={i}>{p}</p>
+            )
+          )}
+        </div>
+
+        {(noticia.instagram_text || noticia.twitter_text) && (
+          <div className="mt-14 bg-accent-light rounded-2xl p-8 border border-accent/10">
+            <h3 className="text-accent text-[11px] font-extrabold uppercase tracking-[0.15em] mb-6 pb-3 border-b border-accent/20 flex items-center gap-2">
+              <span className="w-2 h-2 bg-accent rounded-full" />
+              Cobertura en Redes
+            </h3>
+            {noticia.twitter_text && (
+              <div className="mb-6">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-2">Para X (Twitter)</p>
+                <p className="text-sm text-ink bg-white p-4 rounded-lg italic border border-border">&ldquo;{noticia.twitter_text}&rdquo;</p>
+              </div>
+            )}
+            {noticia.instagram_text && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-2">Para Instagram</p>
+                <p className="text-sm text-ink bg-white p-4 rounded-lg border border-border whitespace-pre-wrap">{noticia.instagram_text}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      <footer className="bg-charcoal py-8 mt-auto">
+        <div className="mx-auto max-w-[880px] px-4 md:px-8 flex flex-col items-center gap-3">
+          <Image src="/logo-dark.png" alt="Neco News" width={536} height={239} className="h-7 w-auto object-contain opacity-50" />
+          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Neco News</p>
+        </div>
+      </footer>
+    </div>
   );
 }

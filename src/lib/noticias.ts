@@ -35,3 +35,19 @@ export async function getPendientes(limit = 50): Promise<Noticia[]> {
 
   return data as Noticia[];
 }
+
+export async function getNoticiaBySlug(slug: string): Promise<Noticia | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("noticias")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !data) {
+    console.error("Error al obtener noticia por slug:", error?.message);
+    return null;
+  }
+
+  return data as Noticia;
+}
