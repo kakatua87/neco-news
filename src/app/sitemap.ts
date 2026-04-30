@@ -3,7 +3,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Noticia } from "@/types/noticia";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://neco-news-seven.vercel.app";
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("noticias")
