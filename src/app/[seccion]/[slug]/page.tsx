@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import LiveClock from "@/components/LiveClock";
 
-type Props = { params: { seccion: string; slug: string } };
+type Props = { params: Promise<{ seccion: string; slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
-  const noticia = await getNoticiaBySlug(params.slug);
+  const { slug } = await params;
+  const noticia = await getNoticiaBySlug(slug);
   if (!noticia) return { title: "Noticia no encontrada" };
   return {
     title: `${noticia.titulo} | Neco News`,
@@ -21,7 +22,8 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function NoticiaPage({ params }: Props) {
-  const noticia = await getNoticiaBySlug(params.slug);
+  const { slug } = await params;
+  const noticia = await getNoticiaBySlug(slug);
   if (!noticia) notFound();
 
   const jsonLd = {
