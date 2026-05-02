@@ -110,9 +110,6 @@ export default async function ArchivoFechaPage({ params }: Props) {
                   {nota.resumen_seo && (
                     <p className="text-muted text-sm mt-1 line-clamp-2">{nota.resumen_seo}</p>
                   )}
-                  {nota.fuente && (
-                    <p className="text-[10px] text-muted/70 mt-1">Fuente: {nota.fuente}</p>
-                  )}
                 </div>
               </article>
             ))}
