@@ -97,14 +97,11 @@ export default function Header() {
             </button>
 
             <div className="hidden lg:flex items-center gap-4">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-muted border-r border-border pr-4 flex items-center gap-3">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-muted flex items-center gap-3">
                 <WeatherWidget />
                 <span className="text-border">|</span>
                 <LiveClock />
               </div>
-              <Link href="/admin" className="bg-accent hover:bg-accent-dark text-white text-[13px] font-bold px-5 py-2.5 rounded-md transition-colors flex items-center gap-1.5 shadow-sm">
-                <span>★</span> Suscribite
-              </Link>
             </div>
           </div>
         </div>
