@@ -7,10 +7,8 @@ export type Noticia = {
   resumen_seo: string | null;
   seccion: string;
   estado: EstadoNoticia;
-  fuente: string | null;
   url_original: string | null;
   imagen_url: string | null;
-  imagen_fuente: string | null;
   instagram_text: string | null;
   twitter_text: string | null;
   guion_video: string | null;

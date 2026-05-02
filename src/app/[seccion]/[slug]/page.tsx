@@ -86,7 +86,6 @@ export default async function NoticiaPage({ params }: Props) {
           <span>Por <strong className="text-ink">Redacción Neco News</strong></span>
           <span>•</span>
           <span>{fecha}</span>
-          {noticia.fuente && (<><span>•</span><span>Fuente: {noticia.fuente}</span></>)}
         </div>
 
         {noticia.imagen_url && (
