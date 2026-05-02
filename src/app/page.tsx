@@ -52,71 +52,7 @@ export default async function Home() {
     : NAV;
 
   return (
-    <div className="min-h-screen bg-white text-ink font-sans flex flex-col">
-
-      {/* ══════════ SPLIT HEADER ══════════ */}
-      <header className="sticky top-0 z-50 shadow-lg">
-        <div className="flex">
-
-          {/* LEFT: Charcoal + Logo (compacto) */}
-          <div className="bg-charcoal flex items-center px-5 md:px-8 py-4">
-            <Link href="/" className="flex items-center gap-3">
-              {/* N Icon */}
-              <Image
-                src="/logo-icon.png"
-                alt="N"
-                width={225}
-                height={239}
-                className="h-12 md:h-16 lg:h-[70px] w-auto object-contain"
-                priority
-              />
-              {/* Text — optimizeLegibility + geometricPrecision */}
-              <div className="flex flex-col leading-none">
-                <span className="logo-text text-white font-extrabold text-[1.6rem] md:text-[2rem] lg:text-[2.1rem] tracking-tight">NECO</span>
-                <span className="logo-text text-white font-extrabold text-[1.6rem] md:text-[2rem] lg:text-[2.1rem] tracking-tight">NEWS</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* RIGHT: White + Subtitle + Nav */}
-          <div className="bg-white flex-1 flex flex-col border-b border-border">
-
-            {/* Subtítulo — marquesina animada */}
-            <div className="overflow-hidden pt-2 pb-1.5 border-b-2 border-accent">
-              <span className="subtitle-marquee text-[10px] font-semibold uppercase tracking-[0.25em] text-muted">
-                Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp; Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
-              </span>
-            </div>
-
-            {/* Nav + Botón */}
-            <div className="flex-1 flex items-center justify-between px-4 md:px-8">
-              <nav className="hidden md:flex items-center gap-4 lg:gap-6">
-                {navSections.map((s) => (
-                  <Link
-                    key={s}
-                    href={`/${encodeURIComponent(s.toLowerCase())}`}
-                    className="text-[13px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent transition-colors"
-                  >
-                    {s}
-                  </Link>
-                ))}
-              </nav>
-
-              <button className="md:hidden text-ink" aria-label="Menú">
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
-
-              <Link href="/admin" className="bg-accent hover:bg-accent-dark text-white text-[13px] font-bold px-5 py-2.5 rounded-md transition-colors flex items-center gap-1.5">
-                <span>★</span> Suscribite
-              </Link>
-            </div>
-
-          </div>
-
-        </div>
-      </header>
+    <>
 
       {/* ══════════ HERO + SIDEBAR ══════════ */}
       <section className="bg-white">
@@ -260,22 +196,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ══════════ FOOTER ══════════ */}
-      <footer className="bg-charcoal mt-auto">
-        <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <Link href="/" className="flex items-center gap-3">
-            <Image src="/logo-icon.png" alt="N" width={225} height={239} className="h-8 w-auto object-contain" />
-            <span className="text-white font-extrabold text-xl tracking-tight">NECO NEWS</span>
-          </Link>
-          <nav className="flex flex-wrap justify-center gap-5">
-            {NAV.map((s) => (
-              <Link key={s} href={`/${s.toLowerCase()}`} className="text-white/50 hover:text-white text-[13px] font-medium transition-colors">{s}</Link>
-            ))}
-          </nav>
-          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Neco Media</p>
-        </div>
-      </footer>
-
-    </div>
+    </>
   );
 }

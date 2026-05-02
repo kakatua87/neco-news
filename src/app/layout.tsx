@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -44,8 +46,12 @@ export default function RootLayout({
       lang="es"
       className={`${inter.variable} ${merriweather.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-cream text-ink">
-        {children}
+      <body className="min-h-full flex flex-col bg-white text-ink font-sans">
+        <Header />
+        <main className="flex-1 flex flex-col">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );

@@ -38,24 +38,7 @@ export default async function ArchivoFechaPage({ params }: Props) {
   });
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      {/* Header */}
-      <header className="sticky top-0 z-50 shadow-lg flex h-14">
-        <div className="bg-charcoal flex items-center px-5 md:px-8">
-          <Link href="/">
-            <img src="/logo-dark.png" alt="Neco News" className="h-8 w-auto object-contain" />
-          </Link>
-        </div>
-        <div className="bg-white flex-1 flex items-center px-4 md:px-8 border-b border-border">
-          <nav className="text-[11px] font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-            <Link href="/" className="hover:text-accent transition-colors">Inicio</Link>
-            <span>/</span>
-            <Link href={`/archivo?anio=${anio}&mes=${mes}`} className="hover:text-accent transition-colors">Archivo</Link>
-            <span>/</span>
-            <span className="text-ink capitalize">{fechaStr}</span>
-          </nav>
-        </div>
-      </header>
+    <>
 
       <main className="mx-auto max-w-4xl px-4 md:px-8 py-10 md:py-16">
         <div className="mb-8">
@@ -125,6 +108,6 @@ export default async function ArchivoFechaPage({ params }: Props) {
           </Link>
         </div>
       </main>
-    </div>
+    </>
   );
 }

@@ -2,12 +2,10 @@ import { getNoticiaBySlug } from "@/lib/noticias";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import LiveClock from "@/components/LiveClock";
 
 type Props = { params: Promise<{ seccion: string; slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
-  const { slug } = await params;
   const noticia = await getNoticiaBySlug(slug);
   if (!noticia) return { title: "Noticia no encontrada" };
   return {
@@ -42,27 +40,8 @@ export default async function NoticiaPage({ params }: Props) {
   const parrafos = noticia.cuerpo.split("\n\n").filter((p) => p.trim());
 
   return (
-    <div className="min-h-screen bg-white text-ink font-sans flex flex-col">
+    <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-
-      {/* ── Split Header (lectura) ── */}
-      <header className="sticky top-0 z-50 shadow-lg flex h-14">
-        <div className="bg-charcoal flex items-center px-5 md:px-8">
-          <Link href="/">
-            <Image src="/logo-dark.png" alt="Neco News" width={536} height={239} className="h-8 md:h-9 w-auto object-contain" priority />
-          </Link>
-        </div>
-        <div className="bg-white flex-1 flex items-center justify-between px-4 md:px-8 border-b border-border">
-          <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-widest text-muted">
-            <Link href={`/${noticia.seccion.toLowerCase()}`} className="hover:text-accent transition-colors">{noticia.seccion}</Link>
-            <span className="text-border">|</span>
-            <LiveClock />
-          </div>
-          <Link href="/" className="text-[13px] font-semibold text-ink/60 hover:text-accent transition-colors">
-            ← Volver al inicio
-          </Link>
-        </div>
-      </header>
 
       <main className="mx-auto max-w-[880px] px-4 md:px-8 py-10 md:py-16 flex-1">
         {/* Breadcrumb */}
@@ -125,13 +104,6 @@ export default async function NoticiaPage({ params }: Props) {
           </div>
         )}
       </main>
-
-      <footer className="bg-charcoal py-8 mt-auto">
-        <div className="mx-auto max-w-[880px] px-4 md:px-8 flex flex-col items-center gap-3">
-          <Image src="/logo-dark.png" alt="Neco News" width={536} height={239} className="h-7 w-auto object-contain opacity-50" />
-          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Neco News</p>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
