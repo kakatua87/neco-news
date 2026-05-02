@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Noticia } from "@/types/noticia";
 
-type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "fuente" | "imagen_url" | "created_at">;
+type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at">;
 
 type Props = {
   initialItems: Editable[];
@@ -196,9 +196,6 @@ export default function AdminPanel({ initialItems, stats }: Props) {
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
                             {item.seccion}
-                          </span>
-                          <span className="text-xs text-muted">
-                            Fuente: {item.fuente}
                           </span>
                         </div>
                         
