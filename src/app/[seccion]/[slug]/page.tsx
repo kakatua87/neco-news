@@ -6,6 +6,7 @@ import Link from "next/link";
 type Props = { params: Promise<{ seccion: string; slug: string }> };
 
 export async function generateMetadata({ params }: Props) {
+  const { slug } = await params;
   const noticia = await getNoticiaBySlug(slug);
   if (!noticia) return { title: "Noticia no encontrada" };
   return {
