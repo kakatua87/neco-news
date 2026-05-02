@@ -87,7 +87,6 @@ export default async function AdminPage() {
     titulo: n.titulo,
     cuerpo: n.cuerpo,
     seccion: n.seccion,
-    fuente: n.fuente,
     imagen_url: n.imagen_url,
     created_at: n.created_at,
   }));
