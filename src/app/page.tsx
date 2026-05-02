@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getPublicadas } from "@/lib/noticias";
+import { getPublicadas, getPortadaDelDia } from "@/lib/noticias";
 import type { Noticia } from "@/types/noticia";
 
 /* ═══ Helpers ═══ */
@@ -33,12 +33,19 @@ const DEMO_STORIES = [
 /* ═══ Page ═══ */
 
 export default async function Home() {
-  const noticias = await getPublicadas(60);
+  const [noticias, portada] = await Promise.all([
+    getPublicadas(60),
+    getPortadaDelDia(),
+  ]);
   const hasNews = noticias.length > 0;
 
-  const hero = hasNews ? noticias[0] : null;
-  const sideNotes = hasNews ? noticias.slice(1, 4) : [];
-  const bottomNotes = hasNews ? noticias.slice(4, 7) : [];
+  // Portada del día tiene prioridad sobre la más reciente
+  const hero = portada ?? (hasNews ? noticias[0] : null);
+  const restNotes = hasNews
+    ? noticias.filter((n) => n.id !== hero?.id)
+    : [];
+  const sideNotes = restNotes.slice(0, 3);
+  const bottomNotes = restNotes.slice(3, 6);
 
   const navSections = hasNews
     ? [...new Set(noticias.map((n) => n.seccion))].slice(0, 6)
@@ -242,6 +249,14 @@ export default async function Home() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+      {/* ══════════ ARCHIVO LINK ══════════ */}
+      <section className="bg-white border-t border-border">
+        <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-8 text-center">
+          <Link href="/archivo" className="inline-flex items-center gap-2 text-accent hover:text-accent-dark text-sm font-bold uppercase tracking-widest transition-colors">
+            <span>📁</span> Ver archivo completo de noticias <span>→</span>
+          </Link>
         </div>
       </section>
 

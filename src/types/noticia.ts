@@ -10,10 +10,12 @@ export type Noticia = {
   fuente: string | null;
   url_original: string | null;
   imagen_url: string | null;
+  imagen_fuente: string | null;
   instagram_text: string | null;
   twitter_text: string | null;
   guion_video: string | null;
   slug: string;
   fecha_publicacion: string | null;
   created_at: string;
+  es_portada: boolean;
 };
