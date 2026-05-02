@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Noticia } from "@/types/noticia";
+import { logoutAction } from "./actions";
 
 type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at">;
 
@@ -107,6 +108,12 @@ export default function AdminPanel({ initialItems, stats }: Props) {
             }`}
           >
             ⚙️ Configuración
+          </button>
+          <button
+            onClick={() => logoutAction()}
+            className="w-full text-left px-4 py-2.5 mt-8 border-t border-cream/10 rounded-lg text-sm font-medium transition-colors text-cream/70 hover:text-red-400 hover:bg-red-400/10"
+          >
+            🚪 Cerrar sesión
           </button>
         </nav>
       </aside>

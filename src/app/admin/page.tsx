@@ -7,23 +7,21 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 async function login(formData: FormData) {
   "use server";
+  const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  if (!process.env.ADMIN_PASSWORD) {
-    throw new Error("ADMIN_PASSWORD no configurada.");
-  }
-  if (password !== process.env.ADMIN_PASSWORD) {
-    redirect("/admin?error=1");
-  }
-  const cookieStore = await cookies();
-  cookieStore.set("admin_auth", "ok", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 8, // 8 horas
+  
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
+
+  if (error) {
+    redirect("/admin?error=Credenciales+inválidas");
+  }
   redirect("/admin");
 }
+
 
 async function getStats() {
   const supabase = await createSupabaseServerClient();
@@ -42,8 +40,9 @@ async function getStats() {
 }
 
 export default async function AdminPage() {
-  const cookieStore = await cookies();
-  const isAuthed = cookieStore.get("admin_auth")?.value === "ok";
+  const supabase = await createSupabaseServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const isAuthed = !!session;
 
   if (!isAuthed) {
     return (
@@ -55,6 +54,19 @@ export default async function AdminPage() {
           <h1 className="text-xl font-bold text-center text-ink mb-6">Acceso a Redacción</h1>
           
           <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-muted mb-1" htmlFor="email">
+                Correo Electrónico
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                className="w-full border border-border-strong rounded-lg px-4 py-2.5 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                placeholder="redactor@neconews.com"
+                required
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-muted mb-1" htmlFor="password">
                 Clave de acceso
@@ -68,7 +80,7 @@ export default async function AdminPage() {
                 required
               />
             </div>
-            <button className="w-full bg-accent hover:bg-accent-dark text-white font-medium rounded-lg px-4 py-2.5 transition-colors">
+            <button className="w-full bg-accent hover:bg-accent-dark text-white font-medium rounded-lg px-4 py-2.5 transition-colors mt-2">
               Ingresar al sistema
             </button>
           </div>
