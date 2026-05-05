@@ -15,6 +15,18 @@ function timeAgo(dateStr: string): string {
   return `Hace ${Math.floor(hours / 24)}d`;
 }
 
+function normalizeSeccion(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/á/g, "a")
+    .replace(/é/g, "e")
+    .replace(/í/g, "i")
+    .replace(/ó/g, "o")
+    .replace(/ú/g, "u")
+    .replace(/ñ/g, "n")
+    .replace(/\s+/g, "-");
+}
+
 const NAV = ["Política", "Economía", "Policiales", "Local", "Deportes", "Sociedad"];
 
 const DEMO_TRENDING = [
@@ -63,7 +75,7 @@ export default async function Home() {
             <article className="group relative rounded-xl overflow-hidden cursor-pointer card-lift">
               {hero ? (
                 <>
-                  <Link href={`/${hero.seccion.toLowerCase()}/${hero.slug}`} className="absolute inset-0 z-20" />
+                  <Link href={`/${normalizeSeccion(hero.seccion)}/${hero.slug}`} className="absolute inset-0 z-20" />
                   <div className="relative h-[300px] md:h-[440px] w-full overflow-hidden bg-gray-200">
                     {hero.imagen_url ? (
                       <img src={hero.imagen_url} alt={hero.titulo} className="w-full h-full object-cover img-zoom" />
@@ -122,26 +134,39 @@ export default async function Home() {
               <div>
                 <h3 className="font-extrabold text-lg mb-4">Top Stories</h3>
                 <div className="space-y-4">
-                  {(hasNews ? sideNotes : DEMO_STORIES.map((d, i) => ({ id: i, titulo: d.title, resumen_seo: d.desc, imagen_url: d.img, seccion: d.section } as any))).map((note: any) => (
-                    <article key={note.id} className="group flex gap-3 items-start cursor-pointer">
-                      {hasNews ? (
-                        <Link href={`/${note.seccion.toLowerCase()}/${note.slug}`} className="absolute inset-0 z-10" />
-                      ) : null}
-                      <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-gray-100">
-                        {note.imagen_url && (
-                          <img src={note.imagen_url} alt="" className="w-full h-full object-cover img-zoom" />
+                  {(hasNews ? sideNotes : DEMO_STORIES.map((d, i) => ({ id: i, titulo: d.title, resumen_seo: d.desc, imagen_url: d.img, seccion: d.section } as any))).map((note: any) => {
+                    const content = (
+                      <>
+                        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-gray-100">
+                          {note.imagen_url && (
+                            <img src={note.imagen_url} alt="" className="w-full h-full object-cover img-zoom" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-bold leading-snug title-hover line-clamp-2 mb-0.5">
+                            {note.titulo}
+                          </h4>
+                          <p className="text-xs text-muted line-clamp-2">
+                            {note.resumen_seo ?? note.cuerpo?.slice(0, 80) ?? ""}
+                          </p>
+                        </div>
+                      </>
+                    );
+
+                    return (
+                      <article key={note.id} className="group relative cursor-pointer">
+                        {hasNews ? (
+                          <Link href={`/${normalizeSeccion(note.seccion)}/${note.slug}`} className="flex gap-3 items-start">
+                            {content}
+                          </Link>
+                        ) : (
+                          <div className="flex gap-3 items-start">
+                            {content}
+                          </div>
                         )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold leading-snug title-hover line-clamp-2 mb-0.5">
-                          {note.titulo}
-                        </h4>
-                        <p className="text-xs text-muted line-clamp-2">
-                          {note.resumen_seo ?? note.cuerpo?.slice(0, 80) ?? ""}
-                        </p>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -158,7 +183,7 @@ export default async function Home() {
             {(hasNews ? bottomNotes : DEMO_STORIES.map((d, i) => ({ id: `demo-${i}`, titulo: d.title, imagen_url: d.img, seccion: d.section, slug: "", cuerpo: d.desc, resumen_seo: d.desc } as any))).map((note: any) => (
               <article key={note.id} className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
                 {hasNews ? (
-                  <Link href={`/${note.seccion.toLowerCase()}/${note.slug}`} className="block">
+                  <Link href={`/${normalizeSeccion(note.seccion)}/${note.slug}`} className="block">
                     <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
                       {note.imagen_url ? (
                         <img src={note.imagen_url} alt={note.titulo} className="w-full h-full object-cover img-zoom" />
