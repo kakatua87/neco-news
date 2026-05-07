@@ -1,0 +1,30 @@
+name: Servicios diarios — Farmacias y Obituarios
+
+on:
+  schedule:
+    - cron: '0 10 * * *'  # 7 AM Argentina (UTC-3)
+  workflow_dispatch:       # permite correrlo manualmente
+
+jobs:
+  trigger-servicios:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Despertar Render
+        run: |
+          curl -s https://neco-news-scraper.onrender.com/health
+          echo "Servidor despertado, esperando 30 segundos..."
+          sleep 30
+
+      - name: Ejecutar pipeline de servicios
+        run: |
+          curl -X POST https://neco-news-scraper.onrender.com/run-services \
+            -H "Content-Type: application/json" \
+            --max-time 120 \
+            -w "\nHTTP Status: %{http_code}\n"
+
+      - name: Ejecutar pipeline de noticias
+        run: |
+          curl -X POST https://neco-news-scraper.onrender.com/run \
+            -H "Content-Type: application/json" \
+            --max-time 300 \
+            -w "\nHTTP Status: %{http_code}\n"
