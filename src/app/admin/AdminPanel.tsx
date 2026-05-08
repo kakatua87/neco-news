@@ -1,12 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Noticia } from "@/types/noticia";
 import { logoutAction } from "./actions";
 
-type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at">;
+const SECCIONES = [
+  "Política", "Economía", "Policiales", "Local", 
+  "Deportes", "Sociedad", "Salud", "Cultura", 
+  "Tecnología", "Educación"
+];
+
+type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at"> & {
+  tiene_perspectiva_editorial?: boolean;
+  es_portada?: boolean;
+  fecha_publicacion?: string;
+};
 
 type Props = {
   initialItems: Editable[];
@@ -17,13 +27,19 @@ type Props = {
   };
 };
 
-type Tab = "dashboard" | "pendientes" | "config";
+type Tab = "dashboard" | "pendientes" | "publicadas" | "config";
 
 export default function AdminPanel({ initialItems, stats }: Props) {
   const [items, setItems] = useState(initialItems);
   const [savingIds, setSavingIds] = useState<Array<string | number>>([]);
   const [activeTab, setActiveTab] = useState<Tab>("pendientes");
   const [editingId, setEditingId] = useState<string | number | null>(null);
+
+  const [publicadasItems, setPublicadasItems] = useState<Editable[]>([]);
+  const [publicadasFetched, setPublicadasFetched] = useState(false);
+  const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
+  
+  const [customSecciones, setCustomSecciones] = useState<string[]>(SECCIONES);
 
   const pendientesCount = items.length;
 
@@ -68,6 +84,59 @@ export default function AdminPanel({ initialItems, stats }: Props) {
       if (editingId === item.id) setEditingId(null);
     });
 
+  const cambiarSeccion = async (item: Editable, nuevaSeccion: string) => {
+    updateItem(item.id, "seccion", nuevaSeccion);
+    withSaving(item.id, async () => {
+      await fetch(`/api/noticias/${item.id}/seccion`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seccion: nuevaSeccion }),
+      });
+    });
+  };
+
+  const fetchPublicadas = async () => {
+    if (publicadasFetched) return;
+    try {
+      const res = await fetch("/api/noticias/publicadas");
+      if (res.ok) {
+        const data = await res.json();
+        setPublicadasItems(data);
+        setPublicadasFetched(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const eliminarPublicada = async (id: string | number) => {
+    if (!confirm("¿Seguro que quieres eliminar esta noticia?")) return;
+    setPublicadasItems((prev) => prev.filter((n) => n.id !== id));
+    try {
+      await fetch(`/api/noticias/${id}`, { method: "DELETE" });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const marcarPortada = async (id: string | number) => {
+    setPublicadasItems((prev) =>
+      prev.map((n) => ({ ...n, es_portada: n.id === id }))
+    );
+    try {
+      await fetch(`/api/noticias/${id}/portada`, { method: "POST" });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    if (tab === "publicadas") {
+      fetchPublicadas();
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* ─── SIDEBAR ─── */}
@@ -81,7 +150,7 @@ export default function AdminPanel({ initialItems, stats }: Props) {
         
         <nav className="mt-6 px-4 space-y-2">
           <button
-            onClick={() => setActiveTab("dashboard")}
+            onClick={() => handleTabChange("dashboard")}
             className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
               activeTab === "dashboard" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
             }`}
@@ -89,7 +158,7 @@ export default function AdminPanel({ initialItems, stats }: Props) {
             📊 Dashboard
           </button>
           <button
-            onClick={() => setActiveTab("pendientes")}
+            onClick={() => handleTabChange("pendientes")}
             className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium flex justify-between items-center transition-colors ${
               activeTab === "pendientes" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
             }`}
@@ -102,7 +171,15 @@ export default function AdminPanel({ initialItems, stats }: Props) {
             )}
           </button>
           <button
-            onClick={() => setActiveTab("config")}
+            onClick={() => handleTabChange("publicadas")}
+            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "publicadas" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
+            }`}
+          >
+            📰 Publicadas
+          </button>
+          <button
+            onClick={() => handleTabChange("config")}
             className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
               activeTab === "config" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
             }`}
@@ -200,10 +277,47 @@ export default function AdminPanel({ initialItems, stats }: Props) {
                       
                       {/* Contenido */}
                       <div className="p-5 flex-1 flex flex-col">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-                            {item.seccion}
-                          </span>
+                        <div className="flex flex-col gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
+                              {item.seccion}
+                            </span>
+                            {item.tiene_perspectiva_editorial && (
+                              <span className="text-xs font-bold text-[#1da64f] bg-[#25D366]/20 px-2 py-1 rounded flex items-center">
+                                ✍ Con análisis
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Selector de Sección */}
+                          <div className="flex items-center gap-2 mt-1">
+                            <select 
+                              value={item.seccion || ""}
+                              onChange={(e) => cambiarSeccion(item, e.target.value)}
+                              className="text-xs border border-border rounded px-2 py-1.5 outline-none focus:border-accent bg-gray-50"
+                            >
+                              {customSecciones.map((sec) => (
+                                <option key={sec} value={sec}>{sec}</option>
+                              ))}
+                            </select>
+                            <div className="flex">
+                              <input 
+                                type="text" 
+                                placeholder="Nueva sección..." 
+                                className="text-xs border border-border rounded px-2 py-1.5 w-32 outline-none focus:border-accent"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                    const val = e.currentTarget.value.trim();
+                                    if (!customSecciones.includes(val)) {
+                                      setCustomSecciones([...customSecciones, val]);
+                                    }
+                                    cambiarSeccion(item, val);
+                                    e.currentTarget.value = "";
+                                  }
+                                }}
+                              />
+                            </div>
+                          </div>
                         </div>
                         
                         {isEditing ? (
@@ -266,6 +380,93 @@ export default function AdminPanel({ initialItems, stats }: Props) {
           </div>
         )}
 
+        {/* TAB: PUBLICADAS */}
+        {activeTab === "publicadas" && (
+          <div className="space-y-6 fade-in">
+            <h2 className="text-2xl font-bold text-ink mb-6">Noticias Publicadas</h2>
+            
+            {/* Row de Filtros por Sección */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              <button
+                onClick={() => setSeccionFiltro("Todas")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                  seccionFiltro === "Todas" ? "bg-ink text-white border-ink" : "bg-white text-muted border-border hover:bg-gray-50"
+                }`}
+              >
+                Todas
+              </button>
+              {customSecciones.map((sec) => (
+                <button
+                  key={sec}
+                  onClick={() => setSeccionFiltro(sec)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    seccionFiltro === sec ? "bg-ink text-white border-ink" : "bg-white text-muted border-border hover:bg-gray-50"
+                  }`}
+                >
+                  {sec}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {publicadasItems
+                .filter((item) => seccionFiltro === "Todas" || item.seccion === seccionFiltro)
+                .map((item) => (
+                <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
+                  <div className="h-40 bg-gray-100 flex-shrink-0 relative">
+                    {item.imagen_url ? (
+                      <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">Sin foto</div>
+                    )}
+                    {item.es_portada && (
+                      <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-sm">
+                        ⭐ Portada
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
+                        {item.seccion}
+                      </span>
+                      {item.fecha_publicacion && (
+                        <span className="text-xs text-muted whitespace-nowrap">
+                          {new Date(item.fecha_publicacion).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-editorial text-lg font-bold text-ink leading-tight line-clamp-3 mb-4">{item.titulo}</h3>
+                    
+                    <div className="mt-auto pt-4 border-t border-border/50 flex gap-2 justify-between items-center">
+                      <button
+                        onClick={() => eliminarPublicada(item.id)}
+                        className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                      <button
+                        onClick={() => marcarPortada(item.id)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                          item.es_portada ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-ink hover:bg-gray-200"
+                        }`}
+                      >
+                        {item.es_portada ? "⭐ Es Portada" : "⭐ Portada"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+              
+              {publicadasItems.length === 0 && publicadasFetched && (
+                <div className="col-span-full text-center py-12 text-muted">
+                  No hay noticias publicadas para mostrar.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* TAB: CONFIGURACIÓN */}
         {activeTab === "config" && (
           <div className="space-y-6 fade-in max-w-3xl">
@@ -282,6 +483,10 @@ export default function AdminPanel({ initialItems, stats }: Props) {
                     <span className="font-medium">Groq (Llama 3.3 70B)</span>
                     <span className="bg-[#25D366]/20 text-[#1da64f] text-xs font-bold px-2 py-1 rounded">Activo (Gratis)</span>
                   </div>
+                  <div className="flex justify-between items-center p-3 border border-border rounded-lg bg-blue-50/50">
+                    <span className="font-medium">Claude API (Anthropic)</span>
+                    <span className="text-blue-600 bg-blue-100 text-xs font-bold px-2 py-1 rounded">Mejor español — recomendado</span>
+                  </div>
                   <div className="flex justify-between items-center p-3 border border-border rounded-lg opacity-60 grayscale">
                     <span className="font-medium">OpenAI (GPT-4o-mini)</span>
                     <span className="text-xs font-bold px-2 py-1">Requiere pago</span>
@@ -294,13 +499,47 @@ export default function AdminPanel({ initialItems, stats }: Props) {
               <div>
                 <h3 className="font-bold text-ink mb-2">Fuentes de Noticias</h3>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                    <span>NDEN (Necochea Digital)</span>
+                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
+                      <span className="font-medium">NDEN (Necochea Digital)</span>
+                    </div>
+                    <span className="text-xs text-muted ml-7">nden.com.ar</span>
                   </label>
-                  <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                    <span>Diario Necochea</span>
+                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
+                      <span className="font-medium">Diario Necochea</span>
+                    </div>
+                    <span className="text-xs text-muted ml-7">diarionecochea.com</span>
+                  </label>
+                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
+                      <span className="font-medium">Diario 4V</span>
+                    </div>
+                    <span className="text-xs text-muted ml-7">diario4v.com</span>
+                  </label>
+                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
+                      <span className="font-medium">TSN Necochea</span>
+                    </div>
+                    <span className="text-xs text-muted ml-7">tsnnecochea.com.ar</span>
+                  </label>
+                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
+                      <span className="font-medium">Diario NQ</span>
+                    </div>
+                    <span className="text-xs text-muted ml-7">diarionq.com.ar</span>
+                  </label>
+                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
+                      <span className="font-medium">El Ecos</span>
+                    </div>
+                    <span className="text-xs text-muted ml-7">elecos.com.ar</span>
                   </label>
                 </div>
               </div>
