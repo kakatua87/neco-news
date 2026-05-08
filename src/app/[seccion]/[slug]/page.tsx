@@ -2,6 +2,8 @@ import { getNoticiaBySlug } from "@/lib/noticias";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import React from "react";
+import BannerZone from "@/components/BannerZone";
 
 type Props = { params: Promise<{ seccion: string; slug: string }> };
 
@@ -75,13 +77,16 @@ export default async function NoticiaPage({ params }: Props) {
         )}
 
         <div className="font-editorial text-lg md:text-xl leading-[1.85] space-y-6">
-          {parrafos.map((p, i) =>
-            i === 0 ? (
-              <p key={i} className="text-xl md:text-2xl font-medium text-ink/90 leading-relaxed">{p}</p>
-            ) : (
-              <p key={i}>{p}</p>
-            )
-          )}
+          {parrafos.map((p, i) => (
+            <React.Fragment key={i}>
+              {i === 0 ? (
+                <p className="text-xl md:text-2xl font-medium text-ink/90 leading-relaxed">{p}</p>
+              ) : (
+                <p>{p}</p>
+              )}
+              {i === 0 && <BannerZone zone="in-article" className="w-full h-24 my-6" />}
+            </React.Fragment>
+          ))}
         </div>
 
         {(noticia.instagram_text || noticia.twitter_text) && (

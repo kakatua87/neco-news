@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getPublicadas, getPortadaDelDia } from "@/lib/noticias";
 import type { Noticia } from "@/types/noticia";
+import BannerZone from "@/components/BannerZone";
 
 /* ═══ Helpers ═══ */
 
@@ -130,6 +131,9 @@ export default async function Home() {
                 </ol>
               </div>
 
+              {/* BANNER SIDEBAR */}
+              <BannerZone zone="sidebar" className="w-full h-32" />
+
               {/* TOP STORIES */}
               <div>
                 <h3 className="font-extrabold text-lg mb-4">Top Stories</h3>
@@ -175,6 +179,11 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* BANNER HEADER */}
+      <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-4">
+        <BannerZone zone="header" className="w-full h-24 md:h-28" />
+      </div>
 
       {/* ══════════ BOTTOM GRID (3 cards con imagen grande) ══════════ */}
       <section className="bg-white border-t border-border">
