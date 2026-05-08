@@ -3,9 +3,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const supabase = await createSupabaseServerClient();
 
     // Verify authentication
@@ -33,7 +34,7 @@ export async function POST(
     const { error: updateError } = await supabase
       .from("noticias")
       .update({ es_portada: true })
-      .eq("id", params.id);
+      .eq("id", id);
 
     if (updateError) {
       console.error("Error set portada:", updateError);

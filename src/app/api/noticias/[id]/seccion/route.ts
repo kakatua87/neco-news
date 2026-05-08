@@ -3,9 +3,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await request.json();
     const { seccion } = body;
 
@@ -27,7 +28,7 @@ export async function PATCH(
     const { error } = await supabase
       .from("noticias")
       .update({ seccion: seccion.trim() })
-      .eq("id", params.id);
+      .eq("id", id);
 
     if (error) {
       console.error("Error updating seccion:", error);

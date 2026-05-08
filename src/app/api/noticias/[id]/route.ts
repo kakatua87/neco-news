@@ -3,9 +3,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const supabase = await createSupabaseServerClient();
 
     // Verify authentication
@@ -17,7 +18,7 @@ export async function DELETE(
     const { error } = await supabase
       .from("noticias")
       .update({ estado: "descartada" })
-      .eq("id", params.id);
+      .eq("id", id);
 
     if (error) {
       console.error("Error deleting noticia:", error);
