@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { getPublicadas, getPortadaDelDia } from "@/lib/noticias";
 import type { Noticia } from "@/types/noticia";
@@ -52,11 +51,8 @@ export default async function Home() {
   ]);
   const hasNews = noticias.length > 0;
 
-  // Portada del día tiene prioridad sobre la más reciente
   const hero = portada ?? (hasNews ? noticias[0] : null);
-  const restNotes = hasNews
-    ? noticias.filter((n) => n.id !== hero?.id)
-    : [];
+  const restNotes = hasNews ? noticias.filter((n) => n.id !== hero?.id) : [];
   const sideNotes = restNotes.slice(0, 3);
   const bottomNotes = restNotes.slice(3, 6);
 
@@ -66,7 +62,6 @@ export default async function Home() {
 
   return (
     <>
-
       {/* ══════════ HERO + SIDEBAR ══════════ */}
       <section className="bg-white">
         <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-6 md:py-8">
@@ -92,24 +87,23 @@ export default async function Home() {
                         {hero.titulo}
                       </h1>
                       <p className="text-white/60 text-sm">
-                        Redacción Neco News • {timeAgo(hero.fecha_publicacion ?? hero.created_at)}
+                        Redacción Neco Now • {timeAgo(hero.fecha_publicacion ?? hero.created_at)}
                       </p>
                     </div>
                   </div>
                 </>
               ) : (
-                /* Demo hero when no news */
                 <div className="relative h-[300px] md:h-[440px] w-full overflow-hidden bg-gray-200 rounded-xl">
-                  <img src="/placeholder-hero.png" alt="Neco News" className="w-full h-full object-cover" />
+                  <img src="/placeholder-hero.png" alt="Neco Now" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
                   <span className="absolute top-4 left-4 bg-accent text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded z-10">
                     Destacado
                   </span>
                   <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8 z-10">
                     <h1 className="text-white font-extrabold text-xl md:text-3xl lg:text-4xl leading-[1.12] mb-3">
-                      Neco News: Tu portal de noticias de Necochea
+                      Neco Now: Tu portal de noticias de Necochea
                     </h1>
-                    <p className="text-white/60 text-sm">Redacción Neco News</p>
+                    <p className="text-white/60 text-sm">Redacción Neco Now</p>
                   </div>
                 </div>
               )}
@@ -185,7 +179,7 @@ export default async function Home() {
         <BannerZone zone="header" className="w-full h-24 md:h-28" />
       </div>
 
-      {/* ══════════ BOTTOM GRID (3 cards con imagen grande) ══════════ */}
+      {/* ══════════ BOTTOM GRID ══════════ */}
       <section className="bg-white border-t border-border">
         <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -221,6 +215,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
       {/* ══════════ ARCHIVO LINK ══════════ */}
       <section className="bg-white border-t border-border">
         <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-8 text-center">
@@ -229,7 +224,6 @@ export default async function Home() {
           </Link>
         </div>
       </section>
-
     </>
   );
 }

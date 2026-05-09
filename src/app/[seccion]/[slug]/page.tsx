@@ -1,6 +1,5 @@
 import { getNoticiaBySlug } from "@/lib/noticias";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import React from "react";
 import BannerZone from "@/components/BannerZone";
@@ -34,7 +33,7 @@ export default async function NoticiaPage({ params }: Props) {
     headline: noticia.titulo,
     image: noticia.imagen_url ? [noticia.imagen_url] : [],
     datePublished: noticia.fecha_publicacion || noticia.created_at,
-    author: [{ "@type": "Organization", name: "Neco News Redacción" }],
+    author: [{ "@type": "Organization", name: "Redacción Neco Now" }],
   };
 
   const fecha = new Date(noticia.fecha_publicacion || noticia.created_at).toLocaleDateString("es-AR", {
@@ -66,7 +65,7 @@ export default async function NoticiaPage({ params }: Props) {
         )}
 
         <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-muted uppercase tracking-wider py-4 border-y border-border mb-10">
-          <span>Por <strong className="text-ink">Redacción Neco News</strong></span>
+          <span>Por <strong className="text-ink">Redacción Neco Now</strong></span>
           <span>•</span>
           <span>{fecha}</span>
         </div>
