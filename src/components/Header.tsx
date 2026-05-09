@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import LiveClock from "./LiveClock";
 import WeatherWidget from "./WeatherWidget";
@@ -10,23 +9,15 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 shadow-lg font-sans">
       <div className="flex">
-        {/* LEFT: Charcoal + Logo (compacto) */}
-        <div className="bg-charcoal flex items-center px-5 md:px-8 py-4">
-          <Link href="/" className="flex items-center gap-3">
-            {/* N Icon */}
-            <Image
-              src="/logo-icon.png"
-              alt="N"
-              width={225}
-              height={239}
-              className="h-12 md:h-16 lg:h-[70px] w-auto object-contain"
-              priority
+        {/* LEFT: Charcoal + Logo */}
+        <div className="bg-charcoal flex items-center px-5 md:px-8 py-3">
+          <Link href="/" className="flex items-center">
+            {/* Logotipo SVG completo */}
+            <img
+              src="/logotipo.svg"
+              alt="Neco Now"
+              className="h-12 md:h-16 lg:h-[70px] w-auto"
             />
-            {/* Text */}
-            <div className="flex flex-col leading-none">
-              <span className="logo-text text-white font-extrabold text-[1.6rem] md:text-[2rem] lg:text-[2.1rem] tracking-tight">NECO</span>
-              <span className="logo-text text-white font-extrabold text-[1.6rem] md:text-[2rem] lg:text-[2.1rem] tracking-tight">NOW</span>
-            </div>
           </Link>
         </div>
 
@@ -55,12 +46,12 @@ export default function Header() {
               {/* DROPDOWN MÁS */}
               <div className="group relative py-4 cursor-pointer">
                 <span className="text-[13px] font-bold uppercase tracking-wider text-ink/70 group-hover:text-accent transition-colors flex items-center gap-1">
-                  Más 
+                  Más
                   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:rotate-180 transition-transform">
                     <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </span>
-                
+
                 {/* Menú oculto */}
                 <div className="absolute top-full left-0 mt-0 w-48 bg-white border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col overflow-hidden z-50">
                   {EXTRA_NAV.map((s) => (

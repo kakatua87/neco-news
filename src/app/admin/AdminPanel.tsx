@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { Noticia } from "@/types/noticia";
 import { logoutAction } from "./actions";
@@ -143,7 +142,7 @@ export default function AdminPanel({ initialItems, stats }: Props) {
       <aside className="w-full md:w-64 bg-ink text-cream flex-shrink-0">
         <div className="p-6">
           <Link href="/">
-            <Image src="/logo.png" alt="Neco News" width={140} height={35} className="h-8 w-auto invert brightness-0" />
+            <img src="/logotipo.svg" alt="Neco Now" className="h-8 w-auto brightness-0 invert" />
           </Link>
           <div className="mt-2 text-xs text-cream/50 uppercase tracking-widest">Panel Editorial</div>
         </div>
