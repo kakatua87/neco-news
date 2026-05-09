@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
-/* ═══ Neco News — Split Header Design System ═══ */
+/* ═══ Neco Now — Split Header Design System ═══ */
 
 :root {
   --cream: #FFFFFF;
   --ink: #111827;
-  --accent: #059669;
-  --accent-dark: #047857;
-  --accent-light: #ECFDF5;
+  --accent: #1B8B7A;
+  --accent-dark: #156E60;
+  --accent-light: #E6F4F1;
   --muted: #6B7280;
   --charcoal: #111827;
   --border: rgba(0, 0, 0, 0.08);

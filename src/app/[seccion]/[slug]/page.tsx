@@ -12,10 +12,11 @@ export async function generateMetadata({ params }: Props) {
   const noticia = await getNoticiaBySlug(slug);
   if (!noticia) return { title: "Noticia no encontrada" };
   return {
-    title: `${noticia.titulo} | Neco News`,
+    title: `${noticia.titulo} | Neco Now`,
     description: noticia.resumen_seo || noticia.cuerpo.slice(0, 160),
     openGraph: {
       title: noticia.titulo,
+      siteName: "Neco Now",
       description: noticia.resumen_seo || noticia.cuerpo.slice(0, 160),
       images: noticia.imagen_url ? [{ url: noticia.imagen_url }] : [],
     },

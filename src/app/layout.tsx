@@ -20,16 +20,19 @@ const merriweather = Merriweather({
 
 export const metadata: Metadata = {
   title: {
-    default: "Neco News — Noticias de Necochea",
-    template: "%s | Neco News",
+    default: "Neco Now — Noticias de Necochea",
+    template: "%s | Neco Now",
   },
   description:
-    "Portal de noticias de Necochea, Buenos Aires. Información local actualizada: política, policiales, deportes, sociedad y más.",
+    "El portal de noticias de Necochea y Quequén. Información local, rápida y verificada.",
   metadataBase: new URL("https://neco-news.vercel.app"),
   openGraph: {
-    siteName: "Neco News",
+    siteName: "Neco Now",
     locale: "es_AR",
     type: "website",
+  },
+  twitter: {
+    site: "@neconow",
   },
   robots: {
     index: true,

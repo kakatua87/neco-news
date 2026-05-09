@@ -9,7 +9,7 @@ export default function Footer() {
       <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <Link href="/" className="flex items-center gap-3">
           <Image src="/logo-icon.png" alt="N" width={225} height={239} className="h-8 w-auto object-contain" />
-          <span className="text-white font-extrabold text-xl tracking-tight">NECO NEWS</span>
+          <span className="text-white font-extrabold text-xl tracking-tight">NECO NOW</span>
         </Link>
         <nav className="flex flex-wrap justify-center gap-5">
           {NAV.map((s) => (
@@ -18,7 +18,7 @@ export default function Footer() {
             </Link>
           ))}
         </nav>
-        <p className="text-white/30 text-xs">© {new Date().getFullYear()} Neco Media</p>
+        <p className="text-white/30 text-xs">© {new Date().getFullYear()} Neco Now · Necochea · Todos los derechos reservados</p>
       </div>
     </footer>
   );

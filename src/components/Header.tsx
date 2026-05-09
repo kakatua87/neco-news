@@ -25,7 +25,7 @@ export default function Header() {
             {/* Text */}
             <div className="flex flex-col leading-none">
               <span className="logo-text text-white font-extrabold text-[1.6rem] md:text-[2rem] lg:text-[2.1rem] tracking-tight">NECO</span>
-              <span className="logo-text text-white font-extrabold text-[1.6rem] md:text-[2rem] lg:text-[2.1rem] tracking-tight">NEWS</span>
+              <span className="logo-text text-white font-extrabold text-[1.6rem] md:text-[2rem] lg:text-[2.1rem] tracking-tight">NOW</span>
             </div>
           </Link>
         </div>
