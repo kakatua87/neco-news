@@ -13,11 +13,19 @@ export async function createSupabaseServerClient() {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          // setAll can fail when called from a Server Component (read-only context).
+          // Wrapping in try/catch is the recommended pattern from @supabase/ssr docs.
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // Intentionally ignored: cookie writes are only possible in
+            // Server Actions or Route Handlers, not in Server Components.
+          }
         },
       },
     },
   );
 }
+
