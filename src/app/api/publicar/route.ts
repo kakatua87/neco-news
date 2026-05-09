@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { headers } from "next/headers";
 
 type Body = {
   id?: number;
@@ -24,6 +25,44 @@ export async function POST(request: Request) {
   const { error } = await supabase.from("noticias").update(payload).eq("id", body.id);
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+
+  // Fetch noticia completa para el push
+  try {
+    const { data: noticia } = await supabase
+      .from("noticias")
+      .select("titulo, resumen_seo, cuerpo, slug, seccion, imagen_url")
+      .eq("id", body.id)
+      .single();
+
+    if (noticia) {
+      const headersList = await headers();
+      const host = headersList.get("host") ?? "neco-news.vercel.app";
+      const protocol = host.includes("localhost") ? "http" : "https";
+      
+      const seccionSlug = (noticia.seccion ?? "local")
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-");
+
+      const notaUrl = `${protocol}://${host}/${seccionSlug}/${noticia.slug}`;
+      const cuerpoCorto = (noticia.resumen_seo || noticia.cuerpo || "").slice(0, 100);
+      const titulo = body.titulo || noticia.titulo;
+
+      // Fire and forget — no bloqueamos la respuesta
+      fetch(`${protocol}://${host}/api/push`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titulo,
+          cuerpo_corto: cuerpoCorto,
+          url: notaUrl,
+          imagen_url: noticia.imagen_url ?? undefined,
+        }),
+      }).catch((e) => console.error("Error enviando push:", e));
+    }
+  } catch (pushErr) {
+    console.error("Error preparando push notification:", pushErr);
   }
 
   return NextResponse.json({ ok: true });
