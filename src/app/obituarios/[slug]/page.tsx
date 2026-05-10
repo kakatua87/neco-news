@@ -45,8 +45,14 @@ export default async function ObituarioDetallePage({ params }: PageProps) {
       // Extraemos todos los párrafos dentro del artículo principal
       $("article p").each((i, el) => {
         const text = $(el).text().trim();
-        // Filtramos textos vacíos o la firma de origen
-        if (text && !text.includes("Por Redacción TSN")) {
+        // Filtramos textos vacíos, firma de origen, o elementos de UI
+        if (
+          text && 
+          !text.includes("Por Redacción TSN") &&
+          !text.toLowerCase().includes("noticias relacionadas") &&
+          !text.toLowerCase().includes("seguinos en redes") &&
+          !text.toLowerCase().includes("exequias a cargo de")
+        ) {
           contentParagraphs.push(text);
         }
       });
