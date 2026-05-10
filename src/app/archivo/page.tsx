@@ -3,7 +3,7 @@ import { getNoticiasCountByMonth } from "@/lib/noticias";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Archivo de Noticias | Neco News",
+  title: "Archivo de Noticias | Neco Now",
   description: "Explorá el historial completo de noticias de Necochea ordenadas por fecha.",
 };
 

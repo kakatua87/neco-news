@@ -14,8 +14,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
   return {
-    title: `Noticias del ${fechaStr} | Neco News`,
-    description: `Todas las noticias publicadas por Neco News el ${fechaStr}.`,
+    title: `Noticias del ${fechaStr} | Neco Now`,
+    description: `Todas las noticias publicadas por Neco Now el ${fechaStr}.`,
   };
 }
 

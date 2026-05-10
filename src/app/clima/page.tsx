@@ -1,7 +1,8 @@
 import React from 'react';
+import Script from 'next/script';
 
 export const metadata = {
-  title: 'El Clima en Necochea | Neco News',
+  title: 'El Clima en Necochea | Neco Now',
   description: 'Pronóstico extendido del tiempo para Necochea y Quequén. Datos actualizados en tiempo real.',
 };
 
@@ -34,13 +35,10 @@ export default function ClimaPage() {
             >
               NECOCHEA Pronóstico del tiempo
             </a>
-            {/* El script de WeatherWidget */}
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  !function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
-                `,
-              }}
+            <Script
+              id="weatherwidget-io-js"
+              src="https://weatherwidget.io/js/widget.min.js"
+              strategy="lazyOnload"
             />
           </div>
         </section>
