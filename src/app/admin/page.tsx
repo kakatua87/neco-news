@@ -88,10 +88,13 @@ export default async function AdminPage() {
     );
   }
 
-  const [pendientes, stats] = await Promise.all([
+  const [pendientes, stats, { data: seccionData }] = await Promise.all([
     getPendientes(80),
     getStats(),
+    supabase.from("noticias").select("seccion"),
   ]);
+
+  const dbSecciones = Array.from(new Set((seccionData || []).map(n => n.seccion).filter(Boolean)));
 
   const initialItems = pendientes.map((n) => ({
     id: n.id,
@@ -105,7 +108,7 @@ export default async function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[#f3f4f6] text-ink font-sans">
-      <AdminPanel initialItems={initialItems} stats={stats} />
+      <AdminPanel initialItems={initialItems} stats={stats} dbSecciones={dbSecciones} />
     </main>
   );
 }

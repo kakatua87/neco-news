@@ -25,11 +25,12 @@ type Props = {
     pendientes: number;
     descartadas: number;
   };
+  dbSecciones?: string[];
 };
 
 type Tab = "dashboard" | "pendientes" | "publicadas" | "config";
 
-export default function AdminPanel({ initialItems, stats }: Props) {
+export default function AdminPanel({ initialItems, stats, dbSecciones }: Props) {
   const [items, setItems] = useState(initialItems);
   const [savingIds, setSavingIds] = useState<Array<string | number>>([]);
   const [activeTab, setActiveTab] = useState<Tab>("pendientes");
@@ -39,7 +40,8 @@ export default function AdminPanel({ initialItems, stats }: Props) {
   const [publicadasFetched, setPublicadasFetched] = useState(false);
   const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
   
-  const [customSecciones, setCustomSecciones] = useState<string[]>(SECCIONES);
+  const allSecciones = Array.from(new Set([...SECCIONES, ...(dbSecciones || [])]));
+  const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
 
   const pendientesCount = items.length;
 
