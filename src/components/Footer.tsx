@@ -8,9 +8,9 @@ export default function Footer() {
       <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <Link href="/" className="flex items-center">
           <img
-            src="/logo.png"
+            src="/logo-final.svg"
             alt="Neco Now"
-            className="h-12 md:h-16 lg:h-[70px] w-auto"
+            className="h-8 w-auto"
           />
         </Link>
         <nav className="flex flex-wrap justify-center gap-5">

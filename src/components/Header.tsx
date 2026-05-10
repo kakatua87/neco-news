@@ -14,7 +14,7 @@ export default function Header() {
           <Link href="/" className="flex items-center">
             {/* Logotipo SVG completo */}
             <img
-              src="/logotipo.svg"
+              src="/logo-final.svg"
               alt="Neco Now"
               className="h-12 md:h-16 lg:h-[70px] w-auto"
             />
@@ -48,7 +48,7 @@ export default function Header() {
                 <span className="text-[13px] font-bold uppercase tracking-wider text-ink/70 group-hover:text-accent transition-colors flex items-center gap-1">
                   Más
                   <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:rotate-180 transition-transform">
-                    <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </span>
 
