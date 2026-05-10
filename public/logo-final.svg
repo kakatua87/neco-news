@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 160" shape-rendering="geometricPrecision">
+  <title>Neco Now</title>
+
+  <!-- ═══ BURBUJA ═══ -->
+  <rect x="2" y="2" width="140" height="136" rx="22" ry="22" fill="#0E8A78"/>
+  <!-- Cola burbuja -->
+  <polygon points="14,138 2,160 50,138" fill="#0E8A78"/>
+
+  <!-- ═══ LETRA N (paths, sin fuente) ═══ -->
+  <!-- Pilar izquierdo -->
+  <rect x="26" y="26" width="18" height="86" fill="#FFFFFF"/>
+  <!-- Pilar derecho -->
+  <rect x="100" y="26" width="18" height="86" fill="#FFFFFF"/>
+  <!-- Diagonal -->
+  <polygon points="26,26 44,26 118,112 100,112" fill="#FFFFFF"/>
+
+  <!-- ═══ SEPARADOR ═══ -->
+  <rect x="158" y="10" width="4" height="128" rx="2" fill="#0E8A78"/>
+
+  <!-- ═══ NECO — letras como paths ═══ -->
+  <!-- N -->
+  <rect x="174" y="10" width="13" height="60" fill="#FFFFFF"/>
+  <rect x="214" y="10" width="13" height="60" fill="#FFFFFF"/>
+  <polygon points="174,10 187,10 227,70 214,70" fill="#FFFFFF"/>
+  <!-- E -->
+  <rect x="234" y="10" width="12" height="60" fill="#FFFFFF"/>
+  <rect x="234" y="10" width="38" height="11" fill="#FFFFFF"/>
+  <rect x="234" y="39" width="30" height="10" fill="#FFFFFF"/>
+  <rect x="234" y="59" width="38" height="11" fill="#FFFFFF"/>
+  <!-- C -->
+  <path d="M316,10 h-28 a20,20 0 0 0 0,60 h28 v-12 h-26 a8,8 0 0 1 0,-36 h26 Z" fill="#FFFFFF"/>
+  <!-- O -->
+  <path d="M362,10 h-10 a20,20 0 0 0 0,60 h10 a20,20 0 0 0 0,-60 Z
+           M352,22 h10 a8,8 0 0 1 0,36 h-10 a8,8 0 0 1 0,-36 Z" fill="#FFFFFF"/>
+
+  <!-- ═══ NOW — letras como paths ═══ -->
+  <!-- N -->
+  <rect x="174" y="88" width="13" height="60" fill="#FFFFFF"/>
+  <rect x="214" y="88" width="13" height="60" fill="#FFFFFF"/>
+  <polygon points="174,88 187,88 227,148 214,148" fill="#FFFFFF"/>
+  <!-- O -->
+  <path d="M270,88 h-10 a20,20 0 0 0 0,60 h10 a20,20 0 0 0 0,-60 Z
+           M260,100 h10 a8,8 0 0 1 0,36 h-10 a8,8 0 0 1 0,-36 Z" fill="#FFFFFF"/>
+  <!-- W -->
+  <polygon points="288,88 301,88 316,136 331,88 344,88 359,136 374,88 387,88 366,148 353,148 337,100 321,148 308,148 288,88" fill="#FFFFFF"/>
+
+</svg>
