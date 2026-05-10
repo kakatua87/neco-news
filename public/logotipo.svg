@@ -1,37 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" 
-     viewBox="0 0 480 180" 
-     fill="none" 
-     role="img" 
-     aria-label="Neco Now — Noticias de Necochea">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 110" fill="none" role="img" aria-label="Neco Now">
   <title>Neco Now</title>
-  <defs>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&amp;display=swap');
-      .logo-text { font-family: 'Barlow Condensed', 'Arial Black', sans-serif; font-weight: 900; }
-    </style>
-  </defs>
 
-  <!-- BURBUJA -->
-  <rect x="2" y="2" width="148" height="148" rx="24" ry="24" fill="#0B7F71"/>
-  <polygon points="16,150 2,180 56,150" fill="#0B7F71"/>
+  <!-- BURBUJA verde -->
+  <rect x="1" y="1" width="88" height="88" rx="15" ry="15" fill="#0B7F71"/>
+  <polygon points="10,89 1,110 34,89" fill="#0B7F71"/>
 
-  <!-- N interior -->
-  <rect x="28" y="30" width="20" height="90" fill="#FFFFFF"/>
-  <rect x="104" y="30" width="20" height="90" fill="#FFFFFF"/>
-  <polygon points="28,30 48,30 124,120 104,120" fill="#FFFFFF"/>
+  <!-- LETRA N blanca interior -->
+  <rect x="17" y="18" width="12" height="54" fill="#FFFFFF"/>
+  <rect x="61" y="18" width="12" height="54" fill="#FFFFFF"/>
+  <polygon points="17,18 29,18 73,72 61,72" fill="#FFFFFF"/>
 
-  <!-- SEPARADOR -->
-  <rect x="172" y="12" width="5" height="136" rx="2.5" fill="#0B7F71"/>
+  <!-- SEPARADOR verde — va de y=8 a y=90 (largo=82) -->
+  <rect x="101" y="8" width="3" height="82" rx="1.5" fill="#0B7F71"/>
 
-  <!-- TEXTO NECO -->
-  <text class="logo-text" x="188" y="88" 
-        font-size="82" fill="#FFFFFF" 
-        dominant-baseline="auto" 
-        letter-spacing="-1">NECO</text>
+  <!-- NECO — centrado en la mitad superior del separador: y=8 a y=49, centro=28, baseline aprox +32 -->
+  <text x="113" y="48"
+    font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+    font-weight="900"
+    font-size="40"
+    fill="#FFFFFF"
+    letter-spacing="-1">NECO</text>
 
-  <!-- TEXTO NOW -->
-  <text class="logo-text" x="188" y="170" 
-        font-size="82" fill="#FFFFFF" 
-        dominant-baseline="auto" 
-        letter-spacing="-1">NOW</text>
+  <!-- NOW — centrado en la mitad inferior: y=49 a y=90, centro=69, baseline aprox +32 -->
+  <text x="113" y="90"
+    font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+    font-weight="900"
+    font-size="40"
+    fill="#FFFFFF"
+    letter-spacing="-1">NOW</text>
+
 </svg>
