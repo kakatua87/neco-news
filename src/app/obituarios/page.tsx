@@ -12,6 +12,7 @@ export const revalidate = 14400; // 4 horas
 interface Obituario {
   title: string;
   href: string;
+  slug: string;
 }
 
 export default async function ObituariosPage() {
@@ -45,7 +46,7 @@ export default async function ObituariosPage() {
             title = title.charAt(0).toUpperCase() + title.slice(1);
             title = title.replace("funebres", "fúnebres").replace("dia", "día");
             
-            obituarios.push({ title, href });
+            obituarios.push({ title, href, slug });
           }
         }
       });
@@ -69,11 +70,9 @@ export default async function ObituariosPage() {
       {obituarios.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {obituarios.map((ob, idx) => (
-            <a
+            <Link
               key={idx}
-              href={ob.href}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={`/obituarios/${ob.slug}`}
               className="group block bg-white rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 card-lift"
             >
               <div className="p-6 text-center">
@@ -84,7 +83,7 @@ export default async function ObituariosPage() {
                   {ob.title}
                 </h2>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       ) : (
