@@ -15,6 +15,7 @@ type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_u
   tiene_perspectiva_editorial?: boolean;
   es_portada?: boolean;
   fecha_publicacion?: string;
+  url_original?: string | null;
 };
 
 type Props = {
@@ -83,8 +84,12 @@ export default function AdminPanel({ initialItems, stats }: Props) {
       if (editingId === item.id) setEditingId(null);
     });
 
-  const cambiarSeccion = async (item: Editable, nuevaSeccion: string) => {
-    updateItem(item.id, "seccion", nuevaSeccion);
+  const cambiarSeccion = async (item: Editable, nuevaSeccion: string, isPublicada: boolean = false) => {
+    if (isPublicada) {
+      setPublicadasItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, seccion: nuevaSeccion } : n)));
+    } else {
+      updateItem(item.id, "seccion", nuevaSeccion);
+    }
     withSaving(item.id, async () => {
       await fetch(`/api/noticias/${item.id}/seccion`, {
         method: "PATCH",
@@ -92,6 +97,21 @@ export default function AdminPanel({ initialItems, stats }: Props) {
         body: JSON.stringify({ seccion: nuevaSeccion }),
       });
     });
+  };
+
+  const getRecomendacionSeccion = (url: string | null | undefined) => {
+    if (!url) return null;
+    const u = url.toLowerCase();
+    if (u.includes('politica') || u.includes('locales')) return "Política";
+    if (u.includes('policiales') || u.includes('policial')) return "Policiales";
+    if (u.includes('deportes') || u.includes('deporte')) return "Deportes";
+    if (u.includes('sociedad')) return "Sociedad";
+    if (u.includes('cultura')) return "Cultura";
+    if (u.includes('salud')) return "Salud";
+    if (u.includes('economia') || u.includes('economía')) return "Economía";
+    if (u.includes('educacion') || u.includes('educación')) return "Educación";
+    if (u.includes('tecnologia') || u.includes('tecnología')) return "Tecnología";
+    return null;
   };
 
   const fetchPublicadas = async () => {
@@ -293,7 +313,7 @@ export default function AdminPanel({ initialItems, stats }: Props) {
                           </div>
                           
                           {/* Selector de Sección */}
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
                             <select 
                               value={item.seccion || ""}
                               onChange={(e) => cambiarSeccion(item, e.target.value)}
@@ -320,6 +340,12 @@ export default function AdminPanel({ initialItems, stats }: Props) {
                                 }}
                               />
                             </div>
+                            {getRecomendacionSeccion(item.url_original) && (
+                              <div className="text-[10px] text-muted flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 
+                                Sugerencia: <strong className="text-blue-700">{getRecomendacionSeccion(item.url_original)}</strong>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
@@ -429,15 +455,43 @@ export default function AdminPanel({ initialItems, stats }: Props) {
                     )}
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start mb-2 gap-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-                        {item.seccion}
-                      </span>
-                      {item.fecha_publicacion && (
-                        <span className="text-xs text-muted whitespace-nowrap">
-                          {new Date(item.fecha_publicacion).toLocaleDateString()}
+                    <div className="flex flex-col mb-2 gap-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
+                          {item.seccion}
                         </span>
-                      )}
+                        {item.fecha_publicacion && (
+                          <span className="text-xs text-muted whitespace-nowrap">
+                            {new Date(item.fecha_publicacion).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select 
+                          value={item.seccion || ""}
+                          onChange={(e) => cambiarSeccion(item, e.target.value, true)}
+                          className="text-[10px] border border-border rounded px-1.5 py-1 outline-none focus:border-accent bg-gray-50"
+                        >
+                          {customSecciones.map((sec) => (
+                            <option key={sec} value={sec}>{sec}</option>
+                          ))}
+                        </select>
+                        <input 
+                          type="text" 
+                          placeholder="Nueva..." 
+                          className="text-[10px] border border-border rounded px-1.5 py-1 w-20 outline-none focus:border-accent"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                              const val = e.currentTarget.value.trim();
+                              if (!customSecciones.includes(val)) {
+                                setCustomSecciones([...customSecciones, val]);
+                              }
+                              cambiarSeccion(item, val, true);
+                              e.currentTarget.value = "";
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                     <h3 className="font-editorial text-lg font-bold text-ink leading-tight line-clamp-3 mb-4">{item.titulo}</h3>
                     

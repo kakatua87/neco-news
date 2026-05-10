@@ -48,7 +48,7 @@ export default async function AdminPage() {
       <main className="min-h-screen bg-ink flex items-center justify-center px-4 font-sans">
         <form action={login} className="w-full max-w-md bg-white rounded-xl shadow-2xl p-8">
           <div className="flex justify-center mb-6">
-            <img src="/logotipo.svg" alt="Neco Now" className="h-8 w-auto" />
+            <img src="/LOGO.png" alt="Neco Now" className="h-8 w-auto object-contain" />
           </div>
           <h1 className="text-xl font-bold text-center text-ink mb-6">Acceso a Redacción</h1>
           
@@ -100,6 +100,7 @@ export default async function AdminPage() {
     seccion: n.seccion,
     imagen_url: n.imagen_url,
     created_at: n.created_at,
+    url_original: n.url_original,
   }));
 
   return (
