@@ -14,9 +14,9 @@ export default function Header() {
           <Link href="/" className="flex items-center">
             {/* Logotipo SVG completo */}
             <img
-              src="/logo-final.svg"
+              src="/LOGO.png"
               alt="Neco Now"
-              className="h-12 md:h-16 lg:h-[70px] w-auto"
+              className="h-14 md:h-18 lg:h-20 w-auto object-contain"
             />
           </Link>
         </div>
