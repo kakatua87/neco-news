@@ -99,19 +99,9 @@ export default function AdminPanel({ initialItems, stats }: Props) {
     });
   };
 
-  const getRecomendacionSeccion = (url: string | null | undefined) => {
-    if (!url) return null;
-    const u = url.toLowerCase();
-    if (u.includes('politica') || u.includes('locales')) return "Política";
-    if (u.includes('policiales') || u.includes('policial')) return "Policiales";
-    if (u.includes('deportes') || u.includes('deporte')) return "Deportes";
-    if (u.includes('sociedad')) return "Sociedad";
-    if (u.includes('cultura')) return "Cultura";
-    if (u.includes('salud')) return "Salud";
-    if (u.includes('economia') || u.includes('economía')) return "Economía";
-    if (u.includes('educacion') || u.includes('educación')) return "Educación";
-    if (u.includes('tecnologia') || u.includes('tecnología')) return "Tecnología";
-    return null;
+  const getRecomendacionSeccion = (id: string | number) => {
+    const original = initialItems.find(n => n.id === id);
+    return original?.seccion || "Local";
   };
 
   const fetchPublicadas = async () => {
@@ -340,10 +330,10 @@ export default function AdminPanel({ initialItems, stats }: Props) {
                                 }}
                               />
                             </div>
-                            {getRecomendacionSeccion(item.url_original) && (
+                            {getRecomendacionSeccion(item.id) && (
                               <div className="text-[10px] text-muted flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 
-                                Sugerencia: <strong className="text-blue-700">{getRecomendacionSeccion(item.url_original)}</strong>
+                                Sugerencia: <strong className="text-blue-700">{getRecomendacionSeccion(item.id)}</strong>
                               </div>
                             )}
                           </div>
