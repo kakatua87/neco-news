@@ -76,26 +76,6 @@ export default async function ObituariosPage() {
               rel="noopener noreferrer"
               className="group block bg-white rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 card-lift"
             >
-              {/* Contenedor del ícono (Lazo negro) */}
-              <div className="bg-gray-50 flex items-center justify-center py-12 border-b border-border">
-                <svg
-                  width="64"
-                  height="80"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-charcoal opacity-90 group-hover:scale-110 transition-transform duration-300"
-                >
-                  <path d="M12 21a9 9 0 0 1-5-1.5L6 19l1.5-1A9 9 0 1 1 12 21Z" fill="currentColor" />
-                  {/* Esto es un SVG genérico, lo reemplazaré por un lazo real para que quede mejor */}
-                  <path d="M12 4C9 4 7 7.5 7 10.5C7 15 15 20 15 20" />
-                  <path d="M12 4C15 4 17 7.5 17 10.5C17 15 9 20 9 20" />
-                </svg>
-              </div>
-              
               <div className="p-6 text-center">
                 <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">
                   Avisos fúnebres
