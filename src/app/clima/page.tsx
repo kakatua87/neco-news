@@ -22,12 +22,10 @@ export default function ClimaPage() {
 
         {/* Widget Windguru */}
         <section className="bg-white rounded-xl shadow-sm border border-border p-4 md:p-6 mb-8 overflow-x-auto">
-          <h2 className="text-lg font-bold text-ink mb-4 flex items-center justify-center gap-2">
-            <span>🌬️</span> Pronóstico Extendido · Necochea
+          <h2 className="text-lg font-bold text-ink mb-4 text-center">
+            🌬️ Pronóstico Extendido · Necochea
           </h2>
-          <div className="flex justify-center">
-            <WindguruWidget />
-          </div>
+          <WindguruWidget />
         </section>
 
         {/* Info extra */}
