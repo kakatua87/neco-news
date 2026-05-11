@@ -23,11 +23,22 @@ export default function Header() {
 
         {/* RIGHT: White + Subtitle + Nav */}
         <div className="bg-white flex-1 flex flex-col border-b border-border">
-          {/* Subtítulo — marquesina animada */}
-          <div className="overflow-hidden pt-2 pb-1.5 border-b-2 border-accent">
-            <span className="subtitle-marquee text-[10px] font-semibold uppercase tracking-[0.25em] text-muted">
-              Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp; Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
-            </span>
+          {/* Subtítulo — marquesina de loop infinito sin cortes */}
+          <div className="overflow-hidden border-b-2 border-accent h-7 flex items-center">
+            <div className="marquee-track flex whitespace-nowrap">
+              {[0, 1].map((i) => (
+                <span
+                  key={i}
+                  className="marquee-item inline-flex items-center gap-6 text-[10px] font-semibold uppercase tracking-[0.25em] text-muted pr-16"
+                >
+                  Diario Digital <span className="text-accent">|</span> Necochea, Argentina
+                  &nbsp;&nbsp;&nbsp;<span className="text-accent">•</span>&nbsp;&nbsp;&nbsp;
+                  Noticias de Necochea <span className="text-accent">|</span> Quequén
+                  &nbsp;&nbsp;&nbsp;<span className="text-accent">•</span>&nbsp;&nbsp;&nbsp;
+                  Actualidad local &nbsp;&nbsp;&nbsp;<span className="text-accent">•</span>&nbsp;&nbsp;&nbsp;
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Nav + Botón */}

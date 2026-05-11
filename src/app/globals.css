@@ -175,3 +175,24 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/* Marquee — loop infinito sin cortes */
+
+@keyframes marquee-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+    display: flex;
+    animation: marquee-scroll 28s linear infinite;
+    will-change: transform;
+}
+
+.marquee-track:hover {
+    animation-play-state: paused;
+}
+
+.marquee-item {
+    flex-shrink: 0;
+}
