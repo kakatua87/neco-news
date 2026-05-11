@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
-export const revalidate = 14400; // 4 horas
+export const revalidate = 60; // 1 minuto para pruebas
 
 interface PageProps {
   params: Promise<{ slug: string }>;

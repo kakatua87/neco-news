@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Avisos fúnebres de Necochea y Quequén, agrupados por mes.",
 };
 
-export const revalidate = 14400; // 4 horas
+export const revalidate = 60; // 1 minuto para pruebas
 
 const MESES_NOMBRES: Record<string, string> = {
   "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
