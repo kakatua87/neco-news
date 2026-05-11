@@ -1,5 +1,6 @@
 import React from 'react';
 import Script from 'next/script';
+import WindguruWidget from '@/components/WindguruWidget';
 
 export const metadata = {
   title: 'El Clima en Necochea | Neco Now',
@@ -25,70 +26,10 @@ export default function ClimaPage() {
           <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
             <span>🌬️</span> Pronóstico Extendido · Necochea
           </h2>
-          <div
-            id="wg_fwdg_8170_100_1778505370023"
-            className="w-full"
-            style={{ minHeight: '240px' }}
-          />
-          <Script
-            id="windguru-widget"
-            strategy="afterInteractive"
-            dangerouslySetInnerHTML={{
-              __html: `
-                (function (window, document) {
-                  var loader = function () {
-                    var arg = [
-                      "s=8170","m=100",
-                      "uid=wg_fwdg_8170_100_1778505370023",
-                      "wj=knots","tj=c","waj=m","tij=cm",
-                      "odh=0","doh=24","fhours=240","hrsm=2",
-                      "vt=forecasts","lng=es","idbs=1",
-                      "p=WINDSPD,GUST,SMER,TMPE,CDC,APCP1s"
-                    ];
-                    var script = document.createElement("script");
-                    var tag = document.getElementsByTagName("script")[0];
-                    script.src = "https://www.windguru.cz/js/widget.php?" + (arg.join("&"));
-                    tag.parentNode.insertBefore(script, tag);
-                  };
-                  window.addEventListener
-                    ? window.addEventListener("load", loader, false)
-                    : window.attachEvent("onload", loader);
-                })(window, document);
-              `,
-            }}
-          />
-          {/* Estilos para adaptar el widget a nuestra paleta y tipografía */}
-          <style>{`
-            #wg_fwdg_8170_100_1778505370023 table,
-            #wg_fwdg_8170_100_1778505370023 td,
-            #wg_fwdg_8170_100_1778505370023 th {
-              font-family: 'Inter', system-ui, sans-serif !important;
-              font-size: 12px !important;
-            }
-            #wg_fwdg_8170_100_1778505370023 .wgfwdf_hd {
-              background: #111827 !important;
-              color: #ffffff !important;
-              font-weight: 700 !important;
-              letter-spacing: 0.05em !important;
-            }
-            #wg_fwdg_8170_100_1778505370023 .wgfwdf_hd a {
-              color: #1B8B7A !important;
-            }
-            #wg_fwdg_8170_100_1778505370023 tr:nth-child(even) td {
-              background: #f8f9fa !important;
-            }
-            #wg_fwdg_8170_100_1778505370023 td {
-              color: #111827 !important;
-              border-color: rgba(0,0,0,0.06) !important;
-            }
-            #wg_fwdg_8170_100_1778505370023 .wg_fwdg_sup a {
-              color: #6B7280 !important;
-              font-size: 10px !important;
-            }
-          `}</style>
+          <WindguruWidget />
         </section>
 
-        {/* Widget clima general (ya existente) */}
+        {/* Widget clima general */}
         <section className="bg-white rounded-xl shadow-sm border border-border p-4 md:p-6 mb-8 overflow-hidden">
           <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
             <span>☁️</span> Condiciones Actuales

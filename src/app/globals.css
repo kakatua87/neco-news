@@ -87,19 +87,14 @@ body {
 /* Marquesina subtitulo */
 
 @keyframes marquee-subtitle {
-    0% {
-        transform: translateX(100%);
-    }
-
-    100% {
-        transform: translateX(-100%);
-    }
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
 }
 
 .subtitle-marquee {
     display: inline-block;
     white-space: nowrap;
-    animation: marquee-subtitle 20s linear infinite;
+    animation: marquee-subtitle 22s linear infinite;
 }
 
 .subtitle-marquee:hover {

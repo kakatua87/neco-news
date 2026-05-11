@@ -26,7 +26,11 @@ export default function Header() {
           {/* Subtítulo — marquesina animada */}
           <div className="overflow-hidden pt-2 pb-1.5 border-b-2 border-accent">
             <span className="subtitle-marquee text-[10px] font-semibold uppercase tracking-[0.25em] text-muted">
-              Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp; Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
+              {Array.from({ length: 8 }).map((_, i) => (
+                <span key={i}>
+                  Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp;<span className="text-accent">•</span>&nbsp;&nbsp;&nbsp;
+                </span>
+              ))}
             </span>
           </div>
 
