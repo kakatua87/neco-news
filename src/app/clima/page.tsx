@@ -1,5 +1,4 @@
 import React from 'react';
-import Script from 'next/script';
 import WindguruWidget from '@/components/WindguruWidget';
 
 export const metadata = {
@@ -12,7 +11,7 @@ export default function ClimaPage() {
     <main className="min-h-screen bg-[#f8f9fa] pt-8 pb-16 font-sans">
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
 
-        <header className="mb-8 border-b border-border pb-6">
+        <header className="mb-8 border-b border-border pb-6 text-center">
           <h1 className="text-4xl font-editorial font-bold text-ink mb-2">
             El Clima en Necochea
           </h1>
@@ -21,45 +20,20 @@ export default function ClimaPage() {
           </p>
         </header>
 
-        {/* Widget Windguru principal */}
+        {/* Widget Windguru */}
         <section className="bg-white rounded-xl shadow-sm border border-border p-4 md:p-6 mb-8 overflow-x-auto">
-          <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-ink mb-4 flex items-center justify-center gap-2">
             <span>🌬️</span> Pronóstico Extendido · Necochea
           </h2>
-          <WindguruWidget />
-        </section>
-
-        {/* Widget clima general */}
-        <section className="bg-white rounded-xl shadow-sm border border-border p-4 md:p-6 mb-8 overflow-hidden">
-          <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
-            <span>☁️</span> Condiciones Actuales
-          </h2>
-          <div className="w-full relative rounded-lg overflow-hidden" style={{ minHeight: '300px' }}>
-            <a
-              className="weatherwidget-io"
-              href="https://forecast7.com/es/n38d55n58d74/necochea/"
-              data-label_1="NECOCHEA"
-              data-label_2="Pronóstico del tiempo"
-              data-font="Roboto"
-              data-icons="Climacons Animated"
-              data-theme="original"
-              data-basecolor="#1a1a1a"
-              data-accent="#008060"
-            >
-              NECOCHEA Pronóstico del tiempo
-            </a>
-            <Script
-              id="weatherwidget-io-js"
-              src="https://weatherwidget.io/js/widget.min.js"
-              strategy="lazyOnload"
-            />
+          <div className="flex justify-center">
+            <WindguruWidget />
           </div>
         </section>
 
         {/* Info extra */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
-            <h3 className="font-bold text-ink mb-3 text-lg flex items-center gap-2">
+          <div className="bg-white p-6 rounded-xl border border-border shadow-sm text-center">
+            <h3 className="font-bold text-ink mb-3 text-lg flex items-center justify-center gap-2">
               <span>🌊</span> Estado del Mar
             </h3>
             <p className="text-muted text-sm leading-relaxed">
@@ -67,8 +41,8 @@ export default function ClimaPage() {
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
-            <h3 className="font-bold text-ink mb-3 text-lg flex items-center gap-2">
+          <div className="bg-white p-6 rounded-xl border border-border shadow-sm text-center">
+            <h3 className="font-bold text-ink mb-3 text-lg flex items-center justify-center gap-2">
               <span>☀️</span> Índice UV
             </h3>
             <p className="text-muted text-sm leading-relaxed">
