@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import * as cheerio from "cheerio";
+import { createClient } from "@supabase/supabase-js";
 
 export const revalidate = 14400; // 4 horas
 
@@ -10,15 +10,22 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const p = await params;
+  const slug = p.slug;
   
-  // Format title from slug
-  let title = p.slug.replace(/-/g, " ").replace(/\s\d{5,}$/, "").trim();
-  title = title.charAt(0).toUpperCase() + title.slice(1);
-  title = title.replace("funebres", "fúnebres").replace("dia", "día");
+  let title = "Obituarios";
+  const match = slug.match(/obituarios-(\d{4})-(\d{2})/);
+  if (match) {
+    const MESES_NOMBRES: Record<string, string> = {
+      "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
+      "05": "Mayo", "06": "Junio", "07": "Julio", "08": "Agosto",
+      "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre",
+    };
+    title = `Avisos fúnebres de ${MESES_NOMBRES[match[2]] || match[2]} ${match[1]}`;
+  }
 
   return {
     title: `${title} | Neco Now`,
-    description: "Detalles del aviso fúnebre publicado en Neco Now.",
+    description: "Detalles de los avisos fúnebres publicados en Neco Now.",
   };
 }
 
@@ -26,39 +33,42 @@ export default async function ObituarioDetallePage({ params }: PageProps) {
   const p = await params;
   const slug = p.slug;
   
-  let contentParagraphs: string[] = [];
+  let titulo = "Obituarios";
+  let cuerpo = "";
   
-  // Format title
-  let title = slug.replace(/-/g, " ").replace(/\s\d{5,}$/, "").trim();
-  title = title.charAt(0).toUpperCase() + title.slice(1);
-  title = title.replace("funebres", "fúnebres").replace("dia", "día");
-
   try {
-    const res = await fetch(`https://tsnnecochea.com.ar/funebres/${slug}/`, {
-      next: { revalidate: 14400 },
-    });
-    
-    if (res.ok) {
-      const html = await res.text();
-      const $ = cheerio.load(html);
-      
-      // Extraemos todos los párrafos dentro del artículo principal
-      $("article p").each((i, el) => {
-        const text = $(el).text().trim();
-        // Filtramos textos vacíos, firma de origen, o elementos de UI
-        if (
-          text && 
-          !text.includes("Por Redacción TSN") &&
-          !text.toLowerCase().includes("noticias relacionadas") &&
-          !text.toLowerCase().includes("seguinos en redes") &&
-          !text.toLowerCase().includes("exequias a cargo de")
-        ) {
-          contentParagraphs.push(text);
-        }
-      });
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    const { data, error } = await supabase
+      .from("noticias")
+      .select("titulo, cuerpo")
+      .eq("slug", slug)
+      .single();
+
+    if (!error && data) {
+      titulo = data.titulo;
+      cuerpo = data.cuerpo || "";
     }
   } catch (error) {
     console.error("Error fetching obituario detallado:", error);
+  }
+
+  // Parse markdown-like content (### Nombre)
+  const lines = cuerpo.split('\n');
+  const blocks: { type: 'name' | 'text', content: string }[] = [];
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    if (trimmed.startsWith('### ')) {
+      blocks.push({ type: 'name', content: trimmed.replace(/^###\s*/, '') });
+    } else {
+      blocks.push({ type: 'text', content: trimmed });
+    }
   }
 
   return (
@@ -73,51 +83,36 @@ export default async function ObituarioDetallePage({ params }: PageProps) {
       <article className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
         <header className="bg-charcoal px-6 md:px-10 py-10 text-center border-b-[4px] border-accent">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/60 mb-4">
-            Avisos fúnebres de la jornada
+            Servicios Fúnebres
           </p>
           <h1 className="font-editorial text-3xl md:text-5xl font-bold text-white leading-tight">
-            {title}
+            {titulo}
           </h1>
         </header>
 
         <div className="p-6 md:p-12">
-          {contentParagraphs.length > 0 ? (
-            <div className="space-y-8 font-serif text-lg leading-relaxed text-ink/90">
-              {contentParagraphs.map((parrafo, idx) => {
-                // Destacar el nombre (que normalmente viene en mayúsculas antes de Q.E.P.D)
-                const lines = parrafo.split("\n");
+          {blocks.length > 0 ? (
+            <div className="space-y-6 font-serif text-lg leading-relaxed text-ink/90">
+              {blocks.map((block, idx) => {
+                if (block.type === 'name') {
+                  return (
+                    <h2 key={idx} className={`font-bold text-xl md:text-2xl text-charcoal font-sans ${idx > 0 ? 'mt-10 pt-6 border-t border-border/40' : ''}`}>
+                      {block.content}
+                    </h2>
+                  );
+                }
                 
                 return (
-                  <div key={idx} className="pb-8 border-b border-border/40 last:border-0 last:pb-0">
-                    {lines.map((line, lIdx) => {
-                      const text = line.trim();
-                      if (!text) return null;
-                      
-                      // Si la línea es completamente mayúsculas, probable que sea el nombre
-                      const isName = text.length > 5 && text === text.toUpperCase() && !text.includes("Q.E.P.D");
-                      
-                      if (isName) {
-                        return (
-                          <h2 key={lIdx} className="font-bold text-xl md:text-2xl text-charcoal mb-2 font-sans">
-                            {text}
-                          </h2>
-                        );
-                      }
-                      
-                      return (
-                        <p key={lIdx} className="mb-2">
-                          {text}
-                        </p>
-                      );
-                    })}
-                  </div>
+                  <p key={idx} className="mb-2">
+                    {block.content}
+                  </p>
                 );
               })}
             </div>
           ) : (
             <div className="text-center py-10">
               <p className="text-muted text-lg">
-                No se pudo cargar el contenido del aviso fúnebre. Puede que ya no esté disponible.
+                No se pudo cargar el contenido o aún no hay avisos para este mes.
               </p>
             </div>
           )}
