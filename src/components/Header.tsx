@@ -23,18 +23,11 @@ export default function Header() {
 
         {/* RIGHT: White + Subtitle + Nav */}
         <div className="bg-white flex-1 flex flex-col border-b border-border">
-          {/* Subtítulo — marquesina loop infinito */}
+          {/* Subtítulo — marquesina animada */}
           <div className="overflow-hidden pt-2 pb-1.5 border-b-2 border-accent">
-            <div className="marquee-track flex whitespace-nowrap">
-              {[0, 1].map((i) => (
-                <span
-                  key={i}
-                  className="marquee-item text-[10px] font-semibold uppercase tracking-[0.25em] text-muted pr-12"
-                >
-                  Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp;<span className="text-accent">•</span>&nbsp;&nbsp;&nbsp;
-                </span>
-              ))}
-            </div>
+            <span className="subtitle-marquee text-[10px] font-semibold uppercase tracking-[0.25em] text-muted">
+              Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp; Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
+            </span>
           </div>
 
           {/* Nav + Botón */}

@@ -11,6 +11,8 @@ export default function LiveClock() {
     setMounted(true);
     const update = () => {
       const now = new Date();
+
+      // Hora: HH:MM:SS a.m./p.m.
       setTime(
         now.toLocaleTimeString("es-AR", {
           hour: "2-digit",
@@ -18,13 +20,14 @@ export default function LiveClock() {
           second: "2-digit",
         })
       );
-      setDate(
-        now.toLocaleDateString("es-AR", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-        })
-      );
+
+      // Fecha: "Lunes, 11/05/2026"
+      const weekday = now.toLocaleDateString("es-AR", { weekday: "long" });
+      const dd = String(now.getDate()).padStart(2, "0");
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const yyyy = now.getFullYear();
+      const capitalized = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+      setDate(`${capitalized}, ${dd}/${mm}/${yyyy}`);
     };
     update();
     const timer = setInterval(update, 1000);
@@ -34,17 +37,17 @@ export default function LiveClock() {
   if (!mounted) {
     return (
       <span className="opacity-0 flex items-center gap-2 text-sm tracking-wide">
-        <span>lun. 1 ene.</span>
-        <span className="text-border">·</span>
-        <span>00:00:00 p.m.</span>
+        <span>Lunes, 01/01/2026</span>
+        <span className="text-accent">•</span>
+        <span>00:00:00 a.m.</span>
       </span>
     );
   }
 
   return (
     <span className="flex items-center gap-2 text-sm tracking-wide">
-      <span className="capitalize">{date}</span>
-      <span className="text-border/60">·</span>
+      <span>{date}</span>
+      <span className="text-accent font-bold">•</span>
       <span>{time}</span>
     </span>
   );
