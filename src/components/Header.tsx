@@ -22,11 +22,11 @@ export default function Header() {
         </div>
 
         {/* RIGHT: White + Subtitle + Nav */}
-        <div className="bg-white flex-1 min-w-0 flex flex-col border-b border-border">
+        <div className="bg-white flex-1 flex flex-col border-b border-border">
           {/* Subtítulo — marquesina animada */}
           <div className="overflow-hidden pt-2 pb-1.5 border-b-2 border-accent">
             <span className="subtitle-marquee text-[10px] font-semibold uppercase tracking-[0.25em] text-muted">
-              Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp;<span className="text-accent">•</span>&nbsp;&nbsp;&nbsp;Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp;<span className="text-accent">•</span>&nbsp;&nbsp;&nbsp;
+              Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp; Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
             </span>
           </div>
 
