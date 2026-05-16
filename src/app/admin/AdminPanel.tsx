@@ -245,13 +245,17 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
   const descartarGrupo = async (grupoId: string) => {
     if (!confirm("¿Seguro que quieres descartar todo este grupo?")) return;
-    const refId = Object.keys(savingIds)[0] || grupoId; // solo para el loading state
+    const refId = grupoId;
     withSaving(refId, async () => {
       try {
-        // Marcamos en Supabase directamente (o vía API)
         const res = await fetch(`/api/noticias/raw/descartar?grupo_id=${grupoId}`, { method: "POST" });
         if (res.ok) {
           setRawGrupos(prev => {
+            const next = { ...prev };
+            delete next[grupoId];
+            return next;
+          });
+          setGrupoStates(prev => {
             const next = { ...prev };
             delete next[grupoId];
             return next;
@@ -261,6 +265,36 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         console.error(e);
       }
     });
+  };
+
+  const descartarPorFecha = async (fecha: string, grupoIdsEnFecha: string[]) => {
+    const totalGrupos = grupoIdsEnFecha.length;
+    const totalNotas = grupoIdsEnFecha.reduce((sum, gid) => sum + (rawGrupos[gid]?.length || 0), 0);
+    
+    const confirmMsg = `⚠️ ATENCIÓN: Vas a descartar ${totalGrupos} grupo${totalGrupos !== 1 ? "s" : ""} con ${totalNotas} noticia${totalNotas !== 1 ? "s" : ""} sin procesar del ${fecha}.\n\nEsta acción no se puede deshacer. ¿Continuar?`;
+    if (!confirm(confirmMsg)) return;
+    
+    try {
+      const res = await fetch(`/api/noticias/raw/descartar?fecha=${fecha}`, { method: "POST" });
+      if (res.ok) {
+        setRawGrupos(prev => {
+          const next = { ...prev };
+          for (const gid of grupoIdsEnFecha) {
+            delete next[gid];
+          }
+          return next;
+        });
+        setGrupoStates(prev => {
+          const next = { ...prev };
+          for (const gid of grupoIdsEnFecha) {
+            delete next[gid];
+          }
+          return next;
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleTabChange = (tab: Tab) => {
@@ -401,7 +435,23 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         )}
 
         {/* TAB: INBOX (RAW) */}
-        {activeTab === "inbox" && (
+        {activeTab === "inbox" && (() => {
+          // ── Agrupar los grupos por fecha ──
+          const gruposPorFecha: Record<string, { grupoId: string; notas: Noticia[] }[]> = {};
+          for (const [grupoId, notas] of Object.entries(rawGrupos)) {
+            if (!notas.length) continue;
+            const dateKey = new Date(notas[0].created_at).toLocaleDateString("es-AR", {
+              weekday: "long", year: "numeric", month: "long", day: "numeric"
+            });
+            const isoDate = notas[0].created_at.split("T")[0]; // YYYY-MM-DD
+            const key = `${isoDate}||${dateKey}`; // carry both for the API and display
+            if (!gruposPorFecha[key]) gruposPorFecha[key] = [];
+            gruposPorFecha[key].push({ grupoId, notas });
+          }
+          // Ordenar por fecha descendente
+          const fechasOrdenadas = Object.keys(gruposPorFecha).sort((a, b) => b.localeCompare(a));
+
+          return (
           <div className="space-y-6 fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-2">
               <div>
@@ -420,157 +470,186 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                 <p className="text-muted mt-1">El scraper no encontró noticias nuevas. El próximo ciclo es en 15 minutos.</p>
               </div>
             ) : (
-              <div className="space-y-8">
-                {Object.entries(rawGrupos).map(([grupoId, notas]) => {
-                  const gs = grupoStates[grupoId];
-                  const isSaving = notas.some(n => savingIds.includes(n.id));
-                  if (!gs) return null;
-
-                  // Nota cuya imagen está seleccionada
-                  const imagenActiva = notas.find(n => n.id === gs.imagenId);
+              <div className="space-y-10">
+                {fechasOrdenadas.map(fechaKey => {
+                  const [isoDate, fechaDisplay] = fechaKey.split("||");
+                  const gruposDelDia = gruposPorFecha[fechaKey];
+                  const totalNotasDelDia = gruposDelDia.reduce((s, g) => s + g.notas.length, 0);
+                  const grupoIdsDelDia = gruposDelDia.map(g => g.grupoId);
 
                   return (
-                    <div key={grupoId} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-                      {/* ── Header del grupo ── */}
-                      <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-white border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div key={fechaKey}>
+                      {/* ── Cabecera de Fecha ── */}
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b-2 border-blue-200">
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
-                              {notas.length} fuente{notas.length !== 1 ? "s" : ""}
-                            </span>
-                            <span className="text-[10px] text-muted">
-                              {new Date(notas[0].created_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          </div>
-                          <h3 className="text-lg font-bold text-ink leading-tight">
-                            {notas[0].titulo_original || notas[0].titulo}
-                          </h3>
+                          <h3 className="text-lg font-bold text-ink capitalize">📅 {fechaDisplay}</h3>
+                          <p className="text-xs text-muted mt-0.5">
+                            {gruposDelDia.length} grupo{gruposDelDia.length !== 1 ? "s" : ""} · {totalNotasDelDia} noticia{totalNotasDelDia !== 1 ? "s" : ""} sin procesar
+                          </p>
                         </div>
-                        
-                        {/* Sección selector */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs text-muted">Sección:</span>
-                          <select 
-                            value={gs.seccion}
-                            onChange={(e) => setSeccionGrupo(grupoId, e.target.value)}
-                            className="text-sm border border-border rounded-lg px-3 py-1.5 outline-none focus:border-accent bg-white font-medium"
-                          >
-                            {customSecciones.map((sec) => (
-                              <option key={sec} value={sec}>{sec}</option>
-                            ))}
-                          </select>
-                        </div>
+                        <button
+                          onClick={() => descartarPorFecha(isoDate, grupoIdsDelDia)}
+                          className="px-4 py-2 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors flex items-center gap-1.5"
+                        >
+                          🗑 Descartar todo el día ({gruposDelDia.length} grupo{gruposDelDia.length !== 1 ? "s" : ""})
+                        </button>
                       </div>
-                      
-                      {/* ── Fuentes (cada nota del grupo) ── */}
-                      <div className="p-6">
-                        <p className="text-xs text-muted font-bold uppercase tracking-wider mb-3">Fuentes disponibles (hacé click para seleccionar/deseleccionar)</p>
-                        <div className="space-y-3">
-                          {notas.map(nota => {
-                            const isSelected = gs.seleccionadas.has(nota.id);
-                            const isImageActive = gs.imagenId === nota.id;
-                            return (
-                              <div key={nota.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                                isSelected 
-                                  ? "border-blue-400 bg-blue-50/50" 
-                                  : "border-gray-100 bg-gray-50 opacity-60"
-                              }`}>
-                                {/* Checkbox de selección */}
-                                <button 
-                                  onClick={() => toggleFuente(grupoId, nota.id)}
-                                  className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
-                                    isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-gray-300 bg-white"
-                                  }`}
-                                >
-                                  {isSelected && <span className="text-xs font-bold">✓</span>}
-                                </button>
 
-                                {/* Imagen de la nota + selector */}
-                                <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative group">
-                                  {nota.imagen_url ? (
-                                    <>
-                                      <img src={nota.imagen_url} alt="" className="w-full h-full object-cover" />
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); setImagen(grupoId, nota.id); }}
-                                        className={`absolute inset-0 flex items-center justify-center transition-all ${
-                                          isImageActive 
-                                            ? "bg-green-500/30 ring-2 ring-green-500 ring-inset" 
-                                            : "bg-black/0 group-hover:bg-black/30"
-                                        }`}
-                                        title={isImageActive ? "Imagen seleccionada" : "Usar esta imagen"}
-                                      >
-                                        <span className={`text-lg ${isImageActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"} text-white drop-shadow-lg`}>
-                                          {isImageActive ? "✅" : "🖼"}
-                                        </span>
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sin foto</div>
-                                  )}
-                                </div>
-                                
-                                {/* Info de la nota */}
-                                <div className="flex-1 min-w-0">
+                      {/* ── Grupos del día ── */}
+                      <div className="space-y-6">
+                        {gruposDelDia.map(({ grupoId, notas }) => {
+                          const gs = grupoStates[grupoId];
+                          const isSaving = notas.some(n => savingIds.includes(n.id));
+                          if (!gs) return null;
+
+                          const imagenActiva = notas.find(n => n.id === gs.imagenId);
+
+                          return (
+                            <div key={grupoId} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+                              {/* ── Header del grupo ── */}
+                              <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-white border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                                <div>
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
-                                      {nota.fuente || "Fuente"}
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                                      {notas.length} fuente{notas.length !== 1 ? "s" : ""}
+                                    </span>
+                                    <span className="text-[10px] text-muted">
+                                      {new Date(notas[0].created_at).toLocaleString("es-AR", { hour: "2-digit", minute: "2-digit" })} hs
                                     </span>
                                   </div>
-                                  <h4 className="text-sm font-bold text-ink leading-snug line-clamp-2">
-                                    {nota.titulo_original || nota.titulo}
-                                  </h4>
-                                  <p className="text-xs text-muted mt-1 line-clamp-2">
-                                    {nota.cuerpo?.substring(0, 150)}...
-                                  </p>
-                                  {nota.url_original && (
-                                    <a href={nota.url_original} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline mt-1 inline-block">
-                                      Ver artículo original →
-                                    </a>
-                                  )}
+                                  <h3 className="text-lg font-bold text-ink leading-tight">
+                                    {notas[0].titulo_original || notas[0].titulo}
+                                  </h3>
+                                </div>
+                                
+                                {/* Sección selector */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <span className="text-xs text-muted">Sección:</span>
+                                  <select 
+                                    value={gs.seccion}
+                                    onChange={(e) => setSeccionGrupo(grupoId, e.target.value)}
+                                    className="text-sm border border-border rounded-lg px-3 py-1.5 outline-none focus:border-accent bg-white font-medium"
+                                  >
+                                    {customSecciones.map((sec) => (
+                                      <option key={sec} value={sec}>{sec}</option>
+                                    ))}
+                                  </select>
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
+                              
+                              {/* ── Fuentes (cada nota del grupo) ── */}
+                              <div className="p-6">
+                                <p className="text-xs text-muted font-bold uppercase tracking-wider mb-3">Fuentes disponibles (hacé click para seleccionar/deseleccionar)</p>
+                                <div className="space-y-3">
+                                  {notas.map(nota => {
+                                    const isSelected = gs.seleccionadas.has(nota.id);
+                                    const isImageActive = gs.imagenId === nota.id;
+                                    return (
+                                      <div key={nota.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                                        isSelected 
+                                          ? "border-blue-400 bg-blue-50/50" 
+                                          : "border-gray-100 bg-gray-50 opacity-60"
+                                      }`}>
+                                        {/* Checkbox de selección */}
+                                        <button 
+                                          onClick={() => toggleFuente(grupoId, nota.id)}
+                                          className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
+                                            isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-gray-300 bg-white"
+                                          }`}
+                                        >
+                                          {isSelected && <span className="text-xs font-bold">✓</span>}
+                                        </button>
 
-                        {/* ── Imagen Preview + Acciones ── */}
-                        <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-end justify-between border-t border-border pt-5">
-                          <div className="flex items-center gap-3">
-                            {imagenActiva?.imagen_url ? (
-                              <div className="flex items-center gap-3">
-                                <img src={imagenActiva.imagen_url} alt="" className="w-12 h-12 rounded-lg object-cover border-2 border-green-400" />
-                                <span className="text-xs text-muted">
-                                  Imagen de <strong>{imagenActiva.fuente}</strong>
-                                </span>
+                                        {/* Imagen de la nota + selector */}
+                                        <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative group">
+                                          {nota.imagen_url ? (
+                                            <>
+                                              <img src={nota.imagen_url} alt="" className="w-full h-full object-cover" />
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); setImagen(grupoId, nota.id); }}
+                                                className={`absolute inset-0 flex items-center justify-center transition-all ${
+                                                  isImageActive 
+                                                    ? "bg-green-500/30 ring-2 ring-green-500 ring-inset" 
+                                                    : "bg-black/0 group-hover:bg-black/30"
+                                                }`}
+                                                title={isImageActive ? "Imagen seleccionada" : "Usar esta imagen"}
+                                              >
+                                                <span className={`text-lg ${isImageActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"} text-white drop-shadow-lg`}>
+                                                  {isImageActive ? "✅" : "🖼"}
+                                                </span>
+                                              </button>
+                                            </>
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sin foto</div>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Info de la nota */}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
+                                              {nota.fuente || "Fuente"}
+                                            </span>
+                                          </div>
+                                          <h4 className="text-sm font-bold text-ink leading-snug line-clamp-2">
+                                            {nota.titulo_original || nota.titulo}
+                                          </h4>
+                                          <p className="text-xs text-muted mt-1 line-clamp-2">
+                                            {nota.cuerpo?.substring(0, 150)}...
+                                          </p>
+                                          {nota.url_original && (
+                                            <a href={nota.url_original} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline mt-1 inline-block">
+                                              Ver artículo original →
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* ── Imagen Preview + Acciones ── */}
+                                <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-end justify-between border-t border-border pt-5">
+                                  <div className="flex items-center gap-3">
+                                    {imagenActiva?.imagen_url ? (
+                                      <div className="flex items-center gap-3">
+                                        <img src={imagenActiva.imagen_url} alt="" className="w-12 h-12 rounded-lg object-cover border-2 border-green-400" />
+                                        <span className="text-xs text-muted">
+                                          Imagen de <strong>{imagenActiva.fuente}</strong>
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-muted italic">Sin imagen seleccionada</span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex gap-3">
+                                    <button
+                                      onClick={() => descartarGrupo(grupoId)}
+                                      disabled={isSaving}
+                                      className="px-5 py-2.5 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-50"
+                                    >
+                                      ✕ Descartar grupo
+                                    </button>
+                                    <button
+                                      onClick={() => procesarGrupo(grupoId)}
+                                      disabled={isSaving}
+                                      className="px-6 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                    >
+                                      {isSaving ? (
+                                        <>
+                                          <span className="animate-spin">⏳</span> Procesando...
+                                        </>
+                                      ) : (
+                                        "⚡ Procesar con IA"
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                            ) : (
-                              <span className="text-xs text-muted italic">Sin imagen seleccionada</span>
-                            )}
-                          </div>
-
-                          <div className="flex gap-3">
-                            <button
-                              onClick={() => descartarGrupo(grupoId)}
-                              disabled={isSaving}
-                              className="px-5 py-2.5 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-50"
-                            >
-                              ✕ Descartar grupo
-                            </button>
-                            <button
-                              onClick={() => procesarGrupo(grupoId)}
-                              disabled={isSaving}
-                              className="px-6 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-                            >
-                              {isSaving ? (
-                                <>
-                                  <span className="animate-spin">⏳</span> Procesando...
-                                </>
-                              ) : (
-                                "⚡ Procesar con IA"
-                              )}
-                            </button>
-                          </div>
-                        </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -578,7 +657,8 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* TAB: PENDIENTES */}
         {activeTab === "pendientes" && (
