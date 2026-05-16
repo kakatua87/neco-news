@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import type { Noticia } from "@/types/noticia";
 import { logoutAction } from "./actions";
@@ -11,6 +11,13 @@ const SECCIONES = [
   "Tecnología", "Educación"
 ];
 
+/* ─── Estado local de cada grupo en la bandeja ─── */
+type GrupoEditState = {
+  seleccionadas: Set<string | number>;   // IDs de fuentes seleccionadas
+  imagenId: string | number | null;       // ID de la nota cuya imagen se usará
+  seccion: string;
+};
+
 type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at"> & {
   tiene_perspectiva_editorial?: boolean;
   es_portada?: boolean;
@@ -20,6 +27,7 @@ type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_u
 
 type Props = {
   initialItems: Editable[];
+  initialRawGrupos?: Record<string, Noticia[]>;
   stats: {
     publicadas: number;
     pendientes: number;
@@ -28,12 +36,13 @@ type Props = {
   dbSecciones?: string[];
 };
 
-type Tab = "dashboard" | "pendientes" | "publicadas" | "config";
+type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "config";
 
-export default function AdminPanel({ initialItems, stats, dbSecciones }: Props) {
+export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats, dbSecciones }: Props) {
   const [items, setItems] = useState(initialItems);
+  const [rawGrupos, setRawGrupos] = useState<Record<string, Noticia[]>>(initialRawGrupos);
   const [savingIds, setSavingIds] = useState<Array<string | number>>([]);
-  const [activeTab, setActiveTab] = useState<Tab>("pendientes");
+  const [activeTab, setActiveTab] = useState<Tab>("inbox");
   const [editingId, setEditingId] = useState<string | number | null>(null);
 
   const [publicadasItems, setPublicadasItems] = useState<Editable[]>([]);
@@ -44,6 +53,52 @@ export default function AdminPanel({ initialItems, stats, dbSecciones }: Props) 
   const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
 
   const pendientesCount = items.length;
+  const inboxCount = Object.keys(rawGrupos).length;
+
+  // ─── Estado interactivo de cada grupo (selección, imagen, sección) ──
+  const [grupoStates, setGrupoStates] = useState<Record<string, GrupoEditState>>(() => {
+    const initial: Record<string, GrupoEditState> = {};
+    for (const [gid, notas] of Object.entries(initialRawGrupos)) {
+      const firstWithImage = notas.find(n => n.imagen_url);
+      initial[gid] = {
+        seleccionadas: new Set(notas.map(n => n.id)),
+        imagenId: firstWithImage?.id ?? null,
+        seccion: notas[0]?.seccion || "Local",
+      };
+    }
+    return initial;
+  });
+
+  const toggleFuente = (grupoId: string, notaId: string | number) => {
+    setGrupoStates(prev => {
+      const gs = prev[grupoId];
+      if (!gs) return prev;
+      const next = new Set(gs.seleccionadas);
+      if (next.has(notaId)) {
+        if (next.size <= 1) return prev; // no dejar vacío
+        next.delete(notaId);
+      } else {
+        next.add(notaId);
+      }
+      return { ...prev, [grupoId]: { ...gs, seleccionadas: next } };
+    });
+  };
+
+  const setImagen = (grupoId: string, notaId: string | number) => {
+    setGrupoStates(prev => {
+      const gs = prev[grupoId];
+      if (!gs) return prev;
+      return { ...prev, [grupoId]: { ...gs, imagenId: notaId } };
+    });
+  };
+
+  const setSeccionGrupo = (grupoId: string, seccion: string) => {
+    setGrupoStates(prev => {
+      const gs = prev[grupoId];
+      if (!gs) return prev;
+      return { ...prev, [grupoId]: { ...gs, seccion } };
+    });
+  };
 
   const updateItem = (id: string | number, field: keyof Editable, value: string) => {
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, [field]: value } : n)));
@@ -141,6 +196,73 @@ export default function AdminPanel({ initialItems, stats, dbSecciones }: Props) 
     }
   };
 
+  const procesarGrupo = async (grupoId: string) => {
+    const gs = grupoStates[grupoId];
+    const notas = rawGrupos[grupoId];
+    if (!gs || !notas) return;
+
+    const selectedIds = Array.from(gs.seleccionadas);
+    const imagenNota = notas.find(n => n.id === gs.imagenId);
+    const imagenUrl = imagenNota?.imagen_url || null;
+
+    const refId = selectedIds[0];
+    withSaving(refId, async () => {
+      try {
+        const res = await fetch("/api/noticias/raw/procesar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            grupo_id: grupoId,
+            fuentes_ids: selectedIds,
+            imagen_url: imagenUrl,
+            seccion: gs.seccion,
+          }),
+        });
+        
+        if (res.ok) {
+          setRawGrupos(prev => {
+            const next = { ...prev };
+            delete next[grupoId];
+            return next;
+          });
+          setGrupoStates(prev => {
+            const next = { ...prev };
+            delete next[grupoId];
+            return next;
+          });
+          // Refrescar pendientes con un reload suave
+          window.location.reload();
+        } else {
+          const err = await res.json();
+          alert(`Error al procesar: ${err.error || "Error desconocido"}`);
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión con el motor de IA.");
+      }
+    });
+  };
+
+  const descartarGrupo = async (grupoId: string) => {
+    if (!confirm("¿Seguro que quieres descartar todo este grupo?")) return;
+    const refId = Object.keys(savingIds)[0] || grupoId; // solo para el loading state
+    withSaving(refId, async () => {
+      try {
+        // Marcamos en Supabase directamente (o vía API)
+        const res = await fetch(`/api/noticias/raw/descartar?grupo_id=${grupoId}`, { method: "POST" });
+        if (res.ok) {
+          setRawGrupos(prev => {
+            const next = { ...prev };
+            delete next[grupoId];
+            return next;
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  };
+
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     if (tab === "publicadas") {
@@ -171,6 +293,19 @@ export default function AdminPanel({ initialItems, stats, dbSecciones }: Props) 
             }`}
           >
             📊 Dashboard
+          </button>
+          <button
+            onClick={() => handleTabChange("inbox")}
+            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium flex justify-between items-center transition-colors ${
+              activeTab === "inbox" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
+            }`}
+          >
+            <span>📥 Bandeja de Entrada</span>
+            {inboxCount > 0 && (
+              <span className="bg-blue-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {inboxCount}
+              </span>
+            )}
           </button>
           <button
             onClick={() => handleTabChange("pendientes")}
@@ -218,7 +353,12 @@ export default function AdminPanel({ initialItems, stats, dbSecciones }: Props) 
           <div className="space-y-8 fade-in">
             <h2 className="text-2xl font-bold text-ink">Resumen del Sistema</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
+                <p className="text-sm text-muted font-medium uppercase tracking-wide">Bandeja</p>
+                <p className="text-4xl font-bold text-blue-500 mt-2">{inboxCount}</p>
+                <p className="text-xs text-muted mt-2 font-medium">Grupos sin procesar</p>
+              </div>
               <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
                 <p className="text-sm text-muted font-medium uppercase tracking-wide">Publicadas</p>
                 <p className="text-4xl font-bold text-ink mt-2">{stats.publicadas}</p>
@@ -257,6 +397,186 @@ export default function AdminPanel({ initialItems, stats, dbSecciones }: Props) 
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB: INBOX (RAW) */}
+        {activeTab === "inbox" && (
+          <div className="space-y-6 fade-in">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-2">
+              <div>
+                <h2 className="text-2xl font-bold text-ink">📥 Bandeja de Entrada</h2>
+                <p className="text-sm text-muted mt-1">Noticias crudas recién scrapeadas. Seleccioná fuentes, elegí imagen, y procesá con IA.</p>
+              </div>
+              <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
+                {inboxCount} grupo{inboxCount !== 1 ? "s" : ""} nuevos
+              </span>
+            </div>
+
+            {inboxCount === 0 ? (
+              <div className="text-center py-20 bg-white rounded-xl border border-border border-dashed">
+                <span className="text-4xl">🔎</span>
+                <h3 className="text-lg font-bold mt-4">Sin novedades</h3>
+                <p className="text-muted mt-1">El scraper no encontró noticias nuevas. El próximo ciclo es en 15 minutos.</p>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {Object.entries(rawGrupos).map(([grupoId, notas]) => {
+                  const gs = grupoStates[grupoId];
+                  const isSaving = notas.some(n => savingIds.includes(n.id));
+                  if (!gs) return null;
+
+                  // Nota cuya imagen está seleccionada
+                  const imagenActiva = notas.find(n => n.id === gs.imagenId);
+
+                  return (
+                    <div key={grupoId} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+                      {/* ── Header del grupo ── */}
+                      <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-white border-b border-border flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                              {notas.length} fuente{notas.length !== 1 ? "s" : ""}
+                            </span>
+                            <span className="text-[10px] text-muted">
+                              {new Date(notas[0].created_at).toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                          <h3 className="text-lg font-bold text-ink leading-tight">
+                            {notas[0].titulo_original || notas[0].titulo}
+                          </h3>
+                        </div>
+                        
+                        {/* Sección selector */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-xs text-muted">Sección:</span>
+                          <select 
+                            value={gs.seccion}
+                            onChange={(e) => setSeccionGrupo(grupoId, e.target.value)}
+                            className="text-sm border border-border rounded-lg px-3 py-1.5 outline-none focus:border-accent bg-white font-medium"
+                          >
+                            {customSecciones.map((sec) => (
+                              <option key={sec} value={sec}>{sec}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      
+                      {/* ── Fuentes (cada nota del grupo) ── */}
+                      <div className="p-6">
+                        <p className="text-xs text-muted font-bold uppercase tracking-wider mb-3">Fuentes disponibles (hacé click para seleccionar/deseleccionar)</p>
+                        <div className="space-y-3">
+                          {notas.map(nota => {
+                            const isSelected = gs.seleccionadas.has(nota.id);
+                            const isImageActive = gs.imagenId === nota.id;
+                            return (
+                              <div key={nota.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                                isSelected 
+                                  ? "border-blue-400 bg-blue-50/50" 
+                                  : "border-gray-100 bg-gray-50 opacity-60"
+                              }`}>
+                                {/* Checkbox de selección */}
+                                <button 
+                                  onClick={() => toggleFuente(grupoId, nota.id)}
+                                  className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
+                                    isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-gray-300 bg-white"
+                                  }`}
+                                >
+                                  {isSelected && <span className="text-xs font-bold">✓</span>}
+                                </button>
+
+                                {/* Imagen de la nota + selector */}
+                                <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative group">
+                                  {nota.imagen_url ? (
+                                    <>
+                                      <img src={nota.imagen_url} alt="" className="w-full h-full object-cover" />
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); setImagen(grupoId, nota.id); }}
+                                        className={`absolute inset-0 flex items-center justify-center transition-all ${
+                                          isImageActive 
+                                            ? "bg-green-500/30 ring-2 ring-green-500 ring-inset" 
+                                            : "bg-black/0 group-hover:bg-black/30"
+                                        }`}
+                                        title={isImageActive ? "Imagen seleccionada" : "Usar esta imagen"}
+                                      >
+                                        <span className={`text-lg ${isImageActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"} text-white drop-shadow-lg`}>
+                                          {isImageActive ? "✅" : "🖼"}
+                                        </span>
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sin foto</div>
+                                  )}
+                                </div>
+                                
+                                {/* Info de la nota */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
+                                      {nota.fuente || "Fuente"}
+                                    </span>
+                                  </div>
+                                  <h4 className="text-sm font-bold text-ink leading-snug line-clamp-2">
+                                    {nota.titulo_original || nota.titulo}
+                                  </h4>
+                                  <p className="text-xs text-muted mt-1 line-clamp-2">
+                                    {nota.cuerpo?.substring(0, 150)}...
+                                  </p>
+                                  {nota.url_original && (
+                                    <a href={nota.url_original} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline mt-1 inline-block">
+                                      Ver artículo original →
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* ── Imagen Preview + Acciones ── */}
+                        <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-end justify-between border-t border-border pt-5">
+                          <div className="flex items-center gap-3">
+                            {imagenActiva?.imagen_url ? (
+                              <div className="flex items-center gap-3">
+                                <img src={imagenActiva.imagen_url} alt="" className="w-12 h-12 rounded-lg object-cover border-2 border-green-400" />
+                                <span className="text-xs text-muted">
+                                  Imagen de <strong>{imagenActiva.fuente}</strong>
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted italic">Sin imagen seleccionada</span>
+                            )}
+                          </div>
+
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => descartarGrupo(grupoId)}
+                              disabled={isSaving}
+                              className="px-5 py-2.5 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              ✕ Descartar grupo
+                            </button>
+                            <button
+                              onClick={() => procesarGrupo(grupoId)}
+                              disabled={isSaving}
+                              className="px-6 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                            >
+                              {isSaving ? (
+                                <>
+                                  <span className="animate-spin">⏳</span> Procesando...
+                                </>
+                              ) : (
+                                "⚡ Procesar con IA"
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

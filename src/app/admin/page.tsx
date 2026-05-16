@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import AdminPanel from "@/app/admin/AdminPanel";
-import { getPendientes } from "@/lib/noticias";
+import { getPendientes, getRawGrupos } from "@/lib/noticias";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 async function login(formData: FormData) {
@@ -88,8 +88,9 @@ export default async function AdminPage() {
     );
   }
 
-  const [pendientes, stats, { data: seccionData }] = await Promise.all([
+  const [pendientes, rawGrupos, stats, { data: seccionData }] = await Promise.all([
     getPendientes(80),
+    getRawGrupos(150),
     getStats(),
     supabase.from("noticias").select("seccion"),
   ]);
@@ -108,7 +109,12 @@ export default async function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[#f3f4f6] text-ink font-sans">
-      <AdminPanel initialItems={initialItems} stats={stats} dbSecciones={dbSecciones} />
+      <AdminPanel 
+        initialItems={initialItems} 
+        initialRawGrupos={rawGrupos}
+        stats={stats} 
+        dbSecciones={dbSecciones} 
+      />
     </main>
   );
 }

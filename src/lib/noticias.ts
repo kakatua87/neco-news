@@ -120,3 +120,29 @@ export async function getNoticiasCountByMonth(
   }
   return counts;
 }
+
+/** Obtiene grupos de noticias en estado 'raw' ordenados por fecha. */
+export async function getRawGrupos(limit = 100): Promise<Record<string, Noticia[]>> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("noticias")
+    .select("*")
+    .eq("estado", "raw")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    console.error("Error al obtener raw grupos:", error?.message);
+    return {};
+  }
+
+  // Agrupar por grupo_id
+  const groups: Record<string, Noticia[]> = {};
+  for (const item of (data as Noticia[])) {
+    const gid = item.grupo_id || `sin-grupo-${item.id}`;
+    if (!groups[gid]) groups[gid] = [];
+    groups[gid].push(item);
+  }
+
+  return groups;
+}

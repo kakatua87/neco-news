@@ -1,4 +1,4 @@
-export type EstadoNoticia = "pendiente" | "publicada" | "descartada";
+export type EstadoNoticia = "raw" | "pendiente" | "publicada" | "descartada";
 
 export type Noticia = {
   id: string | number;
@@ -16,4 +16,7 @@ export type Noticia = {
   fecha_publicacion: string | null;
   created_at: string;
   es_portada: boolean;
+  grupo_id?: string | null;
+  titulo_original?: string | null;
+  fuente?: string | null;
 };
