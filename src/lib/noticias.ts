@@ -121,6 +121,23 @@ export async function getNoticiasCountByMonth(
   return counts;
 }
 
+/** Noticias publicadas con su kit de Instagram (título gancho, caption, imagen, link). */
+export async function getInstagramKit(limit = 60): Promise<Noticia[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("noticias")
+    .select("id, titulo, instagram_titulo, instagram_text, imagen_url, imagen_fuente, slug, seccion, fecha_publicacion")
+    .eq("estado", "publicada")
+    .order("fecha_publicacion", { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Error al obtener instagram kit:", error.message);
+    return [];
+  }
+  return data as Noticia[];
+}
+
 /** Obtiene grupos de noticias en estado 'raw' ordenados por fecha. */
 export async function getRawGrupos(limit = 100): Promise<Record<string, Noticia[]>> {
   const supabase = await createSupabaseServerClient();

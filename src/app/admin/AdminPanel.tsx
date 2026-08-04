@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import type { Noticia } from "@/types/noticia";
 import { logoutAction } from "./actions";
+import EditorModal from "./EditorModal";
 
 const SECCIONES = [
   "Política", "Economía", "Policiales", "Local", 
@@ -36,7 +37,12 @@ type Props = {
   dbSecciones?: string[];
 };
 
-type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "config";
+type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "instagram" | "config";
+
+type InstagramKitItem = Pick<
+  Noticia,
+  "id" | "titulo" | "instagram_titulo" | "instagram_text" | "imagen_url" | "seccion" | "slug"
+>;
 
 export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats, dbSecciones }: Props) {
   const [items, setItems] = useState(initialItems);
@@ -48,6 +54,10 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [publicadasItems, setPublicadasItems] = useState<Editable[]>([]);
   const [publicadasFetched, setPublicadasFetched] = useState(false);
   const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
+
+  const [igItems, setIgItems] = useState<InstagramKitItem[]>([]);
+  const [igFetched, setIgFetched] = useState(false);
+  const [igBusyIds, setIgBusyIds] = useState<Array<string | number>>([]);
   
   const allSecciones = Array.from(new Set([...SECCIONES, ...(dbSecciones || [])]));
   const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
@@ -104,6 +114,10 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, [field]: value } : n)));
   };
 
+  const updateItemFields = (id: string | number, patch: Partial<Editable>) => {
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+  };
+
   const withSaving = async (id: string | number, task: () => Promise<void>) => {
     setSavingIds((prev) => [...prev, id]);
     try {
@@ -122,6 +136,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
           id: item.id,
           titulo: item.titulo,
           cuerpo: item.cuerpo,
+          imagen_url: item.imagen_url,
         }),
       });
       if (!res.ok) return;
@@ -131,11 +146,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
   const descartar = async (item: Editable) =>
     withSaving(item.id, async () => {
-      const res = await fetch("/api/telegram-webhook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ callback_query: { data: `des_${item.id}` } }),
-      });
+      const res = await fetch(`/api/noticias/${item.id}`, { method: "DELETE" });
       if (!res.ok) return;
       setItems((prev) => prev.filter((n) => n.id !== item.id));
       if (editingId === item.id) setEditingId(null);
@@ -173,6 +184,80 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const fetchInstagramKit = async () => {
+    if (igFetched) return;
+    try {
+      const res = await fetch("/api/noticias/instagram-kit");
+      if (res.ok) {
+        const data = await res.json();
+        setIgItems(data);
+        setIgFetched(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const igBase = typeof window !== "undefined" ? window.location.origin : "https://neco-news.vercel.app";
+
+  const seccionSlug = (seccion: string) =>
+    (seccion || "local")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Mark}/gu, "")
+      .replace(/\s+/g, "-");
+
+  const noticiaLink = (item: InstagramKitItem) => `${igBase}/${seccionSlug(item.seccion)}/${item.slug}`;
+
+  const generarCopyIA = async (item: InstagramKitItem) => {
+    setIgBusyIds((prev) => [...prev, item.id]);
+    try {
+      const res = await fetch(`/api/noticias/${item.id}/instagram-kit`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setIgItems((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, instagram_titulo: data.instagram_titulo, instagram_text: data.instagram_text } : n))
+        );
+      } else {
+        alert(`No se pudo generar el copy: ${data.error || "error desconocido"}`);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIgBusyIds((prev) => prev.filter((x) => x !== item.id));
+    }
+  };
+
+  const generarImagenIAPublicada = async (item: InstagramKitItem) => {
+    setIgBusyIds((prev) => [...prev, item.id]);
+    try {
+      const res = await fetch("/api/generar-imagen-ia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noticia_id: item.id, titulo: item.titulo, seccion: item.seccion }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIgItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, imagen_url: data.imagen_url } : n)));
+      } else {
+        alert(`No se pudo generar la imagen: ${data.error || "error desconocido"}`);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIgBusyIds((prev) => prev.filter((x) => x !== item.id));
+    }
+  };
+
+  const copiarTodo = (item: InstagramKitItem) => {
+    const texto = `${item.instagram_titulo || item.titulo}\n\n${item.instagram_text || ""}\n\n${noticiaLink(item)}`;
+    navigator.clipboard.writeText(texto);
+  };
+
+  const copiarLink = (item: InstagramKitItem) => {
+    navigator.clipboard.writeText(noticiaLink(item));
   };
 
   const eliminarPublicada = async (id: string | number) => {
@@ -302,6 +387,9 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     if (tab === "publicadas") {
       fetchPublicadas();
     }
+    if (tab === "instagram") {
+      fetchInstagramKit();
+    }
   };
 
   return (
@@ -361,6 +449,14 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             }`}
           >
             📰 Publicadas
+          </button>
+          <button
+            onClick={() => handleTabChange("instagram")}
+            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "instagram" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
+            }`}
+          >
+            📸 Instagram
           </button>
           <button
             onClick={() => handleTabChange("config")}
@@ -741,29 +837,13 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                           </div>
                         </div>
                         
-                        {isEditing ? (
-                          <div className="space-y-3 mt-2">
-                            <input
-                              value={item.titulo}
-                              onChange={(e) => updateItem(item.id, "titulo", e.target.value)}
-                              className="w-full font-editorial text-xl font-bold border border-accent/50 rounded p-2 outline-none focus:ring-1 focus:ring-accent"
-                            />
-                            <textarea
-                              value={item.cuerpo}
-                              onChange={(e) => updateItem(item.id, "cuerpo", e.target.value)}
-                              rows={6}
-                              className="w-full text-sm leading-relaxed border border-accent/50 rounded p-2 outline-none focus:ring-1 focus:ring-accent"
-                            />
-                          </div>
-                        ) : (
-                          <div className="mt-1">
-                            <h3 className="font-editorial text-xl font-bold text-ink">{item.titulo}</h3>
-                            <p className="text-sm text-muted mt-2 line-clamp-2 leading-relaxed">
-                              {item.cuerpo}
-                            </p>
-                          </div>
-                        )}
-                        
+                        <div className="mt-1">
+                          <h3 className="font-editorial text-xl font-bold text-ink">{item.titulo}</h3>
+                          <p className="text-sm text-muted mt-2 line-clamp-2 leading-relaxed">
+                            {item.cuerpo}
+                          </p>
+                        </div>
+
                         {/* Acciones */}
                         <div className="mt-auto pt-4 flex gap-2 justify-end">
                           <button
@@ -773,17 +853,15 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                           >
                             Descartar
                           </button>
-                          
+
                           <button
-                            onClick={() => isEditing ? setEditingId(null) : setEditingId(item.id)}
+                            onClick={() => setEditingId(item.id)}
                             disabled={saving}
-                            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
-                              isEditing ? "bg-gray-200 text-ink" : "bg-ink text-white hover:bg-ink/80"
-                            }`}
+                            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 bg-ink text-white hover:bg-ink/80"
                           >
-                            {isEditing ? "Ocultar editor" : "Editar"}
+                            ✏️ Editar
                           </button>
-                          
+
                           <button
                             onClick={() => publicar(item)}
                             disabled={saving}
@@ -793,6 +871,22 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                           </button>
                         </div>
                       </div>
+
+                      {isEditing && (
+                        <EditorModal
+                          isOpen={isEditing}
+                          noticiaId={item.id}
+                          titulo={item.titulo}
+                          cuerpo={item.cuerpo}
+                          seccion={item.seccion}
+                          imagenUrl={item.imagen_url}
+                          onClose={() => setEditingId(null)}
+                          onSave={(titulo, cuerpo, imagenUrl) => {
+                            updateItemFields(item.id, { titulo, cuerpo, imagen_url: imagenUrl });
+                            setEditingId(null);
+                          }}
+                        />
+                      )}
                     </article>
                   );
                 })}
@@ -908,6 +1002,86 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               ))}
               
               {publicadasItems.length === 0 && publicadasFetched && (
+                <div className="col-span-full text-center py-12 text-muted">
+                  No hay noticias publicadas para mostrar.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: INSTAGRAM */}
+        {activeTab === "instagram" && (
+          <div className="space-y-6 fade-in">
+            <div>
+              <h2 className="text-2xl font-bold text-ink">📸 Kit de Instagram</h2>
+              <p className="text-sm text-muted mt-1">
+                Título gancho, imagen y link listos para copiar y postear manualmente con tus hashtags.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {igItems.map((item) => {
+                const busy = igBusyIds.includes(item.id);
+                return (
+                  <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
+                    <div className="h-48 bg-gray-100 flex-shrink-0 flex items-center justify-center">
+                      {item.imagen_url ? (
+                        <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <button
+                          onClick={() => generarImagenIAPublicada(item)}
+                          disabled={busy}
+                          className="px-4 py-2 text-sm font-medium text-accent hover:underline disabled:opacity-50"
+                        >
+                          {busy ? "Generando..." : "✨ Generar imagen IA"}
+                        </button>
+                      )}
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col gap-3">
+                      <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded w-fit">
+                        {item.seccion}
+                      </span>
+
+                      {item.instagram_titulo ? (
+                        <h3 className="font-editorial text-lg font-bold text-ink leading-tight">{item.instagram_titulo}</h3>
+                      ) : (
+                        <button
+                          onClick={() => generarCopyIA(item)}
+                          disabled={busy}
+                          className="text-sm font-medium text-accent hover:underline text-left disabled:opacity-50 w-fit"
+                        >
+                          {busy ? "Generando..." : "✨ Generar copy IA"}
+                        </button>
+                      )}
+
+                      {item.instagram_text && (
+                        <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap line-clamp-4">{item.instagram_text}</p>
+                      )}
+
+                      <p className="text-xs text-blue-500 break-all">{noticiaLink(item)}</p>
+
+                      <div className="mt-auto pt-3 border-t border-border/50 flex gap-2 justify-between">
+                        <button
+                          onClick={() => copiarLink(item)}
+                          className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors"
+                        >
+                          🔗 Copiar link
+                        </button>
+                        <button
+                          onClick={() => copiarTodo(item)}
+                          disabled={!item.instagram_titulo && !item.instagram_text}
+                          className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-40"
+                        >
+                          📋 Copiar todo
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {igItems.length === 0 && igFetched && (
                 <div className="col-span-full text-center py-12 text-muted">
                   No hay noticias publicadas para mostrar.
                 </div>

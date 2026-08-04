@@ -6,6 +6,7 @@ type Body = {
   id?: number;
   titulo?: string;
   cuerpo?: string;
+  imagen_url?: string;
 };
 
 export async function POST(request: Request) {
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
   };
   if (body.titulo) payload.titulo = body.titulo;
   if (body.cuerpo) payload.cuerpo = body.cuerpo;
+  if (body.imagen_url) payload.imagen_url = body.imagen_url;
 
   const { error } = await supabase.from("noticias").update(payload).eq("id", body.id);
   if (error) {

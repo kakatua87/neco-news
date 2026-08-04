@@ -10,6 +10,7 @@ export type Noticia = {
   url_original: string | null;
   imagen_url: string | null;
   instagram_text: string | null;
+  instagram_titulo: string | null;
   twitter_text: string | null;
   guion_video: string | null;
   slug: string;
@@ -19,4 +20,5 @@ export type Noticia = {
   grupo_id?: string | null;
   titulo_original?: string | null;
   fuente?: string | null;
+  imagen_fuente?: string | null;
 };
