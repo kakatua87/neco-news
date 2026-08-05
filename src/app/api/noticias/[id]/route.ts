@@ -15,10 +15,12 @@ export async function DELETE(
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { error } = await supabase
-      .from("noticias")
-      .update({ estado: "descartada" })
-      .eq("id", id);
+    const url = new URL(request.url);
+    const permanente = url.searchParams.get("permanente") === "true";
+
+    const { error } = permanente
+      ? await supabase.from("noticias").delete().eq("id", id)
+      : await supabase.from("noticias").update({ estado: "descartada" }).eq("id", id);
 
     if (error) {
       console.error("Error deleting noticia:", error);

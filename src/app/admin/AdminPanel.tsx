@@ -58,6 +58,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [igItems, setIgItems] = useState<InstagramKitItem[]>([]);
   const [igFetched, setIgFetched] = useState(false);
   const [igBusyIds, setIgBusyIds] = useState<Array<string | number>>([]);
+  const [igSelectedIds, setIgSelectedIds] = useState<Set<string | number>>(new Set());
   
   const allSecciones = Array.from(new Set([...SECCIONES, ...(dbSecciones || [])]));
   const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
@@ -260,11 +261,44 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     navigator.clipboard.writeText(noticiaLink(item));
   };
 
+  const toggleIgSeleccion = (id: string | number) => {
+    setIgSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleIgSeleccionarTodas = () => {
+    setIgSelectedIds((prev) => (prev.size === igItems.length ? new Set() : new Set(igItems.map((n) => n.id))));
+  };
+
+  const eliminarIgSeleccionadas = async () => {
+    if (igSelectedIds.size === 0) return;
+    const n = igSelectedIds.size;
+    if (!confirm(`¿Quitar ${n} nota${n !== 1 ? "s" : ""} del kit de Instagram? La noticia sigue publicada en el portal, solo se quita de esta lista.`)) return;
+    const ids = Array.from(igSelectedIds);
+    try {
+      const res = await fetch("/api/noticias/instagram-kit/descartar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (res.ok) {
+        setIgItems((prev) => prev.filter((n) => !igSelectedIds.has(n.id)));
+        setIgSelectedIds(new Set());
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const eliminarPublicada = async (id: string | number) => {
-    if (!confirm("¿Seguro que quieres eliminar esta noticia?")) return;
+    if (!confirm("¿Seguro que quieres eliminar esta noticia? Esta acción no se puede deshacer.")) return;
     setPublicadasItems((prev) => prev.filter((n) => n.id !== id));
     try {
-      await fetch(`/api/noticias/${id}`, { method: "DELETE" });
+      await fetch(`/api/noticias/${id}?permanente=true`, { method: "DELETE" });
     } catch (e) {
       console.error(e);
     }
@@ -1013,18 +1047,49 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         {/* TAB: INSTAGRAM */}
         {activeTab === "instagram" && (
           <div className="space-y-6 fade-in">
-            <div>
-              <h2 className="text-2xl font-bold text-ink">📸 Kit de Instagram</h2>
-              <p className="text-sm text-muted mt-1">
-                Título gancho, imagen y link listos para copiar y postear manualmente con tus hashtags.
-              </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-ink">📸 Kit de Instagram</h2>
+                <p className="text-sm text-muted mt-1">
+                  Título gancho, imagen y link listos para copiar y postear manualmente con tus hashtags.
+                </p>
+              </div>
+              {igItems.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={igItems.length > 0 && igSelectedIds.size === igItems.length}
+                      onChange={toggleIgSeleccionarTodas}
+                      className="w-4 h-4 accent-accent"
+                    />
+                    Seleccionar todas
+                  </label>
+                  <button
+                    onClick={eliminarIgSeleccionadas}
+                    disabled={igSelectedIds.size === 0}
+                    className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-40"
+                  >
+                    🗑 Quitar seleccionadas ({igSelectedIds.size})
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {igItems.map((item) => {
                 const busy = igBusyIds.includes(item.id);
+                const selected = igSelectedIds.has(item.id);
                 return (
-                  <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
+                  <article key={item.id} className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col relative ${selected ? "border-accent ring-2 ring-accent/30" : "border-border"}`}>
+                    <label className="absolute top-3 left-3 z-10 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleIgSeleccion(item.id)}
+                        className="w-4 h-4 accent-accent"
+                      />
+                    </label>
                     <div className="h-48 bg-gray-100 flex-shrink-0 flex items-center justify-center">
                       {item.imagen_url ? (
                         <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />

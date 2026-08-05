@@ -128,6 +128,7 @@ export async function getInstagramKit(limit = 60): Promise<Noticia[]> {
     .from("noticias")
     .select("id, titulo, instagram_titulo, instagram_text, imagen_url, imagen_fuente, slug, seccion, fecha_publicacion")
     .eq("estado", "publicada")
+    .eq("instagram_descartado", false)
     .order("fecha_publicacion", { ascending: false, nullsFirst: false })
     .limit(limit);
 

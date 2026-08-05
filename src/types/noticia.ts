@@ -21,4 +21,5 @@ export type Noticia = {
   titulo_original?: string | null;
   fuente?: string | null;
   imagen_fuente?: string | null;
+  instagram_descartado?: boolean;
 };
