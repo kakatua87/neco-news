@@ -5,8 +5,23 @@ export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const grupo_id = searchParams.get("grupo_id");
   const fecha = searchParams.get("fecha"); // formato: YYYY-MM-DD
+  const todos = searchParams.get("todos") === "true";
 
   const supabase = createSupabaseAdminClient();
+
+  // Descartar TODOS los grupos raw sin filtrar
+  if (todos) {
+    const { data, error } = await supabase
+      .from("noticias")
+      .update({ estado: "descartada" })
+      .eq("estado", "raw")
+      .select("id");
+
+    if (error) {
+      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, descartadas: data?.length ?? 0 });
+  }
 
   // Descartar por grupo_id individual
   if (grupo_id) {

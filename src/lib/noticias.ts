@@ -19,6 +19,24 @@ export async function getPublicadas(limit = 30): Promise<Noticia[]> {
   return data as Noticia[];
 }
 
+/** Noticias incluidas en el carrusel de portada, ordenadas por orden_portada. */
+export async function getCarruselPortada(): Promise<Noticia[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("noticias")
+    .select("*")
+    .eq("estado", "publicada")
+    .eq("es_portada", true)
+    .order("orden_portada", { ascending: true, nullsFirst: false })
+    .limit(8);
+
+  if (error || !data) {
+    console.error("Error al obtener carrusel de portada:", error?.message);
+    return [];
+  }
+  return data as Noticia[];
+}
+
 /** Devuelve la noticia marcada como portada del día actual, o null si no hay. */
 export async function getPortadaDelDia(): Promise<Noticia | null> {
   const supabase = await createSupabaseServerClient();

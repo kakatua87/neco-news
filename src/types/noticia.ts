@@ -17,6 +17,7 @@ export type Noticia = {
   fecha_publicacion: string | null;
   created_at: string;
   es_portada: boolean;
+  orden_portada?: number | null;
   grupo_id?: string | null;
   titulo_original?: string | null;
   fuente?: string | null;

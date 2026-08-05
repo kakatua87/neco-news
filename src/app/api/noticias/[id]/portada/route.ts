@@ -15,25 +15,41 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    // 1. Quitar es_portada de todas las de hoy
-    const { error: resetError } = await supabase
+    // Toggle: si ya está en el carrusel de portada, la saca. Si no, la agrega al final.
+    const { data: actual, error: fetchError } = await supabase
       .from("noticias")
-      .update({ es_portada: false })
-      .eq("estado", "publicada")
-      .gte("fecha_publicacion", startOfDay.toISOString());
+      .select("es_portada")
+      .eq("id", id)
+      .single();
 
-    if (resetError) {
-      console.error("Error reset portada:", resetError);
-      return NextResponse.json({ ok: false, error: resetError.message }, { status: 500 });
+    if (fetchError || !actual) {
+      return NextResponse.json({ ok: false, error: fetchError?.message || "Noticia no encontrada" }, { status: 404 });
     }
 
-    // 2. Marcar la nueva
+    if (actual.es_portada) {
+      const { error: updateError } = await supabase
+        .from("noticias")
+        .update({ es_portada: false, orden_portada: null })
+        .eq("id", id);
+
+      if (updateError) {
+        return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, en_carrusel: false });
+    }
+
+    const { data: maxData } = await supabase
+      .from("noticias")
+      .select("orden_portada")
+      .eq("es_portada", true)
+      .order("orden_portada", { ascending: false, nullsFirst: false })
+      .limit(1);
+
+    const siguienteOrden = (maxData?.[0]?.orden_portada ?? 0) + 1;
+
     const { error: updateError } = await supabase
       .from("noticias")
-      .update({ es_portada: true })
+      .update({ es_portada: true, orden_portada: siguienteOrden })
       .eq("id", id);
 
     if (updateError) {
@@ -41,7 +57,7 @@ export async function POST(
       return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, en_carrusel: true, orden: siguienteOrden });
   } catch (err: any) {
     console.error("Catch error in POST portada:", err);
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });

@@ -1,19 +1,10 @@
 import Link from "next/link";
-import { getPublicadas, getPortadaDelDia } from "@/lib/noticias";
+import { getPublicadas, getCarruselPortada } from "@/lib/noticias";
 import type { Noticia } from "@/types/noticia";
 import BannerZone from "@/components/BannerZone";
+import HeroCarousel from "@/components/HeroCarousel";
 
 /* ═══ Helpers ═══ */
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 2) return "Ahora";
-  if (mins < 60) return `Hace ${mins} min`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `Hace ${hours}h`;
-  return `Hace ${Math.floor(hours / 24)}d`;
-}
 
 function normalizeSeccion(s: string): string {
   return s
@@ -45,14 +36,15 @@ const DEMO_STORIES = [
 /* ═══ Page ═══ */
 
 export default async function Home() {
-  const [noticias, portada] = await Promise.all([
+  const [noticias, carruselPortada] = await Promise.all([
     getPublicadas(60),
-    getPortadaDelDia(),
+    getCarruselPortada(),
   ]);
   const hasNews = noticias.length > 0;
 
-  const hero = portada ?? (hasNews ? noticias[0] : null);
-  const restNotes = hasNews ? noticias.filter((n) => n.id !== hero?.id) : [];
+  const heroItems = carruselPortada.length > 0 ? carruselPortada : hasNews ? [noticias[0]] : [];
+  const heroIds = new Set(heroItems.map((n) => n.id));
+  const restNotes = hasNews ? noticias.filter((n) => !heroIds.has(n.id)) : [];
   const sideNotes = restNotes.slice(0, 3);
   const bottomNotes = restNotes.slice(3, 6);
 
@@ -67,47 +59,8 @@ export default async function Home() {
         <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-6 md:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 lg:gap-8">
 
-            {/* HERO IMAGE */}
-            <article className="group relative rounded-xl overflow-hidden cursor-pointer card-lift">
-              {hero ? (
-                <>
-                  <Link href={`/${normalizeSeccion(hero.seccion)}/${hero.slug}`} className="absolute inset-0 z-20" />
-                  <div className="relative h-[300px] md:h-[440px] w-full overflow-hidden bg-gray-200">
-                    {hero.imagen_url ? (
-                      <img src={hero.imagen_url} alt={hero.titulo} className="w-full h-full object-cover img-zoom" />
-                    ) : (
-                      <img src="/placeholder-hero.png" alt="" className="w-full h-full object-cover img-zoom" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                    <span className="absolute top-4 left-4 bg-accent text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded z-10">
-                      {hero.seccion}
-                    </span>
-                    <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8 z-10">
-                      <h1 className="text-white font-extrabold text-xl md:text-3xl lg:text-4xl leading-[1.12] mb-3">
-                        {hero.titulo}
-                      </h1>
-                      <p className="text-white/60 text-sm">
-                        Redacción Neco Now • {timeAgo(hero.fecha_publicacion ?? hero.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="relative h-[300px] md:h-[440px] w-full overflow-hidden bg-gray-200 rounded-xl">
-                  <img src="/placeholder-hero.png" alt="Neco Now" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-                  <span className="absolute top-4 left-4 bg-accent text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded z-10">
-                    Destacado
-                  </span>
-                  <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8 z-10">
-                    <h1 className="text-white font-extrabold text-xl md:text-3xl lg:text-4xl leading-[1.12] mb-3">
-                      Neco Now: Tu portal de noticias de Necochea
-                    </h1>
-                    <p className="text-white/60 text-sm">Redacción Neco Now</p>
-                  </div>
-                </div>
-              )}
-            </article>
+            {/* HERO IMAGE (carrusel de portada) */}
+            <HeroCarousel items={heroItems} />
 
             {/* SIDEBAR: Trending + Top Stories */}
             <aside className="flex flex-col gap-6">

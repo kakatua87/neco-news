@@ -22,6 +22,7 @@ type GrupoEditState = {
 type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at"> & {
   tiene_perspectiva_editorial?: boolean;
   es_portada?: boolean;
+  orden_portada?: number | null;
   fecha_publicacion?: string;
   url_original?: string | null;
 };
@@ -44,6 +45,21 @@ type InstagramKitItem = Pick<
   "id" | "titulo" | "instagram_titulo" | "instagram_text" | "imagen_url" | "seccion" | "slug"
 >;
 
+type ScraperConfig = {
+  activo: boolean;
+  fuentes_activas: string[];
+  fecha_inicio: string | null;
+};
+
+const FUENTES_SCRAPER: { key: string; label: string }[] = [
+  { key: "nden", label: "NDEN (Necochea Digital)" },
+  { key: "diarionecochea", label: "Diario Necochea" },
+  { key: "diario4v", label: "Diario 4V" },
+  { key: "tsn", label: "TSN Necochea" },
+  { key: "diarionq", label: "Diario NQ" },
+  { key: "elecos", label: "El Ecos" },
+];
+
 export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats, dbSecciones }: Props) {
   const [items, setItems] = useState(initialItems);
   const [rawGrupos, setRawGrupos] = useState<Record<string, Noticia[]>>(initialRawGrupos);
@@ -54,6 +70,19 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [publicadasItems, setPublicadasItems] = useState<Editable[]>([]);
   const [publicadasFetched, setPublicadasFetched] = useState(false);
   const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
+
+  const [scraperConfig, setScraperConfig] = useState<ScraperConfig | null>(null);
+  const [showScraperPanel, setShowScraperPanel] = useState(false);
+  const [savingScraperConfig, setSavingScraperConfig] = useState(false);
+
+  useEffect(() => {
+    fetchScraperConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const [pubSelectedIds, setPubSelectedIds] = useState<Set<string | number>>(new Set());
+  const [descartadasCount, setDescartadasCount] = useState(stats.descartadas);
+  const [vaciandoDescartadas, setVaciandoDescartadas] = useState(false);
 
   const [igItems, setIgItems] = useState<InstagramKitItem[]>([]);
   const [igFetched, setIgFetched] = useState(false);
@@ -304,9 +333,80 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     }
   };
 
+  const eliminarMultiple = async (ids: Array<string | number>) => {
+    try {
+      await fetch("/api/noticias/eliminar-multiple", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const togglePubSeleccion = (id: string | number) => {
+    setPubSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const publicadasFiltradas = () =>
+    publicadasItems.filter((n) => seccionFiltro === "Todas" || n.seccion === seccionFiltro);
+
+  const togglePubSeleccionarTodas = () => {
+    const visibles = publicadasFiltradas();
+    setPubSelectedIds((prev) =>
+      visibles.every((n) => prev.has(n.id)) ? new Set() : new Set(visibles.map((n) => n.id))
+    );
+  };
+
+  const eliminarPubSeleccionadas = async () => {
+    if (pubSelectedIds.size === 0) return;
+    const n = pubSelectedIds.size;
+    if (!confirm(`¿Eliminar ${n} noticia${n !== 1 ? "s" : ""} publicada${n !== 1 ? "s" : ""}? Esta acción no se puede deshacer.`)) return;
+    const ids = Array.from(pubSelectedIds);
+    setPublicadasItems((prev) => prev.filter((n) => !pubSelectedIds.has(n.id)));
+    setPubSelectedIds(new Set());
+    await eliminarMultiple(ids);
+  };
+
+  const vaciarDescartadas = async () => {
+    if (!confirm(`¿Eliminar definitivamente las ${descartadasCount} noticias descartadas? Esta acción no se puede deshacer.`)) return;
+    setVaciandoDescartadas(true);
+    try {
+      const res = await fetch("/api/noticias/vaciar-descartadas", { method: "POST" });
+      if (res.ok) {
+        setDescartadasCount(0);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setVaciandoDescartadas(false);
+    }
+  };
+
+  const eliminarTodasDeSeccion = async () => {
+    const visibles = publicadasFiltradas();
+    if (visibles.length === 0) return;
+    if (!confirm(`¿Eliminar TODAS las noticias de "${seccionFiltro}" (${visibles.length})? Esta acción no se puede deshacer.`)) return;
+    const ids = visibles.map((n) => n.id);
+    setPublicadasItems((prev) => prev.filter((n) => !ids.includes(n.id)));
+    setPubSelectedIds(new Set());
+    await eliminarMultiple(ids);
+  };
+
   const marcarPortada = async (id: string | number) => {
+    const item = publicadasItems.find((n) => n.id === id);
+    const yaEstaba = !!item?.es_portada;
+    const maxOrden = Math.max(0, ...publicadasItems.filter((n) => n.es_portada).map((n) => n.orden_portada || 0));
     setPublicadasItems((prev) =>
-      prev.map((n) => ({ ...n, es_portada: n.id === id }))
+      prev.map((n) =>
+        n.id === id ? { ...n, es_portada: !yaEstaba, orden_portada: yaEstaba ? null : maxOrden + 1 } : n
+      )
     );
     try {
       await fetch(`/api/noticias/${id}/portada`, { method: "POST" });
@@ -416,6 +516,62 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     }
   };
 
+  const fetchScraperConfig = async () => {
+    try {
+      const res = await fetch("/api/scraper/config");
+      if (res.ok) {
+        const data = await res.json();
+        setScraperConfig({
+          activo: !!data.activo,
+          fuentes_activas: data.fuentes_activas || FUENTES_SCRAPER.map((f) => f.key),
+          fecha_inicio: data.fecha_inicio || null,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const guardarScraperConfig = async (patch: Partial<ScraperConfig>) => {
+    if (!scraperConfig) return;
+    const next = { ...scraperConfig, ...patch };
+    setScraperConfig(next);
+    setSavingScraperConfig(true);
+    try {
+      await fetch("/api/scraper/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingScraperConfig(false);
+    }
+  };
+
+  const toggleFuenteScraper = (key: string) => {
+    if (!scraperConfig) return;
+    const activas = scraperConfig.fuentes_activas.includes(key)
+      ? scraperConfig.fuentes_activas.filter((f) => f !== key)
+      : [...scraperConfig.fuentes_activas, key];
+    if (activas.length === 0) return; // no dejar sin fuentes
+    guardarScraperConfig({ fuentes_activas: activas });
+  };
+
+  const eliminarTodosLosGrupos = async () => {
+    if (!confirm(`¿Descartar TODOS los grupos de la Bandeja de Entrada (${inboxCount} grupos)? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await fetch("/api/noticias/raw/descartar?todos=true", { method: "POST" });
+      if (res.ok) {
+        setRawGrupos({});
+        setGrupoStates({});
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     if (tab === "publicadas") {
@@ -423,6 +579,9 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     }
     if (tab === "instagram") {
       fetchInstagramKit();
+    }
+    if (tab === "inbox" && !scraperConfig) {
+      fetchScraperConfig();
     }
   };
 
@@ -518,25 +677,45 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             <h2 className="text-2xl font-bold text-ink">Resumen del Sistema</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
+              <button
+                onClick={() => handleTabChange("inbox")}
+                className="text-left bg-white p-6 rounded-xl border border-border shadow-sm hover:border-accent hover:shadow-md transition-all"
+              >
                 <p className="text-sm text-muted font-medium uppercase tracking-wide">Bandeja</p>
                 <p className="text-4xl font-bold text-blue-500 mt-2">{inboxCount}</p>
                 <p className="text-xs text-muted mt-2 font-medium">Grupos sin procesar</p>
-              </div>
-              <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
+              </button>
+              <button
+                onClick={() => handleTabChange("publicadas")}
+                className="text-left bg-white p-6 rounded-xl border border-border shadow-sm hover:border-accent hover:shadow-md transition-all"
+              >
                 <p className="text-sm text-muted font-medium uppercase tracking-wide">Publicadas</p>
                 <p className="text-4xl font-bold text-ink mt-2">{stats.publicadas}</p>
                 <p className="text-xs text-[#25D366] mt-2 font-medium">↑ Visibles en portal</p>
-              </div>
-              <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
+              </button>
+              <button
+                onClick={() => handleTabChange("pendientes")}
+                className="text-left bg-white p-6 rounded-xl border border-border shadow-sm hover:border-accent hover:shadow-md transition-all"
+              >
                 <p className="text-sm text-muted font-medium uppercase tracking-wide">Pendientes</p>
                 <p className="text-4xl font-bold text-accent mt-2">{pendientesCount}</p>
                 <p className="text-xs text-muted mt-2 font-medium">Esperando revisión</p>
-              </div>
+              </button>
               <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
                 <p className="text-sm text-muted font-medium uppercase tracking-wide">Descartadas</p>
-                <p className="text-4xl font-bold text-ink mt-2">{stats.descartadas}</p>
-                <p className="text-xs text-muted mt-2 font-medium">Archivadas</p>
+                <p className="text-4xl font-bold text-ink mt-2">{descartadasCount}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-muted font-medium">Archivadas</p>
+                  {descartadasCount > 0 && (
+                    <button
+                      onClick={vaciarDescartadas}
+                      disabled={vaciandoDescartadas}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium disabled:opacity-50"
+                    >
+                      {vaciandoDescartadas ? "Vaciando..." : "Vaciar"}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -583,15 +762,92 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
           return (
           <div className="space-y-6 fade-in">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-2">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-2">
               <div>
                 <h2 className="text-2xl font-bold text-ink">📥 Bandeja de Entrada</h2>
                 <p className="text-sm text-muted mt-1">Noticias crudas recién scrapeadas. Seleccioná fuentes, elegí imagen, y procesá con IA.</p>
               </div>
-              <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
-                {inboxCount} grupo{inboxCount !== 1 ? "s" : ""} nuevos
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
+                  {inboxCount} grupo{inboxCount !== 1 ? "s" : ""} nuevos
+                </span>
+                <button
+                  onClick={() => setShowScraperPanel((v) => !v)}
+                  className="px-3 py-1.5 text-xs font-medium border border-border rounded-full hover:bg-gray-50 transition-colors"
+                >
+                  ⚙️ Control del scraper
+                </button>
+                {inboxCount > 0 && (
+                  <button
+                    onClick={eliminarTodosLosGrupos}
+                    className="px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 rounded-full hover:bg-red-50 transition-colors"
+                  >
+                    🗑 Eliminar todos los grupos
+                  </button>
+                )}
+              </div>
             </div>
+
+            {showScraperPanel && scraperConfig && (
+              <div className="bg-white rounded-xl border border-border shadow-sm p-6 space-y-5 mb-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                  <div>
+                    <h3 className="font-bold text-ink">Control del Scraper</h3>
+                    <p className="text-xs text-muted mt-1">
+                      Elegí qué fuentes scrapear y desde cuándo. Podés detenerlo o dejarlo automático.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => guardarScraperConfig({ activo: !scraperConfig.activo })}
+                    disabled={savingScraperConfig}
+                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-colors disabled:opacity-50 ${
+                      scraperConfig.activo ? "bg-red-500 text-white hover:bg-red-600" : "bg-[#25D366] text-white hover:bg-[#1da64f]"
+                    }`}
+                  >
+                    {scraperConfig.activo ? "⏸ Detener scraper" : "▶ Activar scraper"}
+                  </button>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Fuentes activas</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {FUENTES_SCRAPER.map((f) => (
+                      <label key={f.key} className="flex items-center gap-2 p-2 border border-border rounded-lg cursor-pointer hover:bg-gray-50 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={scraperConfig.fuentes_activas.includes(f.key)}
+                          onChange={() => toggleFuenteScraper(f.key)}
+                          className="w-4 h-4 accent-accent"
+                        />
+                        {f.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted mb-2">
+                    Arrancar automáticamente a partir de (dejar vacío para ya mismo)
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="datetime-local"
+                      value={scraperConfig.fecha_inicio ? scraperConfig.fecha_inicio.slice(0, 16) : ""}
+                      onChange={(e) => guardarScraperConfig({ fecha_inicio: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                      className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-accent"
+                    />
+                    {scraperConfig.fecha_inicio && (
+                      <button
+                        onClick={() => guardarScraperConfig({ fecha_inicio: null })}
+                        className="text-xs text-muted hover:text-ink underline"
+                      >
+                        Quitar fecha
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {inboxCount === 0 ? (
               <div className="text-center py-20 bg-white rounded-xl border border-border border-dashed">
@@ -932,8 +1188,36 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         {/* TAB: PUBLICADAS */}
         {activeTab === "publicadas" && (
           <div className="space-y-6 fade-in">
-            <h2 className="text-2xl font-bold text-ink mb-6">Noticias Publicadas</h2>
-            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold text-ink">Noticias Publicadas</h2>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={publicadasFiltradas().length > 0 && publicadasFiltradas().every((n) => pubSelectedIds.has(n.id))}
+                    onChange={togglePubSeleccionarTodas}
+                    className="w-4 h-4 accent-accent"
+                  />
+                  Seleccionar visibles
+                </label>
+                <button
+                  onClick={eliminarPubSeleccionadas}
+                  disabled={pubSelectedIds.size === 0}
+                  className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  🗑 Eliminar seleccionadas ({pubSelectedIds.size})
+                </button>
+                {seccionFiltro !== "Todas" && (
+                  <button
+                    onClick={eliminarTodasDeSeccion}
+                    className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
+                  >
+                    🗑 Eliminar todas de "{seccionFiltro}"
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* Row de Filtros por Sección */}
             <div className="flex flex-wrap gap-2 mb-6">
               <button
@@ -970,9 +1254,17 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                     )}
                     {item.es_portada && (
                       <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-sm">
-                        ⭐ Portada
+                        ⭐ Portada #{item.orden_portada ?? ""}
                       </div>
                     )}
+                    <label className="absolute top-2 left-2 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={pubSelectedIds.has(item.id)}
+                        onChange={() => togglePubSeleccion(item.id)}
+                        className="w-4 h-4 accent-accent"
+                      />
+                    </label>
                   </div>
                   <div className="p-4 flex-1 flex flex-col">
                     <div className="flex flex-col mb-2 gap-2">
@@ -1028,7 +1320,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                           item.es_portada ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-ink hover:bg-gray-200"
                         }`}
                       >
-                        {item.es_portada ? "⭐ Es Portada" : "⭐ Portada"}
+                        {item.es_portada ? `⭐ En carrusel #${item.orden_portada ?? ""}` : "⭐ Agregar a portada"}
                       </button>
                     </div>
                   </div>
