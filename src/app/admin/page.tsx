@@ -105,6 +105,7 @@ export default async function AdminPage() {
     imagen_url: n.imagen_url,
     created_at: n.created_at,
     url_original: n.url_original,
+    fuentes_urls: n.fuentes_urls,
   }));
 
   return (

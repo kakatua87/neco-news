@@ -1,5 +1,10 @@
 export type EstadoNoticia = "raw" | "pendiente" | "publicada" | "descartada";
 
+export type FuenteUrl = {
+  fuente: string;
+  url: string;
+};
+
 export type Noticia = {
   id: string | number;
   titulo: string;
@@ -23,4 +28,5 @@ export type Noticia = {
   fuente?: string | null;
   imagen_fuente?: string | null;
   instagram_descartado?: boolean;
+  fuentes_urls?: FuenteUrl[] | null;
 };

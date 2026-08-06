@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import type { Noticia } from "@/types/noticia";
+import type { Noticia, FuenteUrl } from "@/types/noticia";
 import { logoutAction } from "./actions";
 import EditorModal from "./EditorModal";
 
@@ -25,6 +25,7 @@ type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_u
   orden_portada?: number | null;
   fecha_publicacion?: string;
   url_original?: string | null;
+  fuentes_urls?: FuenteUrl[] | null;
 };
 
 type Props = {
@@ -421,6 +422,10 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     if (!gs || !notas) return;
 
     const selectedIds = Array.from(gs.seleccionadas);
+    if (selectedIds.length === 0) {
+      alert("Seleccioná al menos una fuente antes de procesar con IA.");
+      return;
+    }
     const imagenNota = notas.find(n => n.id === gs.imagenId);
     const imagenUrl = imagenNota?.imagen_url || null;
 
@@ -930,21 +935,24 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                                   {notas.map(nota => {
                                     const isSelected = gs.seleccionadas.has(nota.id);
                                     const isImageActive = gs.imagenId === nota.id;
+                                    const isOnlySource = notas.length === 1;
                                     return (
                                       <div key={nota.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                                        isSelected 
-                                          ? "border-blue-400 bg-blue-50/50" 
+                                        isOnlySource || isSelected
+                                          ? "border-blue-400 bg-blue-50/50"
                                           : "border-gray-100 bg-gray-50 opacity-60"
                                       }`}>
-                                        {/* Checkbox de selección */}
-                                        <button 
-                                          onClick={() => toggleFuente(grupoId, nota.id)}
-                                          className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
-                                            isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-gray-300 bg-white"
-                                          }`}
-                                        >
-                                          {isSelected && <span className="text-xs font-bold">✓</span>}
-                                        </button>
+                                        {/* Checkbox de selección — no aplica cuando hay una sola fuente disponible */}
+                                        {!isOnlySource && (
+                                          <button
+                                            onClick={() => toggleFuente(grupoId, nota.id)}
+                                            className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
+                                              isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-gray-300 bg-white"
+                                            }`}
+                                          >
+                                            {isSelected && <span className="text-xs font-bold">✓</span>}
+                                          </button>
+                                        )}
 
                                         {/* Imagen de la nota + selector */}
                                         <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative group">
@@ -1133,6 +1141,34 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                             {item.cuerpo}
                           </p>
                         </div>
+
+                        {/* Fuentes originales usadas por la IA */}
+                        {item.fuentes_urls && item.fuentes_urls.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {item.fuentes_urls.map((f, idx) => (
+                              <a
+                                key={`${item.id}-fuente-${idx}`}
+                                href={f.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors"
+                              >
+                                🔗 {f.fuente || "Ver fuente"}
+                              </a>
+                            ))}
+                          </div>
+                        ) : item.url_original ? (
+                          <div className="mt-3">
+                            <a
+                              href={item.url_original}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors inline-block"
+                            >
+                              🔗 Ver artículo original
+                            </a>
+                          </div>
+                        ) : null}
 
                         {/* Acciones */}
                         <div className="mt-auto pt-4 flex gap-2 justify-end">

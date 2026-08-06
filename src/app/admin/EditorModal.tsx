@@ -89,7 +89,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden">
         {/* ── Header ── */}
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
           <h2 className="text-lg font-bold text-ink">✏️ Editor de Noticia</h2>
@@ -274,7 +274,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
-                className="min-h-[300px] max-h-[50vh] overflow-y-auto p-5 text-sm text-ink leading-relaxed focus:outline-none prose prose-sm max-w-none
+                className="min-h-[420px] max-h-[calc(92vh-420px)] overflow-y-auto p-5 text-sm text-ink leading-relaxed focus:outline-none prose prose-sm max-w-none
                   [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-4 [&_h2]:mb-2
                   [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
                   [&_p]:mb-2
