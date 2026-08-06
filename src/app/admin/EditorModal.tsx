@@ -19,7 +19,30 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
   const [showImageInput, setShowImageInput] = useState(false);
   const [imageInputUrl, setImageInputUrl] = useState("");
   const [generandoImagen, setGenerandoImagen] = useState(false);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const subirImagenDesdeArchivo = async (file: File) => {
+    setSubiendoImagen(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("noticia_id", String(noticiaId));
+      const res = await fetch("/api/subir-imagen", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok && data.imagen_url) {
+        setEditImagen(data.imagen_url);
+      } else {
+        alert(`No se pudo subir la imagen: ${data.error || "error desconocido"}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error de conexión subiendo la imagen.");
+    } finally {
+      setSubiendoImagen(false);
+    }
+  };
 
   const generarImagenIA = async () => {
     setGenerandoImagen(true);
@@ -116,13 +139,31 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
               </div>
             )}
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => setShowImageInput(!showImageInput)}
                   className="text-sm text-blue-600 hover:underline font-medium"
                 >
-                  {editImagen ? "Cambiar imagen" : "Agregar imagen"}
+                  🔗 {editImagen ? "Cambiar por link" : "Agregar desde link"}
                 </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={subiendoImagen}
+                  className="text-sm text-blue-600 hover:underline font-medium disabled:opacity-50"
+                >
+                  {subiendoImagen ? "Subiendo..." : "📁 Subir desde la PC"}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) subirImagenDesdeArchivo(file);
+                    e.target.value = "";
+                  }}
+                />
                 <button
                   onClick={generarImagenIA}
                   disabled={generandoImagen}

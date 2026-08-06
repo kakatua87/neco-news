@@ -72,7 +72,7 @@ export default async function NoticiaPage({ params }: Props) {
 
         {noticia.imagen_url && (
           <figure className="mb-10 rounded-xl overflow-hidden shadow-md">
-            <img src={noticia.imagen_url} alt={noticia.titulo} className="w-full h-auto object-cover max-h-[480px]" />
+            <img src={noticia.imagen_url} alt={noticia.titulo} className="w-full h-auto" />
           </figure>
         )}
 
