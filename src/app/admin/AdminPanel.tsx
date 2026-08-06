@@ -79,6 +79,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [publicadasItems, setPublicadasItems] = useState<Editable[]>([]);
   const [publicadasFetched, setPublicadasFetched] = useState(false);
   const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
+  const [inboxSeccionFiltro, setInboxSeccionFiltro] = useState<string>("Todas");
 
   const [scraperConfig, setScraperConfig] = useState<ScraperConfig | null>(null);
   const [showScraperPanel, setShowScraperPanel] = useState(false);
@@ -870,10 +871,17 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
         {/* TAB: INBOX (RAW) */}
         {activeTab === "inbox" && (() => {
-          // ── Agrupar los grupos por fecha ──
+          // ── Secciones presentes en la bandeja (para los chips de filtro) ──
+          const seccionesEnInbox = Array.from(
+            new Set(Object.values(rawGrupos).map((notas) => notas[0]?.seccion || "Local"))
+          ).sort();
+
+          // ── Agrupar los grupos por fecha (respetando el filtro de sección) ──
           const gruposPorFecha: Record<string, { grupoId: string; notas: Noticia[] }[]> = {};
           for (const [grupoId, notas] of Object.entries(rawGrupos)) {
             if (!notas.length) continue;
+            const seccionGrupo = notas[0]?.seccion || "Local";
+            if (inboxSeccionFiltro !== "Todas" && seccionGrupo !== inboxSeccionFiltro) continue;
             const dateKey = new Date(notas[0].created_at).toLocaleDateString("es-AR", {
               weekday: "long", year: "numeric", month: "long", day: "numeric"
             });
@@ -974,11 +982,41 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               </div>
             )}
 
+            {inboxCount > 0 && seccionesEnInbox.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setInboxSeccionFiltro("Todas")}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                    inboxSeccionFiltro === "Todas" ? "bg-ink text-white border-ink" : "bg-white text-muted border-border hover:bg-gray-50"
+                  }`}
+                >
+                  Todas
+                </button>
+                {seccionesEnInbox.map((sec) => (
+                  <button
+                    key={sec}
+                    onClick={() => setInboxSeccionFiltro(sec)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-full border transition-colors ${
+                      inboxSeccionFiltro === sec ? "bg-ink text-white border-ink" : "bg-white text-muted border-border hover:bg-gray-50"
+                    }`}
+                  >
+                    {sec}
+                  </button>
+                ))}
+              </div>
+            )}
+
             {inboxCount === 0 ? (
               <div className="text-center py-20 bg-white rounded-xl border border-border border-dashed">
                 <span className="text-4xl">🔎</span>
                 <h3 className="text-lg font-bold mt-4">Sin novedades</h3>
                 <p className="text-muted mt-1">El scraper no encontró noticias nuevas. El próximo ciclo es en 15 minutos.</p>
+              </div>
+            ) : fechasOrdenadas.length === 0 ? (
+              <div className="text-center py-20 bg-white rounded-xl border border-border border-dashed">
+                <span className="text-4xl">🔎</span>
+                <h3 className="text-lg font-bold mt-4">Nada en "{inboxSeccionFiltro}"</h3>
+                <p className="text-muted mt-1">No hay grupos nuevos de esta sección por ahora.</p>
               </div>
             ) : (
               <div className="space-y-10">
