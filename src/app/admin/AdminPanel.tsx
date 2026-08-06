@@ -39,7 +39,7 @@ type Props = {
   dbSecciones?: string[];
 };
 
-type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "instagram" | "config";
+type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "obituarios" | "instagram" | "config";
 
 type InstagramKitItem = Pick<
   Noticia,
@@ -82,6 +82,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   }, []);
 
   const [pubSelectedIds, setPubSelectedIds] = useState<Set<string | number>>(new Set());
+  const [obitSelectedIds, setObitSelectedIds] = useState<Set<string | number>>(new Set());
   const [descartadasCount, setDescartadasCount] = useState(stats.descartadas);
   const [vaciandoDescartadas, setVaciandoDescartadas] = useState(false);
 
@@ -400,6 +401,56 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     await eliminarMultiple(ids);
   };
 
+  // ─── Obituarios (borrado individual/masivo) ──────────────────────
+  const obituariosItems = () => publicadasItems.filter((n) => n.seccion === "Obituarios");
+
+  const toggleObitSeleccion = (id: string | number) => {
+    setObitSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleObitSeleccionarTodas = () => {
+    const visibles = obituariosItems();
+    setObitSelectedIds((prev) =>
+      visibles.every((n) => prev.has(n.id)) ? new Set() : new Set(visibles.map((n) => n.id))
+    );
+  };
+
+  const eliminarObituario = async (id: string | number) => {
+    if (!confirm("¿Eliminar este mes de avisos fúnebres? Esta acción no se puede deshacer.")) return;
+    setPublicadasItems((prev) => prev.filter((n) => n.id !== id));
+    setObitSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    await eliminarMultiple([id]);
+  };
+
+  const eliminarObitSeleccionados = async () => {
+    if (obitSelectedIds.size === 0) return;
+    const n = obitSelectedIds.size;
+    if (!confirm(`¿Eliminar ${n} mes${n !== 1 ? "es" : ""} de avisos fúnebres? Esta acción no se puede deshacer.`)) return;
+    const ids = Array.from(obitSelectedIds);
+    setPublicadasItems((prev) => prev.filter((n) => !obitSelectedIds.has(n.id)));
+    setObitSelectedIds(new Set());
+    await eliminarMultiple(ids);
+  };
+
+  const eliminarTodosLosObituarios = async () => {
+    const visibles = obituariosItems();
+    if (visibles.length === 0) return;
+    if (!confirm(`¿Eliminar TODOS los avisos fúnebres publicados (${visibles.length})? Esta acción no se puede deshacer.`)) return;
+    const ids = visibles.map((n) => n.id);
+    setPublicadasItems((prev) => prev.filter((n) => !ids.includes(n.id)));
+    setObitSelectedIds(new Set());
+    await eliminarMultiple(ids);
+  };
+
   const marcarPortada = async (id: string | number) => {
     const item = publicadasItems.find((n) => n.id === id);
     const yaEstaba = !!item?.es_portada;
@@ -579,7 +630,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
-    if (tab === "publicadas") {
+    if (tab === "publicadas" || tab === "obituarios") {
       fetchPublicadas();
     }
     if (tab === "instagram") {
@@ -597,7 +648,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         <div className="p-6">
           <Link href="/">
             <img
-              src="/LOGO.png"
+              src="/logo-oficial.png"
               alt="Neco Now"
               className="h-8 w-auto object-contain"
             />
@@ -647,6 +698,14 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             }`}
           >
             📰 Publicadas
+          </button>
+          <button
+            onClick={() => handleTabChange("obituarios")}
+            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "obituarios" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
+            }`}
+          >
+            🕯 Obituarios
           </button>
           <button
             onClick={() => handleTabChange("instagram")}
@@ -1366,6 +1425,77 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               {publicadasItems.length === 0 && publicadasFetched && (
                 <div className="col-span-full text-center py-12 text-muted">
                   No hay noticias publicadas para mostrar.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: OBITUARIOS */}
+        {activeTab === "obituarios" && (
+          <div className="space-y-6 fade-in">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-2">
+              <div>
+                <h2 className="text-2xl font-bold text-ink">🕯 Obituarios</h2>
+                <p className="text-sm text-muted mt-1">Avisos fúnebres publicados automáticamente, agrupados por mes.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={obituariosItems().length > 0 && obituariosItems().every((n) => obitSelectedIds.has(n.id))}
+                    onChange={toggleObitSeleccionarTodas}
+                    className="w-4 h-4 accent-accent"
+                  />
+                  Seleccionar todas
+                </label>
+                <button
+                  onClick={eliminarObitSeleccionados}
+                  disabled={obitSelectedIds.size === 0}
+                  className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-40"
+                >
+                  🗑 Eliminar seleccionadas ({obitSelectedIds.size})
+                </button>
+                {obituariosItems().length > 0 && (
+                  <button
+                    onClick={eliminarTodosLosObituarios}
+                    className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
+                  >
+                    🗑 Eliminar todos
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-border shadow-sm divide-y divide-border">
+              {obituariosItems().map((item) => (
+                <div key={item.id} className="flex items-center gap-4 px-5 py-4">
+                  <input
+                    type="checkbox"
+                    checked={obitSelectedIds.has(item.id)}
+                    onChange={() => toggleObitSeleccion(item.id)}
+                    className="w-4 h-4 accent-accent flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-editorial font-bold text-ink truncate">{item.titulo}</p>
+                    {item.fecha_publicacion && (
+                      <p className="text-xs text-muted mt-0.5">
+                        Actualizado el {new Date(item.fecha_publicacion).toLocaleDateString("es-AR")}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => eliminarObituario(item.id)}
+                    className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    🗑 Eliminar
+                  </button>
+                </div>
+              ))}
+
+              {obituariosItems().length === 0 && publicadasFetched && (
+                <div className="text-center py-12 text-muted">
+                  No hay avisos fúnebres publicados todavía.
                 </div>
               )}
             </div>
