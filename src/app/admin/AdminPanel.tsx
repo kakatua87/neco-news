@@ -406,8 +406,17 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     });
   };
 
+  // Farmacias y Obituarios son contenido de servicio (se auto-publican todos
+  // los días) — no deben mezclarse con las noticias reales en el filtro
+  // "Todas", solo se ven cuando se filtra puntualmente por su sección.
+  const SECCIONES_SOLO_FILTRO_DIRECTO = ["Farmacias", "Obituarios"];
+
   const publicadasFiltradas = () =>
-    publicadasItems.filter((n) => seccionFiltro === "Todas" || n.seccion === seccionFiltro);
+    publicadasItems.filter((n) =>
+      seccionFiltro === "Todas"
+        ? !SECCIONES_SOLO_FILTRO_DIRECTO.includes(n.seccion)
+        : n.seccion === seccionFiltro
+    );
 
   const togglePubSeleccionarTodas = () => {
     const visibles = publicadasFiltradas();
@@ -1418,8 +1427,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {publicadasItems
-                .filter((item) => seccionFiltro === "Todas" || item.seccion === seccionFiltro)
+              {publicadasFiltradas()
                 .map((item) => (
                 <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
                   <div className="h-40 bg-gray-100 flex-shrink-0 relative">
