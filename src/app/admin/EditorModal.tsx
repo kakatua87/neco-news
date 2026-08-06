@@ -13,6 +13,13 @@ type Props = {
   onClose: () => void;
 };
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion, imagenUrl, onSave, onClose }: Props) {
   const [editTitulo, setEditTitulo] = useState(titulo);
   const [editImagen, setEditImagen] = useState(imagenUrl);
@@ -69,15 +76,18 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
   useEffect(() => {
     setEditTitulo(titulo);
     setEditImagen(imagenUrl);
-    // Set cuerpo as HTML in the contentEditable div
+    // Convertir el cuerpo (texto plano, bloques separados por línea en blanco,
+    // subtítulos como "## Texto" / "### Texto") a HTML editable.
     if (editorRef.current) {
-      // Convert plain text line breaks to HTML paragraphs
-      const htmlContent = cuerpo
-        .split("\n")
-        .filter(Boolean)
-        .map(p => `<p>${p}</p>`)
+      const blocks = cuerpo.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
+      const htmlContent = blocks
+        .map(block => {
+          if (block.startsWith("### ")) return `<h3>${escapeHtml(block.slice(4))}</h3>`;
+          if (block.startsWith("## ")) return `<h2>${escapeHtml(block.slice(3))}</h2>`;
+          return `<p>${escapeHtml(block)}</p>`;
+        })
         .join("");
-      editorRef.current.innerHTML = htmlContent || `<p>${cuerpo}</p>`;
+      editorRef.current.innerHTML = htmlContent || `<p>${escapeHtml(cuerpo)}</p>`;
     }
   }, [titulo, cuerpo, imagenUrl, isOpen]);
 
@@ -88,15 +98,26 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
 
   const handleSave = () => {
     if (!editorRef.current) return;
-    // Extract text content from HTML, preserving paragraphs as newlines
-    const html = editorRef.current.innerHTML;
-    // Convert <p> and <br> back to newlines for storage
-    const text = html
-      .replace(/<\/p><p>/gi, "\n")
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<[^>]+>/g, "")
-      .replace(/&nbsp;/g, " ")
-      .trim();
+    // Recorrer los bloques de nivel superior y volver a texto plano,
+    // preservando subtítulos (## / ###) como marcadores de línea.
+    const lines: string[] = [];
+    Array.from(editorRef.current.children).forEach(node => {
+      const tag = node.tagName.toLowerCase();
+      const text = (node.textContent || "").trim();
+      if (!text) return;
+      if (tag === "h2") lines.push(`## ${text}`);
+      else if (tag === "h3") lines.push(`### ${text}`);
+      else if (tag === "blockquote") lines.push(`> ${text}`);
+      else if (tag === "ul" || tag === "ol") {
+        Array.from(node.children).forEach(li => {
+          const liText = (li.textContent || "").trim();
+          if (liText) lines.push(`- ${liText}`);
+        });
+      } else {
+        lines.push(text);
+      }
+    });
+    const text = lines.join("\n\n").trim();
     onSave(editTitulo, text, editImagen);
   };
 

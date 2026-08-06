@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import React from "react";
 import BannerZone from "@/components/BannerZone";
+import { parseCuerpo, cuerpoPlainText } from "@/lib/cuerpo";
 
 type Props = { params: Promise<{ seccion: string; slug: string }> };
 
@@ -12,11 +13,11 @@ export async function generateMetadata({ params }: Props) {
   if (!noticia) return { title: "Noticia no encontrada" };
   return {
     title: `${noticia.titulo} | Neco Now`,
-    description: noticia.resumen_seo || noticia.cuerpo.slice(0, 160),
+    description: noticia.resumen_seo || cuerpoPlainText(noticia.cuerpo).slice(0, 160),
     openGraph: {
       title: noticia.titulo,
       siteName: "Neco Now",
-      description: noticia.resumen_seo || noticia.cuerpo.slice(0, 160),
+      description: noticia.resumen_seo || cuerpoPlainText(noticia.cuerpo).slice(0, 160),
       images: noticia.imagen_url ? [{ url: noticia.imagen_url }] : [],
     },
   };
@@ -40,7 +41,7 @@ export default async function NoticiaPage({ params }: Props) {
     weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
-  const parrafos = noticia.cuerpo.split("\n\n").filter((p) => p.trim());
+  const bloques = parseCuerpo(noticia.cuerpo);
 
   return (
     <>
@@ -77,12 +78,20 @@ export default async function NoticiaPage({ params }: Props) {
         )}
 
         <div className="font-editorial text-lg md:text-xl leading-[1.85] space-y-6">
-          {parrafos.map((p, i) => (
+          {bloques.map((b, i) => (
             <React.Fragment key={i}>
-              {i === 0 ? (
-                <p className="text-xl md:text-2xl font-medium text-ink/90 leading-relaxed">{p}</p>
-              ) : (
-                <p>{p}</p>
+              {b.type === "h2" && (
+                <h2 className="font-editorial text-2xl md:text-3xl font-bold text-ink !mt-10 !mb-2">{b.text}</h2>
+              )}
+              {b.type === "h3" && (
+                <h3 className="font-editorial text-xl md:text-2xl font-bold text-ink !mt-8 !mb-1">{b.text}</h3>
+              )}
+              {b.type === "p" && (
+                i === 0 ? (
+                  <p className="text-xl md:text-2xl font-medium text-ink/90 leading-relaxed">{b.text}</p>
+                ) : (
+                  <p>{b.text}</p>
+                )
               )}
               {i === 0 && <BannerZone zone="in-article" className="w-full h-24 my-6" />}
             </React.Fragment>

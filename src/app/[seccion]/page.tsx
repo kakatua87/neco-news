@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Noticia } from "@/types/noticia";
+import { cuerpoPlainText } from "@/lib/cuerpo";
 
 type SeccionPageProps = {
   params: Promise<{ seccion: string }>;
@@ -48,7 +49,7 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
                       {nota.titulo}
                     </h2>
                     <p className="text-sm text-muted line-clamp-3 mt-auto">
-                      {nota.resumen_seo ?? nota.cuerpo.slice(0, 150) + "..."}
+                      {nota.resumen_seo ?? cuerpoPlainText(nota.cuerpo).slice(0, 150) + "..."}
                     </p>
                   </div>
                 </Link>
