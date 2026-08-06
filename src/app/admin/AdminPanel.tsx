@@ -935,44 +935,43 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                                   {notas.map(nota => {
                                     const isSelected = gs.seleccionadas.has(nota.id);
                                     const isImageActive = gs.imagenId === nota.id;
-                                    const isOnlySource = notas.length === 1;
+                                    const hasMultipleImages = notas.length > 1 && notas.filter(n => n.imagen_url).length > 1;
                                     return (
-                                      <div key={nota.id} className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                                        isOnlySource || isSelected
-                                          ? "border-blue-400 bg-blue-50/50"
-                                          : "border-gray-100 bg-gray-50 opacity-60"
-                                      }`}>
-                                        {/* Checkbox de selección — no aplica cuando hay una sola fuente disponible */}
-                                        {!isOnlySource && (
-                                          <button
-                                            onClick={() => toggleFuente(grupoId, nota.id)}
-                                            className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
-                                              isSelected ? "bg-blue-500 border-blue-500 text-white" : "border-gray-300 bg-white"
-                                            }`}
-                                          >
-                                            {isSelected && <span className="text-xs font-bold">✓</span>}
-                                          </button>
-                                        )}
+                                      <div key={nota.id} className="flex items-start gap-4 p-4 rounded-xl border border-border bg-white transition-colors">
+                                        {/* Checkbox de selección */}
+                                        <button
+                                          onClick={() => toggleFuente(grupoId, nota.id)}
+                                          title={isSelected ? "Deseleccionar" : "Seleccionar"}
+                                          className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 mt-1 transition-colors ${
+                                            isSelected ? "bg-accent border-accent text-white" : "border-gray-300 bg-white"
+                                          }`}
+                                        >
+                                          {isSelected && <span className="text-[10px] font-bold">✓</span>}
+                                        </button>
 
-                                        {/* Imagen de la nota + selector */}
+                                        {/* Imagen de la nota + selector (solo si hay más de una imagen para elegir) */}
                                         <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative group">
                                           {nota.imagen_url ? (
-                                            <>
+                                            hasMultipleImages ? (
+                                              <>
+                                                <img src={nota.imagen_url} alt="" className="w-full h-full object-cover" />
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); setImagen(grupoId, nota.id); }}
+                                                  className={`absolute inset-0 flex items-center justify-center transition-all ${
+                                                    isImageActive
+                                                      ? "ring-2 ring-accent ring-inset"
+                                                      : "bg-black/0 group-hover:bg-black/30"
+                                                  }`}
+                                                  title={isImageActive ? "Imagen seleccionada para la nota" : "Usar esta imagen"}
+                                                >
+                                                  <span className={`text-lg ${isImageActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"} text-white drop-shadow-lg`}>
+                                                    {isImageActive ? "✓" : "🖼"}
+                                                  </span>
+                                                </button>
+                                              </>
+                                            ) : (
                                               <img src={nota.imagen_url} alt="" className="w-full h-full object-cover" />
-                                              <button
-                                                onClick={(e) => { e.stopPropagation(); setImagen(grupoId, nota.id); }}
-                                                className={`absolute inset-0 flex items-center justify-center transition-all ${
-                                                  isImageActive 
-                                                    ? "bg-green-500/30 ring-2 ring-green-500 ring-inset" 
-                                                    : "bg-black/0 group-hover:bg-black/30"
-                                                }`}
-                                                title={isImageActive ? "Imagen seleccionada" : "Usar esta imagen"}
-                                              >
-                                                <span className={`text-lg ${isImageActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"} text-white drop-shadow-lg`}>
-                                                  {isImageActive ? "✅" : "🖼"}
-                                                </span>
-                                              </button>
-                                            </>
+                                            )
                                           ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">Sin foto</div>
                                           )}
@@ -1027,8 +1026,9 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                                     </button>
                                     <button
                                       onClick={() => procesarGrupo(grupoId)}
-                                      disabled={isSaving}
-                                      className="px-6 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                                      disabled={isSaving || gs.seleccionadas.size === 0}
+                                      title={gs.seleccionadas.size === 0 ? "Seleccioná al menos una fuente" : undefined}
+                                      className="px-6 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-accent flex items-center gap-2"
                                     >
                                       {isSaving ? (
                                         <>
