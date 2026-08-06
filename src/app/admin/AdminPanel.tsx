@@ -52,6 +52,14 @@ type ScraperConfig = {
   fecha_inicio: string | null;
 };
 
+type AiProvider = {
+  provider: string;
+  model: string;
+  label: string;
+  gratis: boolean;
+  default: boolean;
+};
+
 const FUENTES_SCRAPER: { key: string; label: string }[] = [
   { key: "nden", label: "NDEN (Necochea Digital)" },
   { key: "diarionecochea", label: "Diario Necochea" },
@@ -76,10 +84,26 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [showScraperPanel, setShowScraperPanel] = useState(false);
   const [savingScraperConfig, setSavingScraperConfig] = useState(false);
 
+  const [aiProviders, setAiProviders] = useState<AiProvider[]>([]);
+  const [providerMenuGrupoId, setProviderMenuGrupoId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchScraperConfig();
+    fetchAiProviders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchAiProviders = async () => {
+    try {
+      const res = await fetch("/api/ai-providers");
+      if (res.ok) {
+        const data = await res.json();
+        setAiProviders(data.providers || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const [pubSelectedIds, setPubSelectedIds] = useState<Set<string | number>>(new Set());
   const [obitSelectedIds, setObitSelectedIds] = useState<Set<string | number>>(new Set());
@@ -493,7 +517,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     }
   };
 
-  const procesarGrupo = async (grupoId: string) => {
+  const procesarGrupo = async (grupoId: string, provider?: string) => {
     const gs = grupoStates[grupoId];
     const notas = rawGrupos[grupoId];
     if (!gs || !notas) return;
@@ -506,6 +530,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     const imagenNota = notas.find(n => n.id === gs.imagenId);
     const imagenUrl = imagenNota?.imagen_url || null;
 
+    setProviderMenuGrupoId(null);
     const refId = selectedIds[0];
     withSaving(refId, async () => {
       try {
@@ -517,6 +542,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             fuentes_ids: selectedIds,
             imagen_url: imagenUrl,
             seccion: gs.seccion,
+            provider: provider || undefined,
           }),
         });
         
@@ -1109,20 +1135,49 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                                     >
                                       ✕ Descartar grupo
                                     </button>
-                                    <button
-                                      onClick={() => procesarGrupo(grupoId)}
-                                      disabled={isSaving || gs.seleccionadas.size === 0}
-                                      title={gs.seleccionadas.size === 0 ? "Seleccioná al menos una fuente" : undefined}
-                                      className="px-6 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-accent flex items-center gap-2"
-                                    >
-                                      {isSaving ? (
-                                        <>
-                                          <span className="animate-spin">⏳</span> Procesando...
-                                        </>
-                                      ) : (
-                                        "⚡ Procesar con IA"
+                                    <div className="relative">
+                                      <button
+                                        onClick={() => {
+                                          if (aiProviders.length > 1) {
+                                            setProviderMenuGrupoId(providerMenuGrupoId === grupoId ? null : grupoId);
+                                          } else {
+                                            procesarGrupo(grupoId);
+                                          }
+                                        }}
+                                        disabled={isSaving || gs.seleccionadas.size === 0}
+                                        title={gs.seleccionadas.size === 0 ? "Seleccioná al menos una fuente" : undefined}
+                                        className="px-6 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-accent flex items-center gap-2"
+                                      >
+                                        {isSaving ? (
+                                          <>
+                                            <span className="animate-spin">⏳</span> Procesando...
+                                          </>
+                                        ) : (
+                                          <>⚡ Procesar con IA{aiProviders.length > 1 ? " ▾" : ""}</>
+                                        )}
+                                      </button>
+
+                                      {providerMenuGrupoId === grupoId && (
+                                        <div className="absolute right-0 bottom-full mb-2 w-64 bg-white rounded-lg border border-border shadow-lg overflow-hidden z-10">
+                                          <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted bg-gray-50 border-b border-border">
+                                            Elegí con qué IA procesar
+                                          </p>
+                                          {aiProviders.map((p) => (
+                                            <button
+                                              key={p.provider}
+                                              onClick={() => procesarGrupo(grupoId, p.provider)}
+                                              className="w-full text-left px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors flex items-center justify-between gap-2"
+                                            >
+                                              <span>
+                                                {p.label}
+                                                {p.default && <span className="text-[10px] text-muted ml-1">(default)</span>}
+                                              </span>
+                                              {p.gratis && <span className="text-[10px] font-bold text-[#1da64f]">GRATIS</span>}
+                                            </button>
+                                          ))}
+                                        </div>
                                       )}
-                                    </button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
