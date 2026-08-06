@@ -292,6 +292,32 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     navigator.clipboard.writeText(noticiaLink(item));
   };
 
+  // X (Twitter) sí tiene un web-intent público: abre una ventana de
+  // compose con el texto y el link precargados.
+  const compartirEnX = (item: InstagramKitItem) => {
+    const texto = item.instagram_titulo || item.titulo;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(texto)}&url=${encodeURIComponent(noticiaLink(item))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  // Instagram no tiene un web-intent público para compartir contenido
+  // externo. En mobile, navigator.share() abre la bandeja nativa del
+  // sistema (que incluye Instagram como destino); en desktop no existe,
+  // así que caemos al copy-to-clipboard de siempre.
+  const compartirEnInstagram = async (item: InstagramKitItem) => {
+    const texto = `${item.instagram_titulo || item.titulo}\n\n${item.instagram_text || ""}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: item.instagram_titulo || item.titulo, text: texto, url: noticiaLink(item) });
+        return;
+      } catch {
+        // el usuario canceló el share sheet, o el navegador no pudo abrirlo — caemos al copy
+      }
+    }
+    copiarTodo(item);
+    alert("Copiado. Pegalo en Instagram (no tiene un botón de compartir directo desde la web).");
+  };
+
   const toggleIgSeleccion = (id: string | number) => {
     setIgSelectedIds((prev) => {
       const next = new Set(prev);
@@ -1582,9 +1608,16 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                         <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap line-clamp-4">{item.instagram_text}</p>
                       )}
 
-                      <p className="text-xs text-blue-500 break-all">{noticiaLink(item)}</p>
+                      <a
+                        href={noticiaLink(item)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:underline break-all"
+                      >
+                        {noticiaLink(item)}
+                      </a>
 
-                      <div className="mt-auto pt-3 border-t border-border/50 flex gap-2 justify-between">
+                      <div className="mt-auto pt-3 border-t border-border/50 flex flex-wrap gap-2 justify-between">
                         <button
                           onClick={() => copiarLink(item)}
                           className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors"
@@ -1592,11 +1625,17 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                           🔗 Copiar link
                         </button>
                         <button
-                          onClick={() => copiarTodo(item)}
+                          onClick={() => compartirEnX(item)}
+                          className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors"
+                        >
+                          𝕏 Compartir en X
+                        </button>
+                        <button
+                          onClick={() => compartirEnInstagram(item)}
                           disabled={!item.instagram_titulo && !item.instagram_text}
                           className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-40"
                         >
-                          📋 Copiar todo
+                          📸 Compartir en Instagram
                         </button>
                       </div>
                     </div>
