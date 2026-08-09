@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   isOpen: boolean;
@@ -172,7 +173,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm p-2 md:p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[1400px] h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
         {/* ── Header ── */}
@@ -439,7 +440,8 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
