@@ -2,7 +2,7 @@ import Link from "next/link";
 import LiveClock from "./LiveClock";
 import WeatherWidget from "./WeatherWidget";
 
-const MAIN_NAV = ["Política", "Economía", "Policiales", "Local", "Deportes", "Sociedad"];
+const MAIN_NAV = ["Local", "Política", "Economía", "Policiales", "Deportes", "Sociedad"];
 const EXTRA_NAV = ["Cultura", "Salud", "Farmacias", "Obituarios", "Clima"];
 
 export default function Header() {

@@ -1,13 +1,14 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Noticia } from "@/types/noticia";
 
-/** Noticias publicadas ordenadas por fecha, más recientes primero. */
+/** Noticias publicadas ordenadas por fecha, más recientes primero. Excluye Obituarios. */
 export async function getPublicadas(limit = 30): Promise<Noticia[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("noticias")
     .select("*")
     .eq("estado", "publicada")
+    .neq("seccion", "Obituarios")
     .order("fecha_publicacion", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -19,7 +20,7 @@ export async function getPublicadas(limit = 30): Promise<Noticia[]> {
   return data as Noticia[];
 }
 
-/** Noticias incluidas en el carrusel de portada, ordenadas por orden_portada. */
+/** Noticias incluidas en el carrusel de portada, ordenadas por orden_portada. Excluye Obituarios. */
 export async function getCarruselPortada(): Promise<Noticia[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
@@ -27,11 +28,31 @@ export async function getCarruselPortada(): Promise<Noticia[]> {
     .select("*")
     .eq("estado", "publicada")
     .eq("es_portada", true)
+    .neq("seccion", "Obituarios")
     .order("orden_portada", { ascending: true, nullsFirst: false })
     .limit(8);
 
   if (error || !data) {
     console.error("Error al obtener carrusel de portada:", error?.message);
+    return [];
+  }
+  return data as Noticia[];
+}
+
+/** Noticias publicadas de una sección específica, más recientes primero. */
+export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promise<Noticia[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("noticias")
+    .select("*")
+    .eq("estado", "publicada")
+    .ilike("seccion", seccion)
+    .order("fecha_publicacion", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error(`Error al obtener publicadas de ${seccion}:`, error.message);
     return [];
   }
   return data as Noticia[];

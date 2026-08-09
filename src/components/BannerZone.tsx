@@ -11,34 +11,65 @@ type BannerData = {
   codigo_html: string | null;
 };
 
+function BannerItem({ banner, zone }: { banner: BannerData; zone: string }) {
+  if (banner.codigo_html) {
+    return (
+      <div
+        className="h-full flex items-center"
+        dangerouslySetInnerHTML={{ __html: banner.codigo_html }}
+      />
+    );
+  }
+
+  if (banner.imagen_url) {
+    const imgContent = (
+      <img
+        src={banner.imagen_url}
+        alt={`Banner ${zone}`}
+        className="h-full w-auto object-cover rounded-lg"
+      />
+    );
+
+    if (banner.url_destino) {
+      return (
+        <a href={banner.url_destino} target="_blank" rel="noopener noreferrer" className="block h-full">
+          {imgContent}
+        </a>
+      );
+    }
+
+    return <div className="h-full">{imgContent}</div>;
+  }
+
+  return null;
+}
+
 export default function BannerZone({ zone, className = "" }: { zone: string; className?: string }) {
-  const [banner, setBanner] = useState<BannerData | null>(null);
+  const [banners, setBanners] = useState<BannerData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchBanner() {
+    async function fetchBanners() {
       const supabase = createSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("banners")
         .select("id, zona, imagen_url, url_destino, codigo_html")
         .eq("zona", zone)
-        .eq("activo", true)
-        .limit(1)
-        .maybeSingle();
+        .eq("activo", true);
 
       if (data) {
-        setBanner(data as BannerData);
+        setBanners(data as BannerData[]);
       }
       setLoading(false);
     }
-    fetchBanner();
+    fetchBanners();
   }, [zone]);
 
   if (loading) {
     return <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />;
   }
 
-  if (!banner) {
+  if (banners.length === 0) {
     return (
       <div className={`bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm p-4 text-center ${className}`}>
         Espacio publicitario disponible · Consultá tarifas
@@ -46,36 +77,18 @@ export default function BannerZone({ zone, className = "" }: { zone: string; cla
     );
   }
 
-  // 1. Prioridad: HTML (AdSense o scripts personalizados)
-  if (banner.codigo_html) {
-    return (
-      <div 
-        className={className} 
-        dangerouslySetInnerHTML={{ __html: banner.codigo_html }} 
-      />
-    );
-  }
+  // Marquesina: los avisos se desplazan de derecha a izquierda.
+  const looped = [...banners, ...banners];
 
-  // 2. Imagen con o sin link
-  if (banner.imagen_url) {
-    const imgContent = (
-      <img 
-        src={banner.imagen_url} 
-        alt={`Banner ${zone}`} 
-        className="w-full h-full object-cover rounded-lg" 
-      />
-    );
-
-    if (banner.url_destino) {
-      return (
-        <a href={banner.url_destino} target="_blank" rel="noopener noreferrer" className={`block ${className}`}>
-          {imgContent}
-        </a>
-      );
-    }
-    
-    return <div className={className}>{imgContent}</div>;
-  }
-
-  return null;
+  return (
+    <div className={`overflow-hidden rounded-lg bg-gray-50 ${className}`}>
+      <div className="marquee-track h-full items-center py-2">
+        {looped.map((banner, i) => (
+          <div key={`${banner.id}-${i}`} className="marquee-item h-full px-4">
+            <BannerItem banner={banner} zone={zone} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

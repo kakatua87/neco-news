@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPublicadas, getCarruselPortada } from "@/lib/noticias";
+import { getPublicadas, getCarruselPortada, getPublicadasPorSeccion } from "@/lib/noticias";
 import type { Noticia } from "@/types/noticia";
 import BannerZone from "@/components/BannerZone";
 import HeroCarousel from "@/components/HeroCarousel";
@@ -18,7 +18,8 @@ function normalizeSeccion(s: string): string {
     .replace(/\s+/g, "-");
 }
 
-const NAV = ["Política", "Economía", "Policiales", "Local", "Deportes", "Sociedad"];
+/* Secciones principales mostradas en la portada, en este orden. */
+const HOME_SECTIONS = ["Local", "Política", "Economía", "Policiales", "Deportes"];
 
 const DEMO_TRENDING = [
   "El puerto de Quequén bate récord de exportaciones.",
@@ -36,9 +37,10 @@ const DEMO_STORIES = [
 /* ═══ Page ═══ */
 
 export default async function Home() {
-  const [noticias, carruselPortada] = await Promise.all([
+  const [noticias, carruselPortada, seccionNoticias] = await Promise.all([
     getPublicadas(60),
     getCarruselPortada(),
+    Promise.all(HOME_SECTIONS.map((s) => getPublicadasPorSeccion(s, 3))),
   ]);
   const hasNews = noticias.length > 0;
 
@@ -46,11 +48,11 @@ export default async function Home() {
   const heroIds = new Set(heroItems.map((n) => n.id));
   const restNotes = hasNews ? noticias.filter((n) => !heroIds.has(n.id)) : [];
   const sideNotes = restNotes.slice(0, 3);
-  const bottomNotes = restNotes.slice(3, 6);
 
-  const navSections = hasNews
-    ? [...new Set(noticias.map((n) => n.seccion))].slice(0, 6)
-    : NAV;
+  const seccionesConNoticias = HOME_SECTIONS.map((seccion, i) => ({
+    seccion,
+    noticias: seccionNoticias[i],
+  })).filter((s) => s.noticias.length > 0);
 
   return (
     <>
@@ -132,42 +134,61 @@ export default async function Home() {
         <BannerZone zone="header" className="w-full h-24 md:h-28" />
       </div>
 
-      {/* ══════════ BOTTOM GRID ══════════ */}
-      <section className="bg-white border-t border-border">
-        <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-10">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(hasNews ? bottomNotes : DEMO_STORIES.map((d, i) => ({ id: `demo-${i}`, titulo: d.title, imagen_url: d.img, seccion: d.section, slug: "", cuerpo: d.desc, resumen_seo: d.desc } as any))).map((note: any) => (
-              <article key={note.id} className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
-                {hasNews ? (
-                  <Link href={`/${normalizeSeccion(note.seccion)}/${note.slug}`} className="block">
-                    <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
-                      {note.imagen_url ? (
-                        <img src={note.imagen_url} alt={note.titulo} className="w-full h-full object-cover img-zoom" />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200" />
-                      )}
-                    </div>
-                    <div className="p-5">
-                      <span className="text-accent text-[11px] font-bold uppercase tracking-widest">{note.seccion}</span>
-                      <h3 className="font-bold text-base leading-snug mt-2 title-hover line-clamp-2">{note.titulo}</h3>
-                    </div>
-                  </Link>
-                ) : (
-                  <div>
-                    <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
-                      <img src={note.imagen_url} alt="" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="p-5">
-                      <span className="text-accent text-[11px] font-bold uppercase tracking-widest">{note.seccion}</span>
-                      <h3 className="font-bold text-base leading-snug mt-2 line-clamp-2">{note.titulo}</h3>
-                    </div>
+      {/* ══════════ SECCIONES: 3 NOTICIAS POR SECCIÓN ══════════ */}
+      {hasNews ? (
+        seccionesConNoticias.map(({ seccion, noticias: notas }) => (
+          <section key={seccion} className="bg-white border-t border-border">
+            <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-10">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="font-editorial text-2xl md:text-3xl font-bold text-ink">{seccion}</h2>
+                <Link
+                  href={`/${normalizeSeccion(seccion)}`}
+                  className="text-accent hover:text-accent-dark text-sm font-bold uppercase tracking-widest transition-colors whitespace-nowrap"
+                >
+                  Ver más →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {notas.map((note) => (
+                  <article key={note.id} className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
+                    <Link href={`/${normalizeSeccion(note.seccion)}/${note.slug}`} className="block">
+                      <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
+                        {note.imagen_url ? (
+                          <img src={note.imagen_url} alt={note.titulo} className="w-full h-full object-cover img-zoom" />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200" />
+                        )}
+                      </div>
+                      <div className="p-5">
+                        <span className="text-accent text-[11px] font-bold uppercase tracking-widest">{note.seccion}</span>
+                        <h3 className="font-bold text-base leading-snug mt-2 title-hover line-clamp-2">{note.titulo}</h3>
+                      </div>
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        ))
+      ) : (
+        <section className="bg-white border-t border-border">
+          <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {DEMO_STORIES.map((d, i) => (
+                <article key={`demo-${i}`} className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
+                  <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
+                    <img src={d.img} alt="" className="w-full h-full object-cover" />
                   </div>
-                )}
-              </article>
-            ))}
+                  <div className="p-5">
+                    <span className="text-accent text-[11px] font-bold uppercase tracking-widest">{d.section}</span>
+                    <h3 className="font-bold text-base leading-snug mt-2 line-clamp-2">{d.title}</h3>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ══════════ ARCHIVO LINK ══════════ */}
       <section className="bg-white border-t border-border">
