@@ -7,7 +7,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("noticias")
-      .select("id, titulo, seccion, imagen_url, fecha_publicacion, slug, es_portada, orden_portada")
+      .select("id, titulo, cuerpo, seccion, imagen_url, fecha_publicacion, slug, es_portada, orden_portada")
       .eq("estado", "publicada")
       .order("fecha_publicacion", { ascending: false })
       .limit(100);

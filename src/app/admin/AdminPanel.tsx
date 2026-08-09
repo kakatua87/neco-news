@@ -20,6 +20,7 @@ type GrupoEditState = {
 };
 
 type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at"> & {
+  slug?: string;
   tiene_perspectiva_editorial?: boolean;
   es_portada?: boolean;
   orden_portada?: number | null;
@@ -224,6 +225,17 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     });
   };
 
+  const guardarEdicionPublicada = async (id: string | number, titulo: string, cuerpo: string, imagenUrl: string | null) => {
+    setPublicadasItems((prev) => prev.map((n) => (n.id === id ? { ...n, titulo, cuerpo, imagen_url: imagenUrl } : n)));
+    withSaving(id, async () => {
+      await fetch(`/api/noticias/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ titulo, cuerpo, imagen_url: imagenUrl }),
+      });
+    });
+  };
+
   const getRecomendacionSeccion = (id: string | number) => {
     const original = initialItems.find(n => n.id === id);
     return original?.seccion || "Local";
@@ -266,7 +278,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
       .replace(/\p{Mark}/gu, "")
       .replace(/\s+/g, "-");
 
-  const noticiaLink = (item: InstagramKitItem) => `${igBase}/${seccionSlug(item.seccion)}/${item.slug}`;
+  const noticiaLink = (item: { seccion: string; slug?: string }) => `${igBase}/${seccionSlug(item.seccion)}/${item.slug}`;
 
   const generarCopyIA = async (item: InstagramKitItem) => {
     setIgBusyIds((prev) => [...prev, item.id]);
@@ -1466,7 +1478,9 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {publicadasFiltradas()
-                .map((item) => (
+                .map((item) => {
+                const isEditingPublicada = editingId === item.id;
+                return (
                 <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
                   <div className="h-40 bg-gray-100 flex-shrink-0 relative">
                     {item.imagen_url ? (
@@ -1528,27 +1542,62 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                       </div>
                     </div>
                     <h3 className="font-editorial text-lg font-bold text-ink leading-tight line-clamp-3 mb-4">{item.titulo}</h3>
-                    
-                    <div className="mt-auto pt-4 border-t border-border/50 flex gap-2 justify-between items-center">
-                      <button
-                        onClick={() => eliminarPublicada(item.id)}
-                        className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded transition-colors"
-                      >
-                        Eliminar
-                      </button>
-                      <button
-                        onClick={() => marcarPortada(item.id)}
-                        className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                          item.es_portada ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-ink hover:bg-gray-200"
-                        }`}
-                      >
-                        {item.es_portada ? `⭐ En carrusel #${item.orden_portada ?? ""}` : "⭐ Agregar a portada"}
-                      </button>
+
+                    <div className="mt-auto pt-4 border-t border-border/50 flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <a
+                          href={noticiaLink(item)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-center px-3 py-1.5 text-sm font-medium text-ink bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                        >
+                          🔗 Ver en el sitio
+                        </a>
+                        <button
+                          onClick={() => setEditingId(item.id)}
+                          className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-ink hover:bg-ink/80 rounded transition-colors"
+                        >
+                          ✏️ Editar
+                        </button>
+                      </div>
+                      <div className="flex gap-2 justify-between items-center">
+                        <button
+                          onClick={() => eliminarPublicada(item.id)}
+                          className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                        <button
+                          onClick={() => marcarPortada(item.id)}
+                          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                            item.es_portada ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-ink hover:bg-gray-200"
+                          }`}
+                        >
+                          {item.es_portada ? `⭐ En carrusel #${item.orden_portada ?? ""}` : "⭐ Agregar a portada"}
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  {isEditingPublicada && (
+                    <EditorModal
+                      isOpen={isEditingPublicada}
+                      noticiaId={item.id}
+                      titulo={item.titulo}
+                      cuerpo={item.cuerpo}
+                      seccion={item.seccion}
+                      imagenUrl={item.imagen_url}
+                      onClose={() => setEditingId(null)}
+                      onSave={(titulo, cuerpo, imagenUrl) => {
+                        guardarEdicionPublicada(item.id, titulo, cuerpo, imagenUrl);
+                        setEditingId(null);
+                      }}
+                    />
+                  )}
                 </article>
-              ))}
-              
+                );
+              })}
+
               {publicadasItems.length === 0 && publicadasFetched && (
                 <div className="col-span-full text-center py-12 text-muted">
                   No hay noticias publicadas para mostrar.
