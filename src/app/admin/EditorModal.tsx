@@ -27,8 +27,49 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
   const [imageInputUrl, setImageInputUrl] = useState("");
   const [generandoImagen, setGenerandoImagen] = useState(false);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
+  const [subiendoImagenInline, setSubiendoImagenInline] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inlineFileInputRef = useRef<HTMLInputElement>(null);
+  const savedRangeRef = useRef<Range | null>(null);
+
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRangeRef.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (sel && savedRangeRef.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRangeRef.current);
+    }
+  };
+
+  const subirImagenInline = async (file: File) => {
+    setSubiendoImagenInline(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("noticia_id", String(noticiaId));
+      const res = await fetch("/api/subir-imagen", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok && data.imagen_url) {
+        restoreSelection();
+        exec("insertImage", data.imagen_url);
+      } else {
+        alert(`No se pudo subir la imagen: ${data.error || "error desconocido"}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error de conexión subiendo la imagen.");
+    } finally {
+      setSubiendoImagenInline(false);
+    }
+  };
 
   const subirImagenDesdeArchivo = async (file: File) => {
     setSubiendoImagen(true);
@@ -132,18 +173,18 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 backdrop-blur-sm p-2 md:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[1400px] h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)] flex flex-col overflow-hidden">
         {/* ── Header ── */}
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50 shrink-0">
           <h2 className="text-lg font-bold text-ink">✏️ Editor de Noticia</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-ink text-2xl leading-none transition-colors">&times;</button>
         </div>
 
         {/* ── Contenido ── */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 min-h-0 p-6 flex flex-col gap-5">
           {/* Imagen */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 shrink-0">
             {editImagen ? (
               <div className="relative group">
                 <img src={editImagen} alt="" className="w-24 h-24 rounded-lg object-cover border border-gray-200" />
@@ -215,7 +256,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
           </div>
 
           {/* Título */}
-          <div>
+          <div className="shrink-0">
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block">Título</label>
             <input
               value={editTitulo}
@@ -226,10 +267,10 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
           </div>
 
           {/* Toolbar */}
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Cuerpo de la noticia</label>
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-wrap gap-1">
+          <div className="flex-1 min-h-0 flex flex-col">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block shrink-0">Cuerpo de la noticia</label>
+            <div className="border border-gray-200 rounded-xl overflow-hidden flex-1 min-h-0 flex flex-col">
+              <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-wrap gap-1 shrink-0">
                 {/* Formato */}
                 <ToolbarGroup>
                   <ToolbarBtn title="Negrita (Ctrl+B)" onClick={() => exec("bold")}>
@@ -295,9 +336,23 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
 
                 {/* Extras */}
                 <ToolbarGroup>
-                  <ToolbarBtn title="Insertar imagen en texto" onClick={() => {
+                  <ToolbarBtn
+                    title="Insertar imagen desde la PC"
+                    disabled={subiendoImagenInline}
+                    onClick={() => {
+                      saveSelection();
+                      inlineFileInputRef.current?.click();
+                    }}
+                  >
+                    {subiendoImagenInline ? "…" : "📁🖼"}
+                  </ToolbarBtn>
+                  <ToolbarBtn title="Insertar imagen desde una URL" onClick={() => {
+                    saveSelection();
                     const url = prompt("URL de la imagen:");
-                    if (url) exec("insertImage", url);
+                    if (url) {
+                      restoreSelection();
+                      exec("insertImage", url);
+                    }
                   }}>
                     🖼
                   </ToolbarBtn>
@@ -331,12 +386,24 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
                 </ToolbarGroup>
               </div>
 
+              <input
+                ref={inlineFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) subirImagenInline(file);
+                  e.target.value = "";
+                }}
+              />
+
               {/* Editor contentEditable */}
               <div
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
-                className="min-h-[420px] max-h-[calc(92vh-420px)] overflow-y-auto p-5 text-sm text-ink leading-relaxed focus:outline-none prose prose-sm max-w-none
+                className="min-h-[55vh] flex-1 overflow-y-auto p-6 text-[15px] text-ink leading-relaxed focus:outline-none prose max-w-none
                   [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-4 [&_h2]:mb-2
                   [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
                   [&_p]:mb-2
@@ -377,13 +444,14 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
 }
 
 /* ── Sub-components de Toolbar ── */
-function ToolbarBtn({ children, title, onClick }: { children: React.ReactNode; title: string; onClick: () => void }) {
+function ToolbarBtn({ children, title, onClick, disabled }: { children: React.ReactNode; title: string; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       title={title}
-      onMouseDown={e => { e.preventDefault(); onClick(); }}
-      className="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-600 hover:bg-white hover:text-ink hover:shadow-sm rounded transition-all"
+      disabled={disabled}
+      onMouseDown={e => { e.preventDefault(); if (!disabled) onClick(); }}
+      className="w-8 h-8 flex items-center justify-center text-xs font-medium text-gray-600 hover:bg-white hover:text-ink hover:shadow-sm rounded transition-all disabled:opacity-40 disabled:pointer-events-none"
     >
       {children}
     </button>
