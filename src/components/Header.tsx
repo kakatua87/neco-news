@@ -87,8 +87,8 @@ export default function Header() {
               </svg>
             </button>
 
-            <div className="hidden lg:flex items-center gap-4">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-muted flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-4 shrink-0">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-muted flex items-center gap-3 whitespace-nowrap">
                 <WeatherWidget />
                 <span className="text-border">|</span>
                 <LiveClock />

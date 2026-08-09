@@ -69,10 +69,19 @@ export default function BannerZone({ zone, className = "" }: { zone: string; cla
     return <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />;
   }
 
+  // Sin avisos activos: la marquesina muestra el mensaje de espacio disponible.
   if (banners.length === 0) {
+    const placeholder = "Espacio publicitario disponible · Consultá tarifas";
+    const looped = Array(6).fill(placeholder);
     return (
-      <div className={`bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm p-4 text-center ${className}`}>
-        Espacio publicitario disponible · Consultá tarifas
+      <div className={`overflow-hidden rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 ${className}`}>
+        <div className="marquee-track h-full items-center py-2">
+          {looped.map((text, i) => (
+            <span key={i} className="marquee-item h-full flex items-center px-8 text-gray-400 text-sm whitespace-nowrap">
+              {text}
+            </span>
+          ))}
+        </div>
       </div>
     );
   }

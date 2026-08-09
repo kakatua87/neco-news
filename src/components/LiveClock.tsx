@@ -35,7 +35,7 @@ export default function LiveClock() {
 
   if (!mounted) {
     return (
-      <span className="opacity-0 flex items-center gap-2 text-sm tracking-wide">
+      <span className="opacity-0 flex items-center gap-2 text-sm tracking-wide whitespace-nowrap">
         <span>Lunes, 01/01/2026</span>
         <span className="text-accent">•</span>
         <span>00:00:00 a.m.</span>
@@ -44,7 +44,7 @@ export default function LiveClock() {
   }
 
   return (
-    <span className="flex items-center gap-2 text-sm tracking-wide">
+    <span className="flex items-center gap-2 text-sm tracking-wide whitespace-nowrap">
       <span>{date}</span>
       <span className="text-accent font-bold">•</span>
       <span>{time}</span>
