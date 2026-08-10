@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Noticia } from "@/types/noticia";
 import { cuerpoPlainText } from "@/lib/cuerpo";
+import BannerZone from "@/components/BannerZone";
 
 type SeccionPageProps = {
   params: Promise<{ seccion: string }>;
@@ -31,6 +32,8 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
             </h1>
             <div className="w-16 h-1 bg-accent mt-4"></div>
           </div>
+
+          <BannerZone zone={`seccion-${normalized}`} className="w-full h-24 md:h-28 mb-10" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {noticias.map((nota) => (
