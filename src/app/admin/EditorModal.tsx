@@ -404,7 +404,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
-                className="min-h-[55vh] flex-1 overflow-y-auto p-6 text-[15px] text-ink leading-relaxed focus:outline-none prose max-w-none
+                className="min-h-0 flex-1 overflow-y-auto p-6 text-[15px] text-ink leading-relaxed focus:outline-none prose max-w-none
                   [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-4 [&_h2]:mb-2
                   [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
                   [&_p]:mb-2
