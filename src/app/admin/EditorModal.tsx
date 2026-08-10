@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
+import ImageEditorModal from "./ImageEditorModal";
 
 type Props = {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
   const [generandoImagen, setGenerandoImagen] = useState(false);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
   const [subiendoImagenInline, setSubiendoImagenInline] = useState(false);
+  const [editandoImagen, setEditandoImagen] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inlineFileInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +211,14 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
                 >
                   🔗 {editImagen ? "Cambiar por link" : "Agregar desde link"}
                 </button>
+                {editImagen && (
+                  <button
+                    onClick={() => setEditandoImagen(true)}
+                    className="text-sm text-blue-600 hover:underline font-medium"
+                  >
+                    ✂️ Editar imagen
+                  </button>
+                )}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={subiendoImagen}
@@ -440,6 +450,19 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
           </div>
         </div>
       </div>
+
+      {editImagen && (
+        <ImageEditorModal
+          isOpen={editandoImagen}
+          imageUrl={editImagen}
+          noticiaId={noticiaId}
+          onApply={newUrl => {
+            setEditImagen(newUrl);
+            setEditandoImagen(false);
+          }}
+          onClose={() => setEditandoImagen(false)}
+        />
+      )}
     </div>,
     document.body
   );
