@@ -44,7 +44,16 @@ function BannerItem({ banner, zone }: { banner: BannerData; zone: string }) {
   return null;
 }
 
-export default function BannerZone({ zone, className = "" }: { zone: string; className?: string }) {
+export default function BannerZone({
+  zone,
+  className = "",
+  fixed = false,
+}: {
+  zone: string;
+  className?: string;
+  /** Si es true, muestra un aviso estático (sin marquesina animada) en vez de la cinta desplazable. */
+  fixed?: boolean;
+}) {
   const [banners, setBanners] = useState<BannerData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,9 +78,18 @@ export default function BannerZone({ zone, className = "" }: { zone: string; cla
     return <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />;
   }
 
-  // Sin avisos activos: la marquesina muestra el mensaje de espacio disponible.
+  // Sin avisos activos: mensaje de espacio disponible (estático o en marquesina).
   if (banners.length === 0) {
     const placeholder = "Espacio publicitario disponible · Consultá tarifas";
+
+    if (fixed) {
+      return (
+        <div className={`flex items-center justify-center rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 ${className}`}>
+          <span className="text-gray-400 text-sm px-4 text-center">{placeholder}</span>
+        </div>
+      );
+    }
+
     const looped = Array(6).fill(placeholder);
     return (
       <div className={`overflow-hidden rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 ${className}`}>
@@ -82,6 +100,15 @@ export default function BannerZone({ zone, className = "" }: { zone: string; cla
             </span>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  // Fijo: se muestra el primer aviso activo, sin desplazamiento.
+  if (fixed) {
+    return (
+      <div className={`flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 ${className}`}>
+        <BannerItem banner={banners[0]} zone={zone} />
       </div>
     );
   }

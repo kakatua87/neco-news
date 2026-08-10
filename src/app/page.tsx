@@ -59,7 +59,7 @@ export default async function Home() {
             {/* HERO IMAGE (carrusel de portada) + banner fijo debajo */}
             <div className="flex flex-col gap-4 min-w-0">
               <HeroCarousel items={heroItems} />
-              <BannerZone zone="portada" className="w-full h-24 md:h-28" />
+              <BannerZone zone="portada" className="w-full h-24 md:h-28" fixed />
             </div>
 
             {/* SIDEBAR: Top Stories */}
