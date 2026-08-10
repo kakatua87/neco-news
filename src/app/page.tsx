@@ -21,17 +21,12 @@ function normalizeSeccion(s: string): string {
 /* Secciones principales mostradas en la portada, en este orden. */
 const HOME_SECTIONS = ["Local", "Política", "Economía", "Policiales", "Deportes"];
 
-const DEMO_TRENDING = [
-  "El puerto de Quequén bate récord de exportaciones.",
-  "Nuevas inversiones en el parque industrial de Necochea.",
-  "Debate por la ampliación de la red de gas en la costa.",
-  "Tecnología: Necochea avanza en conectividad digital.",
-];
-
 const DEMO_STORIES = [
   { title: "El municipio presentó el plan de obras 2026", desc: "Se anunciaron mejoras en infraestructura vial y nuevos espacios verdes...", img: "/placeholder-1.png", section: "Economía" },
   { title: "Impulso a la producción agropecuaria local", desc: "Productores de la zona costera apuestan a cultivos sustentables...", img: "/placeholder-2.png", section: "Local" },
   { title: "Turismo: la costa atlántica lidera las reservas", desc: "Necochea se posiciona como destino preferido para el verano...", img: "/placeholder-3.png", section: "Sociedad" },
+  { title: "Refuerzan la seguridad vial en rutas de acceso", desc: "Nuevos controles y señalización buscan reducir los siniestros...", img: "/placeholder-4.png", section: "Policiales" },
+  { title: "El equipo local se prepara para el próximo torneo", desc: "Los clubes de la ciudad afinan la puesta a punto de sus planteles...", img: "/placeholder-5.png", section: "Deportes" },
 ];
 
 /* ═══ Page ═══ */
@@ -47,7 +42,7 @@ export default async function Home() {
   const heroItems = carruselPortada.length > 0 ? carruselPortada : hasNews ? [noticias[0]] : [];
   const heroIds = new Set(heroItems.map((n) => n.id));
   const restNotes = hasNews ? noticias.filter((n) => !heroIds.has(n.id)) : [];
-  const sideNotes = restNotes.slice(0, 3);
+  const sideNotes = restNotes.slice(0, 5);
 
   const seccionesConNoticias = HOME_SECTIONS.map((seccion, i) => ({
     seccion,
@@ -64,21 +59,8 @@ export default async function Home() {
             {/* HERO IMAGE (carrusel de portada) */}
             <HeroCarousel items={heroItems} />
 
-            {/* SIDEBAR: Trending + Top Stories */}
+            {/* SIDEBAR: Top Stories */}
             <aside className="flex flex-col gap-6 min-w-0">
-
-              {/* TRENDING NOW */}
-              <div className="border border-border rounded-xl p-5">
-                <h3 className="font-extrabold text-lg mb-4 pb-2 border-b border-border">Trending Now</h3>
-                <ol className="space-y-3">
-                  {(hasNews ? sideNotes.map(n => n.titulo) : DEMO_TRENDING).map((title, i) => (
-                    <li key={i} className="flex gap-3 items-start text-sm">
-                      <span className="font-bold text-accent text-base">{i + 1}.</span>
-                      <span className="font-medium leading-snug">{title}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
 
               {/* BANNER SIDEBAR */}
               <BannerZone zone="sidebar" className="w-full h-32" />
