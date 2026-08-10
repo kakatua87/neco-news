@@ -79,6 +79,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
   const [publicadasItems, setPublicadasItems] = useState<Editable[]>([]);
   const [publicadasFetched, setPublicadasFetched] = useState(false);
+  const [mesesExpandidos, setMesesExpandidos] = useState<Set<string>>(new Set());
   const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
   const [inboxSeccionFiltro, setInboxSeccionFiltro] = useState<string>("Todas");
 
@@ -107,6 +108,53 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     }
   };
 
+  const renombrarSeccion = async (anterior: string) => {
+    const nueva = nombreSeccionInput.trim();
+    if (!nueva || nueva === anterior) {
+      setEditandoSeccion(null);
+      return;
+    }
+    if (seccionesUsadas.includes(nueva) || SECCIONES.includes(nueva)) {
+      alert(`Ya existe una sección llamada "${nueva}". Elegí otro nombre o renombrá esa en su lugar.`);
+      return;
+    }
+    setRenombrandoSeccion(true);
+    try {
+      const res = await fetch("/api/secciones/renombrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ anterior, nueva }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        alert(`No se pudo renombrar la sección: ${data.error || "error desconocido"}`);
+        return;
+      }
+
+      const renombrar = (s: string) => (s === anterior ? nueva : s);
+      setCustomSecciones(prev => prev.map(renombrar));
+      setSeccionesUsadas(prev => prev.map(renombrar));
+      setItems(prev => prev.map(n => (n.seccion === anterior ? { ...n, seccion: nueva } : n)));
+      setPublicadasItems(prev => prev.map(n => (n.seccion === anterior ? { ...n, seccion: nueva } : n)));
+      setIgItems(prev => prev.map(n => (n.seccion === anterior ? { ...n, seccion: nueva } : n)));
+      setGrupoStates(prev => {
+        const next: Record<string, GrupoEditState> = {};
+        for (const [gid, state] of Object.entries(prev)) {
+          next[gid] = state.seccion === anterior ? { ...state, seccion: nueva } : state;
+        }
+        return next;
+      });
+      setSeccionFiltro(prev => (prev === anterior ? nueva : prev));
+      setInboxSeccionFiltro(prev => (prev === anterior ? nueva : prev));
+      setEditandoSeccion(null);
+    } catch (e) {
+      console.error(e);
+      alert("Error de conexión renombrando la sección.");
+    } finally {
+      setRenombrandoSeccion(false);
+    }
+  };
+
   const [pubSelectedIds, setPubSelectedIds] = useState<Set<string | number>>(new Set());
   const [obitSelectedIds, setObitSelectedIds] = useState<Set<string | number>>(new Set());
   const [descartadasCount, setDescartadasCount] = useState(stats.descartadas);
@@ -119,6 +167,10 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   
   const allSecciones = Array.from(new Set([...SECCIONES, ...(dbSecciones || [])]));
   const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
+  const [seccionesUsadas, setSeccionesUsadas] = useState<string[]>(dbSecciones || []);
+  const [editandoSeccion, setEditandoSeccion] = useState<string | null>(null);
+  const [nombreSeccionInput, setNombreSeccionInput] = useState("");
+  const [renombrandoSeccion, setRenombrandoSeccion] = useState(false);
 
   const pendientesCount = items.length;
   const inboxCount = Object.keys(rawGrupos).length;
@@ -249,6 +301,14 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         const data = await res.json();
         setPublicadasItems(data);
         setPublicadasFetched(true);
+        const primeraConFecha = (data as Editable[]).find((n) => n.fecha_publicacion);
+        if (primeraConFecha?.fecha_publicacion) {
+          const fecha = new Date(primeraConFecha.fecha_publicacion);
+          if (!isNaN(fecha.getTime())) {
+            const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+            setMesesExpandidos(new Set([key]));
+          }
+        }
       }
     } catch (e) {
       console.error(e);
@@ -430,6 +490,50 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         ? !SECCIONES_SOLO_FILTRO_DIRECTO.includes(n.seccion)
         : n.seccion === seccionFiltro
     );
+
+  const MESES = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+  ];
+  const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  type GrupoDia = { key: string; label: string; items: Editable[] };
+  type GrupoMes = { key: string; label: string; dias: GrupoDia[] };
+
+  const publicadasAgrupadas = (): GrupoMes[] => {
+    const meses = new Map<string, { label: string; dias: Map<string, GrupoDia> }>();
+    for (const item of publicadasFiltradas()) {
+      const fecha = item.fecha_publicacion ? new Date(item.fecha_publicacion) : null;
+      const valida = fecha && !isNaN(fecha.getTime());
+
+      const mesKey = valida ? `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}` : "sin-fecha";
+      const mesLabel = valida ? `${capitalize(MESES[fecha.getMonth()])} ${fecha.getFullYear()}` : "Sin fecha";
+      const diaKey = valida ? fecha.toISOString().slice(0, 10) : "sin-fecha";
+      const diaLabel = valida
+        ? `${capitalize(DIAS_SEMANA[fecha.getDay()])} ${fecha.getDate()} de ${MESES[fecha.getMonth()]}`
+        : "Sin fecha";
+
+      if (!meses.has(mesKey)) meses.set(mesKey, { label: mesLabel, dias: new Map() });
+      const mes = meses.get(mesKey)!;
+      if (!mes.dias.has(diaKey)) mes.dias.set(diaKey, { key: diaKey, label: diaLabel, items: [] });
+      mes.dias.get(diaKey)!.items.push(item);
+    }
+    return Array.from(meses.entries()).map(([key, val]) => ({
+      key,
+      label: val.label,
+      dias: Array.from(val.dias.values()),
+    }));
+  };
+
+  const toggleMesExpandido = (key: string) => {
+    setMesesExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const togglePubSeleccionarTodas = () => {
     const visibles = publicadasFiltradas();
@@ -1476,130 +1580,159 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {publicadasFiltradas()
-                .map((item) => {
-                const isEditingPublicada = editingId === item.id;
+            <div className="space-y-4">
+              {publicadasAgrupadas().map((mes) => {
+                const expandido = mesesExpandidos.has(mes.key);
+                const totalMes = mes.dias.reduce((acc, d) => acc + d.items.length, 0);
                 return (
-                <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
-                  <div className="h-40 bg-gray-100 flex-shrink-0 relative">
-                    {item.imagen_url ? (
-                      <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">Sin foto</div>
-                    )}
-                    {item.es_portada && (
-                      <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-sm">
-                        ⭐ Portada #{item.orden_portada ?? ""}
-                      </div>
-                    )}
-                    <label className="absolute top-2 left-2 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
-                      <input
-                        type="checkbox"
-                        checked={pubSelectedIds.has(item.id)}
-                        onChange={() => togglePubSeleccion(item.id)}
-                        className="w-4 h-4 accent-accent"
-                      />
-                    </label>
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <div className="flex flex-col mb-2 gap-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-                          {item.seccion}
-                        </span>
-                        {item.fecha_publicacion && (
-                          <span className="text-xs text-muted whitespace-nowrap">
-                            {new Date(item.fecha_publicacion).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <select 
-                          value={item.seccion || ""}
-                          onChange={(e) => cambiarSeccion(item, e.target.value, true)}
-                          className="text-[10px] border border-border rounded px-1.5 py-1 outline-none focus:border-accent bg-gray-50"
-                        >
-                          {customSecciones.map((sec) => (
-                            <option key={sec} value={sec}>{sec}</option>
-                          ))}
-                        </select>
-                        <input 
-                          type="text" 
-                          placeholder="Nueva..." 
-                          className="text-[10px] border border-border rounded px-1.5 py-1 w-20 outline-none focus:border-accent"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                              const val = e.currentTarget.value.trim();
-                              if (!customSecciones.includes(val)) {
-                                setCustomSecciones([...customSecciones, val]);
-                              }
-                              cambiarSeccion(item, val, true);
-                              e.currentTarget.value = "";
-                            }
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <h3 className="font-editorial text-lg font-bold text-ink leading-tight line-clamp-3 mb-4">{item.titulo}</h3>
+                  <div key={mes.key} className="border border-border rounded-xl bg-white shadow-sm overflow-hidden">
+                    <button
+                      onClick={() => toggleMesExpandido(mes.key)}
+                      className="w-full flex justify-between items-center px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="font-bold text-ink">{mes.label}</span>
+                      <span className="flex items-center gap-3 text-sm text-muted">
+                        {totalMes} noticia{totalMes !== 1 ? "s" : ""}
+                        <span className={`inline-block transition-transform ${expandido ? "rotate-180" : ""}`}>▾</span>
+                      </span>
+                    </button>
 
-                    <div className="mt-auto pt-4 border-t border-border/50 flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <a
-                          href={noticiaLink(item)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 text-center px-3 py-1.5 text-sm font-medium text-ink bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-                        >
-                          🔗 Ver en el sitio
-                        </a>
-                        <button
-                          onClick={() => setEditingId(item.id)}
-                          className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-ink hover:bg-ink/80 rounded transition-colors"
-                        >
-                          ✏️ Editar
-                        </button>
-                      </div>
-                      <div className="flex gap-2 justify-between items-center">
-                        <button
-                          onClick={() => eliminarPublicada(item.id)}
-                          className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded transition-colors"
-                        >
-                          Eliminar
-                        </button>
-                        <button
-                          onClick={() => marcarPortada(item.id)}
-                          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
-                            item.es_portada ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-ink hover:bg-gray-200"
-                          }`}
-                        >
-                          {item.es_portada ? `⭐ En carrusel #${item.orden_portada ?? ""}` : "⭐ Agregar a portada"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                    {expandido && (
+                      <div className="p-5 space-y-8">
+                        {mes.dias.map((dia) => (
+                          <div key={dia.key}>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">{dia.label}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {dia.items.map((item) => {
+                                const isEditingPublicada = editingId === item.id;
+                                return (
+                                  <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
+                                    <div className="h-40 bg-gray-100 flex-shrink-0 relative">
+                                      {item.imagen_url ? (
+                                        <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-400">Sin foto</div>
+                                      )}
+                                      {item.es_portada && (
+                                        <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded shadow-sm">
+                                          ⭐ Portada #{item.orden_portada ?? ""}
+                                        </div>
+                                      )}
+                                      <label className="absolute top-2 left-2 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
+                                        <input
+                                          type="checkbox"
+                                          checked={pubSelectedIds.has(item.id)}
+                                          onChange={() => togglePubSeleccion(item.id)}
+                                          className="w-4 h-4 accent-accent"
+                                        />
+                                      </label>
+                                    </div>
+                                    <div className="p-4 flex-1 flex flex-col">
+                                      <div className="flex flex-col mb-2 gap-2">
+                                        <div className="flex justify-between items-start gap-2">
+                                          <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
+                                            {item.seccion}
+                                          </span>
+                                          {item.fecha_publicacion && (
+                                            <span className="text-xs text-muted whitespace-nowrap">
+                                              {new Date(item.fecha_publicacion).toLocaleDateString()}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <select
+                                            value={item.seccion || ""}
+                                            onChange={(e) => cambiarSeccion(item, e.target.value, true)}
+                                            className="text-[10px] border border-border rounded px-1.5 py-1 outline-none focus:border-accent bg-gray-50"
+                                          >
+                                            {customSecciones.map((sec) => (
+                                              <option key={sec} value={sec}>{sec}</option>
+                                            ))}
+                                          </select>
+                                          <input
+                                            type="text"
+                                            placeholder="Nueva..."
+                                            className="text-[10px] border border-border rounded px-1.5 py-1 w-20 outline-none focus:border-accent"
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                                const val = e.currentTarget.value.trim();
+                                                if (!customSecciones.includes(val)) {
+                                                  setCustomSecciones([...customSecciones, val]);
+                                                }
+                                                cambiarSeccion(item, val, true);
+                                                e.currentTarget.value = "";
+                                              }
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                      <h3 className="font-editorial text-lg font-bold text-ink leading-tight line-clamp-3 mb-4">{item.titulo}</h3>
 
-                  {isEditingPublicada && (
-                    <EditorModal
-                      isOpen={isEditingPublicada}
-                      noticiaId={item.id}
-                      titulo={item.titulo}
-                      cuerpo={item.cuerpo}
-                      seccion={item.seccion}
-                      imagenUrl={item.imagen_url}
-                      onClose={() => setEditingId(null)}
-                      onSave={(titulo, cuerpo, imagenUrl) => {
-                        guardarEdicionPublicada(item.id, titulo, cuerpo, imagenUrl);
-                        setEditingId(null);
-                      }}
-                    />
-                  )}
-                </article>
+                                      <div className="mt-auto pt-4 border-t border-border/50 flex flex-col gap-2">
+                                        <div className="flex gap-2">
+                                          <a
+                                            href={noticiaLink(item)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 text-center px-3 py-1.5 text-sm font-medium text-ink bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                                          >
+                                            🔗 Ver en el sitio
+                                          </a>
+                                          <button
+                                            onClick={() => setEditingId(item.id)}
+                                            className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-ink hover:bg-ink/80 rounded transition-colors"
+                                          >
+                                            ✏️ Editar
+                                          </button>
+                                        </div>
+                                        <div className="flex gap-2 justify-between items-center">
+                                          <button
+                                            onClick={() => eliminarPublicada(item.id)}
+                                            className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded transition-colors"
+                                          >
+                                            Eliminar
+                                          </button>
+                                          <button
+                                            onClick={() => marcarPortada(item.id)}
+                                            className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                                              item.es_portada ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-ink hover:bg-gray-200"
+                                            }`}
+                                          >
+                                            {item.es_portada ? `⭐ En carrusel #${item.orden_portada ?? ""}` : "⭐ Agregar a portada"}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {isEditingPublicada && (
+                                      <EditorModal
+                                        isOpen={isEditingPublicada}
+                                        noticiaId={item.id}
+                                        titulo={item.titulo}
+                                        cuerpo={item.cuerpo}
+                                        seccion={item.seccion}
+                                        imagenUrl={item.imagen_url}
+                                        onClose={() => setEditingId(null)}
+                                        onSave={(titulo, cuerpo, imagenUrl) => {
+                                          guardarEdicionPublicada(item.id, titulo, cuerpo, imagenUrl);
+                                          setEditingId(null);
+                                        }}
+                                      />
+                                    )}
+                                  </article>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
 
               {publicadasItems.length === 0 && publicadasFetched && (
-                <div className="col-span-full text-center py-12 text-muted">
+                <div className="text-center py-12 text-muted">
                   No hay noticias publicadas para mostrar.
                 </div>
               )}
@@ -1806,7 +1939,75 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         {activeTab === "config" && (
           <div className="space-y-6 fade-in max-w-3xl">
             <h2 className="text-2xl font-bold text-ink mb-6">Configuración del Pipeline</h2>
-            
+
+            <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-3">
+              <div>
+                <h3 className="font-bold text-ink mb-1">Secciones</h3>
+                <p className="text-sm text-muted mb-4">
+                  Renombrar una sección actualiza todas las noticias que la usan. Los links de esa sección
+                  cambian de URL, así que las notas ya publicadas y compartidas con el nombre anterior
+                  dejarán de resolver en esa dirección.
+                </p>
+              </div>
+              {seccionesUsadas.length === 0 ? (
+                <p className="text-sm text-muted">Todavía no hay noticias con una sección asignada.</p>
+              ) : (
+                <div className="space-y-2">
+                  {seccionesUsadas.map(sec => (
+                    <div
+                      key={sec}
+                      className="flex items-center justify-between gap-3 p-3 border border-border rounded-lg bg-gray-50"
+                    >
+                      {editandoSeccion === sec ? (
+                        <>
+                          <input
+                            value={nombreSeccionInput}
+                            onChange={e => setNombreSeccionInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === "Enter") renombrarSeccion(sec);
+                              if (e.key === "Escape") setEditandoSeccion(null);
+                            }}
+                            autoFocus
+                            maxLength={50}
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-accent"
+                          />
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => renombrarSeccion(sec)}
+                              disabled={renombrandoSeccion}
+                              className="px-3 py-1.5 bg-accent hover:bg-accent-dark text-white text-sm rounded-lg font-medium disabled:opacity-50"
+                            >
+                              {renombrandoSeccion ? "Guardando..." : "Guardar"}
+                            </button>
+                            <button
+                              onClick={() => setEditandoSeccion(null)}
+                              disabled={renombrandoSeccion}
+                              className="px-3 py-1.5 text-sm text-gray-600 hover:text-ink rounded-lg font-medium"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium text-ink">{sec}</span>
+                          <button
+                            onClick={() => {
+                              setEditandoSeccion(sec);
+                              setNombreSeccionInput(sec);
+                            }}
+                            className="text-sm text-blue-600 hover:underline font-medium shrink-0"
+                          >
+                            ✏️ Renombrar
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-6">
               <div>
                 <h3 className="font-bold text-ink mb-2">Motor de Inteligencia Artificial</h3>
