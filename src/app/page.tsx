@@ -56,8 +56,11 @@ export default async function Home() {
         <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-6 md:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] lg:items-start gap-6 lg:gap-8">
 
-            {/* HERO IMAGE (carrusel de portada) */}
-            <HeroCarousel items={heroItems} />
+            {/* HERO IMAGE (carrusel de portada) + banner fijo debajo */}
+            <div className="flex flex-col gap-4 min-w-0">
+              <HeroCarousel items={heroItems} />
+              <BannerZone zone="portada" className="w-full h-24 md:h-28" />
+            </div>
 
             {/* SIDEBAR: Top Stories */}
             <aside className="flex flex-col gap-6 min-w-0">
