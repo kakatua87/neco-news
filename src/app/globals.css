@@ -91,28 +91,6 @@ body {
     transform: translateY(-3px);
 }
 
-/* Marquesina subtitulo */
-
-@keyframes marquee-subtitle {
-    0% {
-        transform: translateX(100%);
-    }
-
-    100% {
-        transform: translateX(-100%);
-    }
-}
-
-.subtitle-marquee {
-    display: inline-block;
-    white-space: nowrap;
-    animation: marquee-subtitle 20s linear infinite;
-}
-
-.subtitle-marquee:hover {
-    animation-play-state: paused;
-}
-
 /* Ticker */
 
 @keyframes marquee {
@@ -192,6 +170,7 @@ body {
 
 .marquee-track {
     display: flex;
+    width: max-content;
     animation: marquee-scroll 28s linear infinite;
     will-change: transform;
 }

@@ -1,9 +1,22 @@
 import Link from "next/link";
+import Image from "next/image";
 import LiveClock from "./LiveClock";
 import WeatherWidget from "./WeatherWidget";
 
 const MAIN_NAV = ["Local", "Política", "Economía", "Policiales", "Deportes", "Sociedad"];
 const EXTRA_NAV = ["Cultura", "Salud", "Farmacias", "Obituarios", "Clima"];
+
+function SubtitleSegment() {
+  return (
+    <>
+      Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
+    </>
+  );
+}
+
+// Suficientes copias para que, en cualquier ancho de pantalla, el loop
+// nunca deje un tramo vacio mientras se desplaza de derecha a izquierda.
+const SUBTITLE_COPIES = Array.from({ length: 8 });
 
 export default function Header() {
   return (
@@ -12,22 +25,31 @@ export default function Header() {
         {/* LEFT: Charcoal + Logo */}
         <div className="bg-charcoal flex items-center px-5 md:px-8 py-3">
           <Link href="/" className="flex items-center">
-            {/* Logotipo SVG completo */}
-            <img
+            <Image
               src="/logo-oficial.png"
               alt="Neco Now"
+              width={832}
+              height={350}
+              priority
               className="h-14 md:h-18 lg:h-20 w-auto object-contain"
             />
           </Link>
         </div>
 
         {/* RIGHT: White + Subtitle + Nav */}
-        <div className="bg-white flex-1 flex flex-col border-b border-border">
-          {/* Subtítulo — marquesina animada */}
-          <div className="overflow-hidden pt-2 pb-1.5 border-b-2 border-accent">
-            <span className="subtitle-marquee text-[10px] font-semibold uppercase tracking-[0.25em] text-muted">
-              Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp; Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
-            </span>
+        <div className="bg-white flex-1 flex flex-col border-b border-border min-w-0">
+          {/* Subtítulo — marquesina en loop infinito, de derecha a izquierda */}
+          <div className="overflow-hidden min-w-0 pt-2 pb-1.5 border-b-2 border-accent">
+            <div className="marquee-track">
+              {[...SUBTITLE_COPIES, ...SUBTITLE_COPIES].map((_, i) => (
+                <span
+                  key={i}
+                  className="marquee-item text-[10px] font-semibold uppercase tracking-[0.25em] text-muted whitespace-nowrap"
+                >
+                  <SubtitleSegment />
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Nav + Botón */}
