@@ -42,11 +42,11 @@ export default function HeroCarousel({ items }: { items: Noticia[] }) {
   const hero = items[index] ?? null;
 
   return (
-    <article className="group relative rounded-xl overflow-hidden cursor-pointer card-lift h-full">
+    <article className="group relative rounded-xl overflow-hidden cursor-pointer card-lift">
       {hero ? (
         <>
           <Link href={`/${normalizeSeccion(hero.seccion)}/${hero.slug}`} className="absolute inset-0 z-20" />
-          <div className="relative h-full min-h-[300px] md:min-h-[440px] w-full overflow-hidden bg-gray-900">
+          <div className="relative h-[280px] sm:h-[360px] md:h-[440px] w-full overflow-hidden bg-gray-900">
             {hero.imagen_url ? (
               <img src={hero.imagen_url} alt={hero.titulo} className="w-full h-full object-contain img-zoom" />
             ) : (
@@ -77,7 +77,7 @@ export default function HeroCarousel({ items }: { items: Noticia[] }) {
           </div>
         </>
       ) : (
-        <div className="relative h-full min-h-[300px] md:min-h-[440px] w-full overflow-hidden bg-gray-900 rounded-xl">
+        <div className="relative h-[280px] sm:h-[360px] md:h-[440px] w-full overflow-hidden bg-gray-900 rounded-xl">
           <img src="/placeholder-hero.png" alt="Neco Now" className="w-full h-full object-contain" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
           <span className="absolute top-4 left-4 bg-accent text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded z-10">

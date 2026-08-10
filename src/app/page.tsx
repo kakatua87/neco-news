@@ -54,7 +54,7 @@ export default async function Home() {
       {/* ══════════ HERO + SIDEBAR ══════════ */}
       <section className="bg-white">
         <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-6 md:py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] lg:items-start gap-6 lg:gap-8">
 
             {/* HERO IMAGE (carrusel de portada) */}
             <HeroCarousel items={heroItems} />
