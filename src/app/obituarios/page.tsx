@@ -74,7 +74,7 @@ export default async function ObituariosPage() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 md:px-8 py-10 md:py-16">
+    <main className="w-full mx-auto max-w-6xl px-4 md:px-8 py-10 md:py-16">
       <div className="mb-12 text-center">
         <h1 className="font-editorial text-4xl md:text-5xl font-bold mb-4 text-charcoal">
           Obituarios

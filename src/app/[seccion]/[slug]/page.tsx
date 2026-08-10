@@ -47,7 +47,7 @@ export default async function NoticiaPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <main className="mx-auto max-w-[880px] px-4 md:px-8 py-10 md:py-16 flex-1">
+      <main className="w-full mx-auto max-w-[880px] px-4 md:px-8 py-10 md:py-16 flex-1">
         {/* Breadcrumb */}
         <nav className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted mb-8 flex items-center gap-2">
           <Link href="/" className="hover:text-accent transition-colors">Inicio</Link>

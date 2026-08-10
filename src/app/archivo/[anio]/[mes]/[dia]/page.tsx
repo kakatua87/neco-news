@@ -40,7 +40,7 @@ export default async function ArchivoFechaPage({ params }: Props) {
   return (
     <>
 
-      <main className="mx-auto max-w-4xl px-4 md:px-8 py-10 md:py-16">
+      <main className="w-full mx-auto max-w-4xl px-4 md:px-8 py-10 md:py-16">
         <div className="mb-8">
           <p className="text-[11px] font-extrabold uppercase tracking-widest text-accent mb-2">Archivo</p>
           <h1 className="font-editorial text-3xl md:text-4xl font-bold capitalize">{fechaStr}</h1>

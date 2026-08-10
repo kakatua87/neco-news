@@ -42,7 +42,7 @@ export default async function ArchivoPage({ searchParams }: Props) {
   return (
     <>
 
-      <main className="mx-auto max-w-4xl px-4 md:px-8 py-10 md:py-16">
+      <main className="w-full mx-auto max-w-4xl px-4 md:px-8 py-10 md:py-16">
         <h1 className="font-editorial text-4xl md:text-5xl font-bold mb-2">Archivo</h1>
         <p className="text-muted text-base mb-10">
           Explorá todas las noticias publicadas por fecha.

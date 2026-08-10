@@ -72,7 +72,7 @@ export default async function ObituarioDetallePage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 md:px-8 py-10 md:py-16">
+    <main className="w-full mx-auto max-w-3xl px-4 md:px-8 py-10 md:py-16">
       <Link 
         href="/obituarios" 
         className="inline-flex items-center text-sm font-bold uppercase tracking-wider text-accent hover:text-accent-dark mb-8 transition-colors"
