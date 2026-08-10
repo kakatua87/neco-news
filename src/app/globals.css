@@ -2,6 +2,13 @@
 
 /* Neco Now - Design System */
 
+/* `main` en layout.tsx es flex-col: sin esto, un hijo con contenido ancho
+   (p.ej. una marquesina) puede forzar su min-width al tamaño del contenido
+   y generar overflow horizontal en toda la pagina. */
+main > * {
+    min-width: 0;
+}
+
 :root {
     --cream: #FFFFFF;
     --ink: #111827;

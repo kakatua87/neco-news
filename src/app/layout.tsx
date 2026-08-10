@@ -71,7 +71,7 @@ export default function RootLayout({
             </head>
             <body className="min-h-full flex flex-col bg-white text-ink font-sans">
                 <Header />
-                <main className="flex-1 flex flex-col">
+                <main className="flex-1 flex flex-col min-w-0">
                     {children}
                 </main>
                 <Footer />

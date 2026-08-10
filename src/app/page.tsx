@@ -65,7 +65,7 @@ export default async function Home() {
             <HeroCarousel items={heroItems} />
 
             {/* SIDEBAR: Trending + Top Stories */}
-            <aside className="flex flex-col gap-6">
+            <aside className="flex flex-col gap-6 min-w-0">
 
               {/* TRENDING NOW */}
               <div className="border border-border rounded-xl p-5">
@@ -130,8 +130,10 @@ export default async function Home() {
       </section>
 
       {/* BANNER HEADER */}
-      <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-4">
-        <BannerZone zone="header" className="w-full h-24 md:h-28" />
+      <div className="bg-white">
+        <div className="mx-auto max-w-[1440px] px-4 md:px-8 py-4">
+          <BannerZone zone="header" className="w-full h-24 md:h-28" />
+        </div>
       </div>
 
       {/* ══════════ SECCIONES: 3 NOTICIAS POR SECCIÓN ══════════ */}
