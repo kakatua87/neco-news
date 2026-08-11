@@ -6,6 +6,8 @@ import type { Noticia, FuenteUrl } from "@/types/noticia";
 import { logoutAction } from "./actions";
 import EditorModal from "./EditorModal";
 import BannersPanel from "./BannersPanel";
+import InstagramCardEditor from "./InstagramCardEditor";
+import { FORMATOS, type FormatoKey } from "./instagramFormatos";
 
 const SECCIONES = [
   "Política", "Economía", "Policiales", "Local", 
@@ -165,6 +167,8 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [igFetched, setIgFetched] = useState(false);
   const [igBusyIds, setIgBusyIds] = useState<Array<string | number>>([]);
   const [igSelectedIds, setIgSelectedIds] = useState<Set<string | number>>(new Set());
+  const [igEditando, setIgEditando] = useState<{ item: InstagramKitItem; formato: FormatoKey } | null>(null);
+  const [igEditadas, setIgEditadas] = useState<Record<string, string>>({});
   
   const allSecciones = Array.from(new Set([...SECCIONES, ...(dbSecciones || [])]));
   const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
@@ -1866,17 +1870,57 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                         className="w-4 h-4 accent-accent"
                       />
                     </label>
-                    <div className="h-48 bg-gray-100 flex-shrink-0 flex items-center justify-center">
+                    <div className="p-3 bg-gray-100 flex-shrink-0">
                       {item.imagen_url ? (
-                        <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
+                        <div className="grid grid-cols-3 gap-2">
+                          {FORMATOS.map((f) => {
+                            const key = `${item.id}-${f.key}`;
+                            const editadaUrl = igEditadas[key];
+                            const src = editadaUrl || `/api/instagram-card/${item.id}?formato=${f.key}`;
+                            return (
+                              <div key={f.key} className="flex flex-col gap-1">
+                                <div className="rounded overflow-hidden border border-gray-300" style={{ aspectRatio: `${f.ancho} / ${f.alto}` }}>
+                                  <img src={src} alt={f.label} className="w-full h-full object-cover" />
+                                </div>
+                                <p className="text-[9px] text-center text-muted">{f.label}</p>
+                                <div className="flex gap-1 justify-center">
+                                  <a
+                                    href={src}
+                                    download={`instagram-${item.id}-${f.key}.jpg`}
+                                    className="text-[10px] text-blue-600 hover:underline"
+                                  >
+                                    ⬇️
+                                  </a>
+                                  <button
+                                    onClick={() => setIgEditando({ item, formato: f.key })}
+                                    className="text-[10px] text-blue-600 hover:underline"
+                                  >
+                                    ✏️
+                                  </button>
+                                  {editadaUrl && (
+                                    <button
+                                      onClick={() => setIgEditadas((prev) => { const next = { ...prev }; delete next[key]; return next; })}
+                                      className="text-[10px] text-gray-400 hover:underline"
+                                      title="Volver a la versión automática"
+                                    >
+                                      ↺
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       ) : (
-                        <button
-                          onClick={() => generarImagenIAPublicada(item)}
-                          disabled={busy}
-                          className="px-4 py-2 text-sm font-medium text-accent hover:underline disabled:opacity-50"
-                        >
-                          {busy ? "Generando..." : "✨ Generar imagen IA"}
-                        </button>
+                        <div className="h-48 flex items-center justify-center">
+                          <button
+                            onClick={() => generarImagenIAPublicada(item)}
+                            disabled={busy}
+                            className="px-4 py-2 text-sm font-medium text-accent hover:underline disabled:opacity-50"
+                          >
+                            {busy ? "Generando..." : "✨ Generar imagen IA"}
+                          </button>
+                        </div>
                       )}
                     </div>
                     <div className="p-4 flex-1 flex flex-col gap-3">
@@ -1897,7 +1941,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                       )}
 
                       {item.instagram_text && (
-                        <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap line-clamp-4">{item.instagram_text}</p>
+                        <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap">{item.instagram_text}</p>
                       )}
 
                       <a
@@ -1910,6 +1954,13 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                       </a>
 
                       <div className="mt-auto pt-3 border-t border-border/50 flex flex-wrap gap-2 justify-between">
+                        <button
+                          onClick={() => copiarTodo(item)}
+                          disabled={!item.instagram_titulo && !item.instagram_text}
+                          className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors disabled:opacity-40"
+                        >
+                          📋 Copiar caption
+                        </button>
                         <button
                           onClick={() => copiarLink(item)}
                           className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors"
@@ -1942,6 +1993,21 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               )}
             </div>
           </div>
+        )}
+
+        {igEditando && (
+          <InstagramCardEditor
+            isOpen={!!igEditando}
+            formato={igEditando.formato}
+            seccion={igEditando.item.seccion}
+            imagenUrl={igEditando.item.imagen_url || ""}
+            tituloInicial={igEditando.item.instagram_titulo || igEditando.item.titulo}
+            onClose={() => setIgEditando(null)}
+            onApply={(url) => {
+              setIgEditadas((prev) => ({ ...prev, [`${igEditando.item.id}-${igEditando.formato}`]: url }));
+              setIgEditando(null);
+            }}
+          />
         )}
 
         {/* TAB: BANNERS */}
