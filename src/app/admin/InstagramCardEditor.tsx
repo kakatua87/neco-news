@@ -139,7 +139,7 @@ export default function InstagramCardEditor({ isOpen, formato, seccion, imagenUr
       ctx.fillRect(0, 0, outW, outH);
 
       // Franja de marca + logo
-      ctx.fillStyle = ACCENT;
+      ctx.fillStyle = CHARCOAL;
       ctx.fillRect(0, 0, outW, headerAlto);
       const logoH = Math.round(headerAlto * 0.6);
       const logoW = logoH * (logo.naturalWidth / logo.naturalHeight);
@@ -238,7 +238,7 @@ export default function InstagramCardEditor({ isOpen, formato, seccion, imagenUr
               {/* Franja de marca (no interactiva) */}
               <div
                 className="flex items-center px-3"
-                style={{ height: headerPreviewH, backgroundColor: ACCENT }}
+                style={{ height: headerPreviewH, backgroundColor: CHARCOAL }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img ref={logoElRef} src="/logo-oficial.png" alt="" style={{ height: headerPreviewH * 0.6 }} className="object-contain" crossOrigin="anonymous" />

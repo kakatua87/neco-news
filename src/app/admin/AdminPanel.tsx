@@ -169,6 +169,8 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [igSelectedIds, setIgSelectedIds] = useState<Set<string | number>>(new Set());
   const [igEditando, setIgEditando] = useState<{ item: InstagramKitItem; formato: FormatoKey } | null>(null);
   const [igEditadas, setIgEditadas] = useState<Record<string, string>>({});
+  const [igFormatoElegido, setIgFormatoElegido] = useState<Record<string | number, FormatoKey>>({});
+  const [igPublicandoIds, setIgPublicandoIds] = useState<Array<string | number>>([]);
   
   const allSecciones = Array.from(new Set([...SECCIONES, ...(dbSecciones || [])]));
   const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
@@ -418,6 +420,31 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     }
     copiarTodo(item);
     alert("Copiado. Pegalo en Instagram (no tiene un botón de compartir directo desde la web).");
+  };
+
+  const publicarEnInstagram = async (item: InstagramKitItem) => {
+    const formato = igFormatoElegido[item.id] || "cuadrado";
+    const destino = formato === "historia" ? "historia" : "feed";
+    const imagenUrlEditada = igEditadas[`${item.id}-${formato}`];
+    setIgPublicandoIds((prev) => [...prev, item.id]);
+    try {
+      const res = await fetch("/api/instagram/publicar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ noticiaId: item.id, formato, destino, imagenUrlEditada }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        alert("¡Publicado en Instagram!");
+      } else {
+        alert(`No se pudo publicar: ${data.error || "error desconocido"}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error de conexión publicando en Instagram.");
+    } finally {
+      setIgPublicandoIds((prev) => prev.filter((id) => id !== item.id));
+    }
   };
 
   const toggleIgSeleccion = (id: string | number) => {
@@ -1919,6 +1946,28 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                             className="px-4 py-2 text-sm font-medium text-accent hover:underline disabled:opacity-50"
                           >
                             {busy ? "Generando..." : "✨ Generar imagen IA"}
+                          </button>
+                        </div>
+                      )}
+                      {item.imagen_url && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <select
+                            value={igFormatoElegido[item.id] || "cuadrado"}
+                            onChange={(e) => setIgFormatoElegido((prev) => ({ ...prev, [item.id]: e.target.value as FormatoKey }))}
+                            className="flex-1 text-xs border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent bg-white"
+                          >
+                            {FORMATOS.map((f) => (
+                              <option key={f.key} value={f.key}>
+                                {f.key === "historia" ? "Historia" : `Feed — ${f.label}`}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => publicarEnInstagram(item)}
+                            disabled={igPublicandoIds.includes(item.id)}
+                            className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-50 whitespace-nowrap"
+                          >
+                            {igPublicandoIds.includes(item.id) ? "Publicando..." : "📸 Publicar"}
                           </button>
                         </div>
                       )}
