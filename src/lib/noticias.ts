@@ -20,15 +20,24 @@ export async function getPublicadas(limit = 30): Promise<Noticia[]> {
   return data as Noticia[];
 }
 
-/** Noticias incluidas en el carrusel de portada, ordenadas por orden_portada. Excluye Obituarios. */
+/**
+ * Noticias incluidas en el carrusel de portada, ordenadas por orden_portada.
+ * Un trigger en la base de datos mantiene es_portada/orden_portada actualizados
+ * automáticamente (hasta 3, una por sección, del día en curso) cada vez que se
+ * publica una noticia. Acá además filtramos por "hoy" (huso horario Argentina)
+ * como refuerzo, para no mostrar nunca una portada de un día anterior.
+ */
 export async function getCarruselPortada(): Promise<Noticia[]> {
   const supabase = await createSupabaseServerClient();
+  const hoyArgentina = new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
   const { data, error } = await supabase
     .from("noticias")
     .select("*")
     .eq("estado", "publicada")
     .eq("es_portada", true)
     .neq("seccion", "Obituarios")
+    .gte("fecha_publicacion", `${hoyArgentina}T00:00:00-03:00`)
+    .lt("fecha_publicacion", `${hoyArgentina}T23:59:59.999-03:00`)
     .order("orden_portada", { ascending: true, nullsFirst: false })
     .limit(8);
 
