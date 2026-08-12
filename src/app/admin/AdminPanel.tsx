@@ -47,7 +47,7 @@ type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "obituarios" | 
 
 type InstagramKitItem = Pick<
   Noticia,
-  "id" | "titulo" | "instagram_titulo" | "instagram_text" | "imagen_url" | "seccion" | "slug"
+  "id" | "titulo" | "instagram_titulo" | "instagram_text" | "imagen_url" | "seccion" | "slug" | "fecha_publicacion"
 >;
 
 type ScraperConfig = {
@@ -171,7 +171,8 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [igEditadas, setIgEditadas] = useState<Record<string, string>>({});
   const [igFormatoElegido, setIgFormatoElegido] = useState<Record<string | number, FormatoKey>>({});
   const [igPublicandoIds, setIgPublicandoIds] = useState<Array<string | number>>([]);
-  
+  const [igMesesExpandidos, setIgMesesExpandidos] = useState<Set<string>>(new Set());
+
   const allSecciones = Array.from(new Set([...SECCIONES, ...(dbSecciones || [])]));
   const [customSecciones, setCustomSecciones] = useState<string[]>(allSecciones);
   const [seccionesUsadas, setSeccionesUsadas] = useState<string[]>(dbSecciones || []);
@@ -334,6 +335,43 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     } catch (e) {
       console.error(e);
     }
+  };
+
+  type GrupoIgDia = { key: string; label: string; items: InstagramKitItem[] };
+  type GrupoIgMes = { key: string; label: string; dias: GrupoIgDia[] };
+
+  const igItemsAgrupados = (): GrupoIgMes[] => {
+    const meses = new Map<string, { label: string; dias: Map<string, GrupoIgDia> }>();
+    for (const item of igItems) {
+      const fecha = item.fecha_publicacion ? new Date(item.fecha_publicacion) : null;
+      const valida = fecha && !isNaN(fecha.getTime());
+
+      const mesKey = valida ? `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}` : "sin-fecha";
+      const mesLabel = valida ? `${capitalize(MESES[fecha.getMonth()])} ${fecha.getFullYear()}` : "Sin fecha";
+      const diaKey = valida ? fecha.toISOString().slice(0, 10) : "sin-fecha";
+      const diaLabel = valida
+        ? `${capitalize(DIAS_SEMANA[fecha.getDay()])} ${fecha.getDate()} de ${MESES[fecha.getMonth()]}`
+        : "Sin fecha";
+
+      if (!meses.has(mesKey)) meses.set(mesKey, { label: mesLabel, dias: new Map() });
+      const mes = meses.get(mesKey)!;
+      if (!mes.dias.has(diaKey)) mes.dias.set(diaKey, { key: diaKey, label: diaLabel, items: [] });
+      mes.dias.get(diaKey)!.items.push(item);
+    }
+    return Array.from(meses.entries()).map(([key, val]) => ({
+      key,
+      label: val.label,
+      dias: Array.from(val.dias.values()),
+    }));
+  };
+
+  const toggleIgMesExpandido = (key: string) => {
+    setIgMesesExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   const igBase = typeof window !== "undefined" ? window.location.origin : "https://neco-news.vercel.app";
@@ -1883,11 +1921,33 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {igItems.map((item) => {
-                const busy = igBusyIds.includes(item.id);
-                const selected = igSelectedIds.has(item.id);
+            <div className="space-y-4">
+              {igItemsAgrupados().map((mes) => {
+                const expandido = igMesesExpandidos.has(mes.key);
+                const totalMes = mes.dias.reduce((acc, d) => acc + d.items.length, 0);
                 return (
+                  <div key={mes.key} className="border border-border rounded-xl bg-white shadow-sm overflow-hidden">
+                    <button
+                      onClick={() => toggleIgMesExpandido(mes.key)}
+                      className="w-full flex justify-between items-center px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="font-bold text-ink">{mes.label}</span>
+                      <span className="flex items-center gap-3 text-sm text-muted">
+                        {totalMes} noticia{totalMes !== 1 ? "s" : ""}
+                        <span className={`inline-block transition-transform ${expandido ? "rotate-180" : ""}`}>▾</span>
+                      </span>
+                    </button>
+
+                    {expandido && (
+                      <div className="p-5 space-y-8">
+                        {mes.dias.map((dia) => (
+                          <div key={dia.key}>
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">{dia.label}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {dia.items.map((item) => {
+                                const busy = igBusyIds.includes(item.id);
+                                const selected = igSelectedIds.has(item.id);
+                                return (
                   <article key={item.id} className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col relative ${selected ? "border-accent ring-2 ring-accent/30" : "border-border"}`}>
                     <label className="absolute top-3 left-3 z-10 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
                       <input
@@ -2032,11 +2092,19 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                       </div>
                     </div>
                   </article>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
 
               {igItems.length === 0 && igFetched && (
-                <div className="col-span-full text-center py-12 text-muted">
+                <div className="text-center py-12 text-muted">
                   No hay noticias publicadas para mostrar.
                 </div>
               )}
