@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { esAdmin } from "@/lib/auth";
+import { fetchExternoSeguro } from "@/lib/ssrf-guard";
 
 const MAX_BYTES = 15 * 1024 * 1024; // 15MB
 const FETCH_TIMEOUT_MS = 10000;
@@ -8,9 +9,7 @@ const FETCH_TIMEOUT_MS = 10000;
 // en un <canvas> sin que el navegador la bloquee por CORS.
 export async function GET(request: Request) {
   try {
-    const supabaseSession = await createSupabaseServerClient();
-    const { data: { user }, error: authError } = await supabaseSession.auth.getUser();
-    if (authError || !user) {
+    if (!(await esAdmin())) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,25 +19,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, error: "Falta el parámetro url" }, { status: 400 });
     }
 
-    let parsed: URL;
     try {
-      parsed = new URL(target);
+      new URL(target);
     } catch {
       return NextResponse.json({ ok: false, error: "URL inválida" }, { status: 400 });
     }
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return NextResponse.json({ ok: false, error: "Protocolo no permitido" }, { status: 400 });
-    }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     let upstream: Response;
     try {
-      upstream = await fetch(parsed.toString(), { signal: controller.signal });
-    } catch {
-      return NextResponse.json({ ok: false, error: "No se pudo descargar la imagen" }, { status: 502 });
-    } finally {
-      clearTimeout(timeout);
+      upstream = await fetchExternoSeguro(target, { timeoutMs: FETCH_TIMEOUT_MS });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "No se pudo descargar la imagen";
+      return NextResponse.json({ ok: false, error: msg }, { status: 502 });
     }
 
     if (!upstream.ok) {
