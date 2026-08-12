@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-
-async function requireAuth() {
-  const supabaseSession = await createSupabaseServerClient();
-  const { data: { user }, error } = await supabaseSession.auth.getUser();
-  return !error && !!user;
-}
+import { esAdmin as requireAuth } from "@/lib/auth";
 
 const CAMPOS_EDITABLES = [
   "zona",

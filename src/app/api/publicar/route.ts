@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
-import { hayySesionValida } from "@/lib/auth";
+import { esAdmin } from "@/lib/auth";
 import { enviarPushNotification } from "@/lib/push";
 
 type Body = {
@@ -12,7 +12,7 @@ type Body = {
 };
 
 export async function POST(request: Request) {
-  if (!(await hayySesionValida())) {
+  if (!(await esAdmin())) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

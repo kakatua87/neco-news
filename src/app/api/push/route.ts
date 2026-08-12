@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { hayySesionValida } from "@/lib/auth";
+import { esAdmin } from "@/lib/auth";
 import { enviarPushNotification } from "@/lib/push";
 
 type PushBody = {
@@ -11,7 +11,7 @@ type PushBody = {
 
 export async function POST(request: Request) {
   try {
-    if (!(await hayySesionValida())) {
+    if (!(await esAdmin())) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 

@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-
-async function requireAuth() {
-  const supabaseSession = await createSupabaseServerClient();
-  const { data: { user }, error } = await supabaseSession.auth.getUser();
-  return !error && !!user;
-}
+import { esAdmin as requireAuth } from "@/lib/auth";
 
 // Lista todos los banners (activos e inactivos) para el panel de admin.
 export async function GET() {

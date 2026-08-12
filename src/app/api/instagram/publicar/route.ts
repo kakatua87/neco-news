@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { esAdmin } from "@/lib/auth";
 import { renderInstagramCard, normalizarFormato } from "../../instagram-card/render";
 
 const GRAPH_VERSION = "v21.0";
@@ -14,9 +14,7 @@ function seccionSlug(seccion: string): string {
 }
 
 export async function POST(request: Request) {
-  const supabaseSession = await createSupabaseServerClient();
-  const { data: { user }, error: authError } = await supabaseSession.auth.getUser();
-  if (authError || !user) {
+  if (!(await esAdmin())) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

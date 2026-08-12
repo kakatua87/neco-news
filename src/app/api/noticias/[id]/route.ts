@@ -12,9 +12,13 @@ export async function PATCH(
 
     const supabase = await createSupabaseServerClient();
 
-    // Verify authentication
+    // Verify authentication (solo admins reales, no cualquier cuenta logueada)
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const { data: esAdminData, error: adminError } = await supabase.rpc("is_admin");
+    if (adminError || esAdminData !== true) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -49,9 +53,13 @@ export async function DELETE(
     const { id } = await context.params;
     const supabase = await createSupabaseServerClient();
 
-    // Verify authentication
+    // Verify authentication (solo admins reales, no cualquier cuenta logueada)
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const { data: esAdminData, error: adminError } = await supabase.rpc("is_admin");
+    if (adminError || esAdminData !== true) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 

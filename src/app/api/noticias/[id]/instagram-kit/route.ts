@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { esAdmin } from "@/lib/auth";
 
 export async function POST(
   request: Request,
@@ -9,9 +9,7 @@ export async function POST(
 ) {
   try {
     const { id } = await context.params;
-    const supabaseSession = await createSupabaseServerClient();
-    const { data: { user }, error: authError } = await supabaseSession.auth.getUser();
-    if (authError || !user) {
+    if (!(await esAdmin())) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 

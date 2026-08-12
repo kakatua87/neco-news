@@ -1,10 +1,19 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-/** true si hay una sesión de Supabase válida (cookie del navegador). */
-export async function hayySesionValida(): Promise<boolean> {
+/**
+ * true si la sesión activa (cookie del navegador) pertenece a un admin real
+ * (tabla public.admins), no solo a "cualquiera que esté logueado". El
+ * self-signup de Supabase Auth está habilitado, así que cualquiera puede
+ * crearse una cuenta — esto es lo único que evita que use las rutas de
+ * administración una vez logueado.
+ */
+export async function esAdmin(): Promise<boolean> {
   const supabase = await createSupabaseServerClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  return !error && !!user;
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) return false;
+
+  const { data, error } = await supabase.rpc("is_admin");
+  return !error && data === true;
 }
 
 /**
