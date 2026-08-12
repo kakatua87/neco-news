@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
+import { hayySesionValida } from "@/lib/auth";
+import { enviarPushNotification } from "@/lib/push";
 
 type Body = {
   id?: number;
@@ -10,6 +12,10 @@ type Body = {
 };
 
 export async function POST(request: Request) {
+  if (!(await hayySesionValida())) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = (await request.json()) as Body;
   if (!body.id) {
     return NextResponse.json({ ok: false, error: "id requerido" }, { status: 400 });
@@ -51,16 +57,13 @@ export async function POST(request: Request) {
       const cuerpoCorto = (noticia.resumen_seo || noticia.cuerpo || "").slice(0, 100);
       const titulo = body.titulo || noticia.titulo;
 
-      // Fire and forget — no bloqueamos la respuesta
-      fetch(`${protocol}://${host}/api/push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          titulo,
-          cuerpo_corto: cuerpoCorto,
-          url: notaUrl,
-          imagen_url: noticia.imagen_url ?? undefined,
-        }),
+      // Fire and forget — no bloqueamos la respuesta. Llamada directa (no HTTP)
+      // porque ya validamos la sesión arriba; evita exponer un endpoint aparte.
+      enviarPushNotification({
+        titulo,
+        cuerpo_corto: cuerpoCorto,
+        url: notaUrl,
+        imagen_url: noticia.imagen_url ?? undefined,
       }).catch((e) => console.error("Error enviando push:", e));
     }
   } catch (pushErr) {

@@ -22,10 +22,30 @@ export default async function FarmaciasPage() {
       
       const table = $("table").first();
       if (table.length > 0) {
+        // Sanitizar: esto es HTML de un sitio de terceros (portalnecochea.com.ar)
+        // que insertamos crudo en la página con dangerouslySetInnerHTML. Si ese
+        // sitio es comprometido o inyectan contenido, no debe poder ejecutar JS
+        // en nuestro dominio.
+        table.find("script, style, iframe, object, embed, link, meta, form").remove();
+        table.find("*").each((_, el) => {
+          const attribs = (el as { attribs?: Record<string, string> }).attribs || {};
+          for (const attr of Object.keys(attribs)) {
+            const lower = attr.toLowerCase();
+            const value = attribs[attr];
+            const esPeligrosa =
+              lower.startsWith("on") ||
+              lower === "srcdoc" ||
+              ((lower === "href" || lower === "src") && /^\s*(javascript|data):/i.test(value));
+            if (esPeligrosa) {
+              $(el).removeAttr(attr);
+            }
+          }
+        });
+
         // Limpiar atributos que rompen el diseño responsivo
         table.removeAttr("width");
         table.find("*").removeAttr("width").removeAttr("style");
-        
+
         // Agregar clases de Tailwind para estilizar la tabla
         table.addClass("w-full text-sm text-left border-collapse");
         table.find("td, th").addClass("px-3 py-2 md:px-4 md:py-3 border-b border-border align-top");

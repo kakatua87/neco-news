@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
+import { hayySesionValida } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  if (!(await hayySesionValida())) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const SCRAPER_URL = process.env.SCRAPER_URL || "https://neco-news-scraper.onrender.com";
 
     const res = await fetch(`${SCRAPER_URL}/procesar-grupo`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.INTERNAL_API_SECRET}`,
+      },
       body: JSON.stringify(body),
     });
 

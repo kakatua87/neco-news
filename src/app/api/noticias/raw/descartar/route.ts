@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { hayySesionValida } from "@/lib/auth";
 
 export async function POST(request: Request) {
+  if (!(await hayySesionValida())) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const grupo_id = searchParams.get("grupo_id");
   const fecha = searchParams.get("fecha"); // formato: YYYY-MM-DD
