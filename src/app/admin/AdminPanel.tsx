@@ -1141,10 +1141,16 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             if (!notas.length) continue;
             const seccionGrupo = notas[0]?.seccion || "Local";
             if (inboxSeccionFiltro !== "Todas" && seccionGrupo !== inboxSeccionFiltro) continue;
-            const dateKey = new Date(notas[0].created_at).toLocaleDateString("es-AR", {
-              weekday: "long", year: "numeric", month: "long", day: "numeric"
+            // Ambas fechas se derivan del mismo Date con la MISMA zona horaria
+            // (Argentina) — si no, cerca de medianoche UTC el día "ISO" (para
+            // agrupar/API) y el día mostrado (locale) podían quedar
+            // desincronizados, generando dos cabeceras para el mismo día.
+            const fechaGrupo = new Date(notas[0].created_at);
+            const dateKey = fechaGrupo.toLocaleDateString("es-AR", {
+              weekday: "long", year: "numeric", month: "long", day: "numeric",
+              timeZone: "America/Argentina/Buenos_Aires",
             });
-            const isoDate = notas[0].created_at.split("T")[0]; // YYYY-MM-DD
+            const isoDate = fechaGrupo.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }); // YYYY-MM-DD
             const key = `${isoDate}||${dateKey}`; // carry both for the API and display
             if (!gruposPorFecha[key]) gruposPorFecha[key] = [];
             gruposPorFecha[key].push({ grupoId, notas });

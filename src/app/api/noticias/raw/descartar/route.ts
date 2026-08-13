@@ -42,10 +42,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  // Descartar todas las raw de una fecha completa
+  // Descartar todas las raw de una fecha completa (fecha = día calendario
+  // en Argentina, no UTC — si no, cerca de medianoche se descartan/salvan
+  // notas del día equivocado).
   if (fecha) {
-    const inicio = `${fecha}T00:00:00+00:00`;
-    const fin = `${fecha}T23:59:59+00:00`;
+    const inicio = `${fecha}T00:00:00-03:00`;
+    const fin = `${fecha}T23:59:59.999-03:00`;
 
     const { data, error } = await supabase
       .from("noticias")
