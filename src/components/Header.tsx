@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import LiveClock from "./LiveClock";
-import WeatherWidget from "./WeatherWidget";
+import HeaderDate from "./HeaderDate";
 
 const MAIN_NAV = ["Local", "Política", "Economía", "Policiales", "Deportes", "Sociedad"];
 const EXTRA_NAV = ["Cultura", "Salud", "Farmacias", "Obituarios", "Clima"];
@@ -12,7 +12,11 @@ const EXTRA_NAV = ["Cultura", "Salud", "Farmacias", "Obituarios", "Clima"];
 function SubtitleSegment() {
   return (
     <>
-      Diario Digital &nbsp;<span className="text-accent">|</span>&nbsp; Necochea, Argentina &nbsp;&nbsp;&nbsp; <span className="text-accent">•</span> &nbsp;&nbsp;&nbsp;
+      {"Diario Digital "}
+      <span className="text-accent">|</span>
+      {" Necochea, Argentina   "}
+      <span className="text-accent">•</span>
+      {"   "}
     </>
   );
 }
@@ -23,7 +27,16 @@ const SUBTITLE_COPIES = Array.from({ length: 8 });
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const router = useRouter();
   const closeMobile = () => setMobileOpen(false);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const term = query.trim();
+    if (!term) return;
+    router.push(`/buscar?q=${encodeURIComponent(term)}`);
+  };
 
   return (
     <header className="sticky top-0 z-50 shadow-lg font-sans">
@@ -130,12 +143,20 @@ export default function Header() {
               </svg>
             </button>
 
-            <div className="hidden lg:flex items-center gap-4 shrink-0">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-muted flex items-center gap-3 whitespace-nowrap">
-                <WeatherWidget />
-                <span className="text-border">|</span>
-                <LiveClock />
-              </div>
+            <div className="hidden lg:flex items-center shrink-0 ml-8">
+              <form onSubmit={handleSearch} className="flex items-center gap-2 border border-border rounded-lg px-3 py-1.5 w-[220px] shrink-0 focus-within:border-accent transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-muted shrink-0">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar noticias..."
+                  className="text-[12px] font-medium normal-case tracking-normal text-ink placeholder:text-muted bg-transparent outline-none w-full min-w-0"
+                />
+              </form>
             </div>
           </div>
         </div>
@@ -188,9 +209,7 @@ export default function Header() {
               Defensa Civil ↗
             </a>
             <div className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-widest text-muted flex items-center gap-3 border-t border-border">
-              <WeatherWidget />
-              <span className="text-border">|</span>
-              <LiveClock />
+              <HeaderDate />
             </div>
           </nav>
         </>

@@ -3,6 +3,7 @@ import { getPublicadas, getCarruselPortada, getPublicadasPorSeccion } from "@/li
 import type { Noticia } from "@/types/noticia";
 import BannerZone from "@/components/BannerZone";
 import HeroCarousel from "@/components/HeroCarousel";
+import WeatherMini from "@/components/WeatherMini";
 
 /* ═══ Helpers ═══ */
 
@@ -64,6 +65,9 @@ export default async function Home() {
 
             {/* SIDEBAR: Top Stories */}
             <aside className="flex flex-col gap-6 min-w-0">
+
+              {/* CLIMA */}
+              <WeatherMini />
 
               {/* BANNER SIDEBAR */}
               <BannerZone zone="sidebar" className="w-full h-32" />

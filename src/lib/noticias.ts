@@ -102,6 +102,27 @@ export async function getPendientes(limit = 50): Promise<Noticia[]> {
   return data as Noticia[];
 }
 
+/** Busca noticias publicadas cuyo título o resumen contengan el término dado. */
+export async function getBusqueda(query: string, limit = 30): Promise<Noticia[]> {
+  const supabase = await createSupabaseServerClient();
+  const term = query.trim();
+  if (!term) return [];
+
+  const { data, error } = await supabase
+    .from("noticias")
+    .select("*")
+    .eq("estado", "publicada")
+    .or(`titulo.ilike.%${term}%,resumen_seo.ilike.%${term}%`)
+    .order("fecha_publicacion", { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Error al buscar noticias:", error.message);
+    return [];
+  }
+  return data as Noticia[];
+}
+
 /** Noticia individual por slug. */
 export async function getNoticiaBySlug(slug: string): Promise<Noticia | null> {
   const supabase = await createSupabaseServerClient();

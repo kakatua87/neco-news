@@ -51,13 +51,15 @@ export default function RootLayout({
             className={`${inter.variable} ${merriweather.variable} h-full antialiased`}
         >
             <head>
-                <Script
-                    src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-                    defer
-                    strategy="afterInteractive"
-                />
-                <Script id="onesignal-init" strategy="afterInteractive">
-                    {`
+                {process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID && (
+                    <>
+                        <Script
+                            src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+                            defer
+                            strategy="afterInteractive"
+                        />
+                        <Script id="onesignal-init" strategy="afterInteractive">
+                            {`
             window.OneSignalDeferred = window.OneSignalDeferred || [];
             OneSignalDeferred.push(async function(OneSignal) {
               await OneSignal.init({
@@ -67,7 +69,9 @@ export default function RootLayout({
               });
             });
           `}
-                </Script>
+                        </Script>
+                    </>
+                )}
             </head>
             <body className="min-h-full flex flex-col bg-white text-ink font-sans">
                 <Header />
