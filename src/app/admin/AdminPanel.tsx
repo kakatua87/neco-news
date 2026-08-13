@@ -50,10 +50,13 @@ type InstagramKitItem = Pick<
   "id" | "titulo" | "instagram_titulo" | "instagram_text" | "imagen_url" | "seccion" | "slug" | "fecha_publicacion"
 >;
 
+type FuenteCustom = { key: string; label: string; url: string };
+
 type ScraperConfig = {
   activo: boolean;
   fuentes_activas: string[];
   fecha_inicio: string | null;
+  fuentes_custom: FuenteCustom[];
 };
 
 type AiProvider = {
@@ -64,13 +67,13 @@ type AiProvider = {
   default: boolean;
 };
 
-const FUENTES_SCRAPER: { key: string; label: string }[] = [
-  { key: "nden", label: "NDEN (Necochea Digital)" },
-  { key: "diarionecochea", label: "Diario Necochea" },
-  { key: "diario4v", label: "Diario 4V" },
-  { key: "tsn", label: "TSN Necochea" },
-  { key: "diarionq", label: "Diario NQ" },
-  { key: "elecos", label: "El Ecos" },
+const FUENTES_SCRAPER: { key: string; label: string; domain: string }[] = [
+  { key: "nden", label: "NDEN (Necochea Digital)", domain: "nden.com.ar" },
+  { key: "diarionecochea", label: "Diario Necochea", domain: "diarionecochea.com" },
+  { key: "diario4v", label: "Diario 4V", domain: "diario4v.com" },
+  { key: "tsn", label: "TSN Necochea", domain: "tsnnecochea.com.ar" },
+  { key: "diarionq", label: "Diario NQ", domain: "diarionq.com.ar" },
+  { key: "elecos", label: "El Ecos", domain: "elecos.com.ar" },
 ];
 
 export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats, dbSecciones }: Props) {
@@ -85,6 +88,18 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [mesesExpandidos, setMesesExpandidos] = useState<Set<string>>(new Set());
   const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
   const [inboxSeccionFiltro, setInboxSeccionFiltro] = useState<string>("Todas");
+  // Guarda qué meses/días de la bandeja están COLAPSADOS (no expandidos).
+  // Empieza vacío a propósito: por defecto todo visible, igual que antes de
+  // tener el desplegable — el usuario colapsa lo que no le interesa ver.
+  const [inboxColapsados, setInboxColapsados] = useState<Set<string>>(new Set());
+  const toggleInboxColapsado = (key: string) => {
+    setInboxColapsados((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const [scraperConfig, setScraperConfig] = useState<ScraperConfig | null>(null);
   const [showScraperPanel, setShowScraperPanel] = useState(false);
@@ -179,6 +194,13 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [editandoSeccion, setEditandoSeccion] = useState<string | null>(null);
   const [nombreSeccionInput, setNombreSeccionInput] = useState("");
   const [renombrandoSeccion, setRenombrandoSeccion] = useState(false);
+  // Configuración > Secciones, colapsada como desplegable.
+  const [seccionesConfigAbierta, setSeccionesConfigAbierta] = useState(false);
+  // Configuración > Fuentes de Noticias: modo edición (agregar/quitar) + form.
+  const [editandoFuentes, setEditandoFuentes] = useState(false);
+  const [nuevaFuenteNombre, setNuevaFuenteNombre] = useState("");
+  const [nuevaFuenteUrl, setNuevaFuenteUrl] = useState("");
+  const [nuevaFuenteError, setNuevaFuenteError] = useState<string | null>(null);
 
   const pendientesCount = items.length;
   const inboxCount = Object.keys(rawGrupos).length;
@@ -829,6 +851,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
           activo: !!data.activo,
           fuentes_activas: data.fuentes_activas || FUENTES_SCRAPER.map((f) => f.key),
           fecha_inicio: data.fecha_inicio || null,
+          fuentes_custom: Array.isArray(data.fuentes_custom) ? data.fuentes_custom : [],
         });
       }
     } catch (e) {
@@ -861,6 +884,48 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
       : [...scraperConfig.fuentes_activas, key];
     if (activas.length === 0) return; // no dejar sin fuentes
     guardarScraperConfig({ fuentes_activas: activas });
+  };
+
+  /** Agrega una fuente pegada a mano. Devuelve un error legible si algo no cierra. */
+  const agregarFuenteCustom = (label: string, url: string): { ok: boolean; error?: string } => {
+    if (!scraperConfig) return { ok: false, error: "Todavía está cargando la configuración, esperá un segundo." };
+    const labelTrim = label.trim();
+    if (!labelTrim) return { ok: false, error: "Ponele un nombre a la fuente." };
+
+    let parsed: URL;
+    try {
+      parsed = new URL(url.trim());
+    } catch {
+      return { ok: false, error: "Esa dirección no es una URL válida. Tiene que empezar con https:// (ejemplo: https://www.midiario.com.ar)" };
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { ok: false, error: "Solo se aceptan direcciones que empiecen con http:// o https://" };
+    }
+
+    const keysExistentes = new Set([
+      ...FUENTES_SCRAPER.map((f) => f.key),
+      ...scraperConfig.fuentes_custom.map((f) => f.key),
+    ]);
+    const base = labelTrim.toLowerCase().normalize("NFD").replace(/\p{Mark}/gu, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "fuente";
+    let key = base;
+    let n = 2;
+    while (keysExistentes.has(key)) {
+      key = `${base}-${n}`;
+      n++;
+    }
+
+    const fuentes_custom = [...scraperConfig.fuentes_custom, { key, label: labelTrim, url: parsed.toString() }];
+    const fuentes_activas = [...scraperConfig.fuentes_activas, key];
+    guardarScraperConfig({ fuentes_custom, fuentes_activas });
+    return { ok: true };
+  };
+
+  const eliminarFuenteCustom = (key: string) => {
+    if (!scraperConfig) return;
+    if (!confirm("¿Eliminar esta fuente? El scraper deja de revisarla.")) return;
+    const fuentes_custom = scraperConfig.fuentes_custom.filter((f) => f.key !== key);
+    const fuentes_activas = scraperConfig.fuentes_activas.filter((f) => f !== key);
+    guardarScraperConfig({ fuentes_custom, fuentes_activas });
   };
 
   const eliminarTodosLosGrupos = async () => {
@@ -1087,6 +1152,21 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
           // Ordenar por fecha descendente
           const fechasOrdenadas = Object.keys(gruposPorFecha).sort((a, b) => b.localeCompare(a));
 
+          // ── Agrupar los días por mes (para el desplegable mes > día) ──
+          const inboxMeses: { key: string; label: string; fechaKeys: string[] }[] = [];
+          for (const fechaKey of fechasOrdenadas) {
+            const [isoDate] = fechaKey.split("||");
+            const [anio, mes] = isoDate.split("-");
+            const mesKey = `${anio}-${mes}`;
+            const mesLabel = `${capitalize(MESES[Number(mes) - 1])} ${anio}`;
+            let grupoMes = inboxMeses.find((m) => m.key === mesKey);
+            if (!grupoMes) {
+              grupoMes = { key: mesKey, label: mesLabel, fechaKeys: [] };
+              inboxMeses.push(grupoMes);
+            }
+            grupoMes.fechaKeys.push(fechaKey);
+          }
+
           return (
           <div className="space-y-6 fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-2">
@@ -1213,34 +1293,63 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                 <p className="text-muted mt-1">No hay grupos nuevos de esta sección por ahora.</p>
               </div>
             ) : (
-              <div className="space-y-10">
-                {fechasOrdenadas.map(fechaKey => {
-                  const [isoDate, fechaDisplay] = fechaKey.split("||");
-                  const gruposDelDia = gruposPorFecha[fechaKey];
-                  const totalNotasDelDia = gruposDelDia.reduce((s, g) => s + g.notas.length, 0);
-                  const grupoIdsDelDia = gruposDelDia.map(g => g.grupoId);
-
+              <div className="space-y-6">
+                {inboxMeses.map((grupoMes) => {
+                  const mesColapsado = inboxColapsados.has(`m:${grupoMes.key}`);
+                  const totalNotasMes = grupoMes.fechaKeys.reduce(
+                    (s, fk) => s + gruposPorFecha[fk].reduce((s2, g) => s2 + g.notas.length, 0),
+                    0
+                  );
                   return (
-                    <div key={fechaKey}>
-                      {/* ── Cabecera de Fecha ── */}
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b-2 border-blue-200">
-                        <div>
-                          <h3 className="text-lg font-bold text-ink capitalize">📅 {fechaDisplay}</h3>
-                          <p className="text-xs text-muted mt-0.5">
-                            {gruposDelDia.length} grupo{gruposDelDia.length !== 1 ? "s" : ""} · {totalNotasDelDia} noticia{totalNotasDelDia !== 1 ? "s" : ""} sin procesar
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => descartarPorFecha(isoDate, grupoIdsDelDia)}
-                          className="px-4 py-2 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors flex items-center gap-1.5"
-                        >
-                          🗑 Descartar todo el día ({gruposDelDia.length} grupo{gruposDelDia.length !== 1 ? "s" : ""})
-                        </button>
-                      </div>
+                    <div key={grupoMes.key} className="border border-border rounded-xl bg-white shadow-sm overflow-hidden">
+                      <button
+                        onClick={() => toggleInboxColapsado(`m:${grupoMes.key}`)}
+                        className="w-full flex justify-between items-center px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+                      >
+                        <span className="font-bold text-ink capitalize">🗓️ {grupoMes.label}</span>
+                        <span className="flex items-center gap-3 text-sm text-muted">
+                          {totalNotasMes} noticia{totalNotasMes !== 1 ? "s" : ""}
+                          <span className={`inline-block transition-transform ${mesColapsado ? "" : "rotate-180"}`}>▾</span>
+                        </span>
+                      </button>
 
-                      {/* ── Grupos del día ── */}
-                      <div className="space-y-6">
-                        {gruposDelDia.map(({ grupoId, notas }) => {
+                      {!mesColapsado && (
+                        <div className="p-5 space-y-8">
+                          {grupoMes.fechaKeys.map(fechaKey => {
+                            const [isoDate, fechaDisplay] = fechaKey.split("||");
+                            const gruposDelDia = gruposPorFecha[fechaKey];
+                            const totalNotasDelDia = gruposDelDia.reduce((s, g) => s + g.notas.length, 0);
+                            const grupoIdsDelDia = gruposDelDia.map(g => g.grupoId);
+                            const diaColapsado = inboxColapsados.has(`d:${isoDate}`);
+
+                            return (
+                              <div key={fechaKey}>
+                                {/* ── Cabecera de Fecha ── */}
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b-2 border-blue-200">
+                                  <button
+                                    onClick={() => toggleInboxColapsado(`d:${isoDate}`)}
+                                    className="flex items-center gap-2 text-left"
+                                  >
+                                    <span className={`inline-block transition-transform text-muted ${diaColapsado ? "" : "rotate-180"}`}>▾</span>
+                                    <div>
+                                      <h3 className="text-lg font-bold text-ink capitalize">📅 {fechaDisplay}</h3>
+                                      <p className="text-xs text-muted mt-0.5">
+                                        {gruposDelDia.length} grupo{gruposDelDia.length !== 1 ? "s" : ""} · {totalNotasDelDia} noticia{totalNotasDelDia !== 1 ? "s" : ""} sin procesar
+                                      </p>
+                                    </div>
+                                  </button>
+                                  <button
+                                    onClick={() => descartarPorFecha(isoDate, grupoIdsDelDia)}
+                                    className="px-4 py-2 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors flex items-center gap-1.5"
+                                  >
+                                    🗑 Descartar todo el día ({gruposDelDia.length} grupo{gruposDelDia.length !== 1 ? "s" : ""})
+                                  </button>
+                                </div>
+
+                                {/* ── Grupos del día ── */}
+                                {!diaColapsado && (
+                                <div className="space-y-6">
+                                  {gruposDelDia.map(({ grupoId, notas }) => {
                           const gs = grupoStates[grupoId];
                           const isSaving = notas.some(n => savingIds.includes(n.id));
                           if (!gs) return null;
@@ -1426,6 +1535,12 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                           );
                         })}
                       </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2135,15 +2250,27 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
           <div className="space-y-6 fade-in max-w-3xl">
             <h2 className="text-2xl font-bold text-ink mb-6">Configuración del Pipeline</h2>
 
-            <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-3">
-              <div>
-                <h3 className="font-bold text-ink mb-1">Secciones</h3>
-                <p className="text-sm text-muted mb-4">
+            <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+              <button
+                onClick={() => setSeccionesConfigAbierta((v) => !v)}
+                className="w-full flex justify-between items-center px-6 py-4 hover:bg-gray-50 transition-colors text-left"
+              >
+                <div>
+                  <h3 className="font-bold text-ink">Secciones</h3>
+                  <p className="text-sm text-muted mt-1">
+                    {seccionesUsadas.length} sección{seccionesUsadas.length !== 1 ? "es" : ""} en uso — click para {seccionesConfigAbierta ? "ocultar" : "ver y renombrar"}
+                  </p>
+                </div>
+                <span className={`inline-block text-muted transition-transform ${seccionesConfigAbierta ? "rotate-180" : ""}`}>▾</span>
+              </button>
+
+              {seccionesConfigAbierta && (
+              <div className="px-6 pb-6 space-y-3 border-t border-border pt-4">
+                <p className="text-sm text-muted">
                   Renombrar una sección actualiza todas las noticias que la usan. Los links de esa sección
                   cambian de URL, así que las notas ya publicadas y compartidas con el nombre anterior
                   dejarán de resolver en esa dirección.
                 </p>
-              </div>
               {seccionesUsadas.length === 0 ? (
                 <p className="text-sm text-muted">Todavía no hay noticias con una sección asignada.</p>
               ) : (
@@ -2201,6 +2328,8 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                   ))}
                 </div>
               )}
+              </div>
+              )}
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-6">
@@ -2228,51 +2357,116 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               <hr className="border-border" />
               
               <div>
-                <h3 className="font-bold text-ink mb-2">Fuentes de Noticias</h3>
-                <div className="space-y-2">
-                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                      <span className="font-medium">NDEN (Necochea Digital)</span>
-                    </div>
-                    <span className="text-xs text-muted ml-7">nden.com.ar</span>
-                  </label>
-                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                      <span className="font-medium">Diario Necochea</span>
-                    </div>
-                    <span className="text-xs text-muted ml-7">diarionecochea.com</span>
-                  </label>
-                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                      <span className="font-medium">Diario 4V</span>
-                    </div>
-                    <span className="text-xs text-muted ml-7">diario4v.com</span>
-                  </label>
-                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                      <span className="font-medium">TSN Necochea</span>
-                    </div>
-                    <span className="text-xs text-muted ml-7">tsnnecochea.com.ar</span>
-                  </label>
-                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                      <span className="font-medium">Diario NQ</span>
-                    </div>
-                    <span className="text-xs text-muted ml-7">diarionq.com.ar</span>
-                  </label>
-                  <label className="flex flex-col p-3 border border-border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked readOnly className="w-4 h-4 accent-accent" />
-                      <span className="font-medium">El Ecos</span>
-                    </div>
-                    <span className="text-xs text-muted ml-7">elecos.com.ar</span>
-                  </label>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-bold text-ink">Fuentes de Noticias</h3>
+                  <button
+                    onClick={() => {
+                      setEditandoFuentes((v) => !v);
+                      setNuevaFuenteError(null);
+                    }}
+                    className="text-sm text-blue-600 hover:underline font-medium shrink-0"
+                  >
+                    {editandoFuentes ? "Listo" : "✏️ Editar listado"}
+                  </button>
                 </div>
+                <p className="text-sm text-muted mb-3">
+                  Destildá una fuente para que el scraper deje de revisarla.
+                  {editandoFuentes && " En modo edición podés quitar sitios agregados a mano o sumar uno nuevo pegando su dirección web."}
+                </p>
+
+                <div className="space-y-2">
+                  {FUENTES_SCRAPER.map((f) => (
+                    <label key={f.key} className="flex items-center justify-between gap-3 p-3 border border-border rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={scraperConfig?.fuentes_activas.includes(f.key) ?? true}
+                          onChange={() => toggleFuenteScraper(f.key)}
+                          className="w-4 h-4 accent-accent"
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{f.label}</span>
+                          <span className="text-xs text-muted">{f.domain}</span>
+                        </div>
+                      </div>
+                      {editandoFuentes && <span className="text-[10px] text-muted italic shrink-0">predefinida</span>}
+                    </label>
+                  ))}
+
+                  {(scraperConfig?.fuentes_custom ?? []).map((f) => {
+                    let dominio = f.url;
+                    try { dominio = new URL(f.url).hostname; } catch {}
+                    return (
+                      <div key={f.key} className="flex items-center justify-between gap-3 p-3 border border-border rounded-lg hover:bg-gray-50">
+                        <label className="flex items-center gap-3 cursor-pointer flex-1">
+                          <input
+                            type="checkbox"
+                            checked={scraperConfig?.fuentes_activas.includes(f.key) ?? true}
+                            onChange={() => toggleFuenteScraper(f.key)}
+                            className="w-4 h-4 accent-accent"
+                          />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{f.label}</span>
+                            <span className="text-xs text-muted">{dominio}</span>
+                          </div>
+                        </label>
+                        {editandoFuentes && (
+                          <button
+                            onClick={() => eliminarFuenteCustom(f.key)}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium shrink-0"
+                          >
+                            🗑 Quitar
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {editandoFuentes && (
+                  <div className="mt-4 p-4 border border-dashed border-border rounded-lg bg-gray-50 space-y-3">
+                    <div>
+                      <p className="text-sm font-bold text-ink">➕ Agregar sitio</p>
+                      <p className="text-xs text-muted mt-1">
+                        Pegá la dirección de la portada del sitio, con este formato:{" "}
+                        <code className="bg-white px-1.5 py-0.5 rounded border border-border">https://www.nombredelsitio.com.ar</code>
+                        {" "}(sin nada después del dominio). Funciona mejor con sitios de noticias tipo WordPress —
+                        puede necesitar un ajuste manual si el sitio tiene un diseño muy particular.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        value={nuevaFuenteNombre}
+                        onChange={(e) => setNuevaFuenteNombre(e.target.value)}
+                        placeholder="Nombre (ej: Diario XYZ)"
+                        maxLength={60}
+                        className="flex-1 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+                      />
+                      <input
+                        value={nuevaFuenteUrl}
+                        onChange={(e) => setNuevaFuenteUrl(e.target.value)}
+                        placeholder="https://www.ejemplo.com.ar"
+                        className="flex-1 border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-accent"
+                      />
+                      <button
+                        onClick={() => {
+                          const r = agregarFuenteCustom(nuevaFuenteNombre, nuevaFuenteUrl);
+                          if (!r.ok) {
+                            setNuevaFuenteError(r.error || "No se pudo agregar la fuente.");
+                            return;
+                          }
+                          setNuevaFuenteNombre("");
+                          setNuevaFuenteUrl("");
+                          setNuevaFuenteError(null);
+                        }}
+                        className="px-4 py-2 bg-accent hover:bg-accent-dark text-white text-sm rounded-lg font-medium shrink-0"
+                      >
+                        Agregar
+                      </button>
+                    </div>
+                    {nuevaFuenteError && <p className="text-xs text-red-600">{nuevaFuenteError}</p>}
+                  </div>
+                )}
               </div>
             </div>
           </div>
