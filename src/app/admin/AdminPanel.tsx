@@ -86,6 +86,17 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
   const [publicadasItems, setPublicadasItems] = useState<Editable[]>([]);
   const [publicadasFetched, setPublicadasFetched] = useState(false);
   const [mesesExpandidos, setMesesExpandidos] = useState<Set<string>>(new Set());
+  // Días de "Publicadas" que están COLAPSADOS dentro de su mes (vacío =
+  // todos expandidos por defecto, igual que antes de tener el desplegable).
+  const [pubDiasColapsados, setPubDiasColapsados] = useState<Set<string>>(new Set());
+  const togglePubDiaColapsado = (key: string) => {
+    setPubDiasColapsados((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
   const [seccionFiltro, setSeccionFiltro] = useState<string>("Todas");
   const [inboxSeccionFiltro, setInboxSeccionFiltro] = useState<string>("Todas");
   // Guarda qué meses/días de la bandeja están COLAPSADOS (no expandidos).
@@ -1798,9 +1809,19 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
                     {expandido && (
                       <div className="p-5 space-y-8">
-                        {mes.dias.map((dia) => (
+                        {mes.dias.map((dia) => {
+                          const diaColapsado = pubDiasColapsados.has(dia.key);
+                          return (
                           <div key={dia.key}>
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">{dia.label}</h4>
+                            <button
+                              onClick={() => togglePubDiaColapsado(dia.key)}
+                              className="flex items-center gap-2 mb-3 hover:opacity-70 transition-opacity"
+                            >
+                              <span className={`inline-block transition-transform text-muted ${diaColapsado ? "" : "rotate-180"}`}>▾</span>
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-muted">{dia.label}</h4>
+                              <span className="text-xs text-muted normal-case">({dia.items.length})</span>
+                            </button>
+                            {!diaColapsado && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                               {dia.items.map((item) => {
                                 const isEditingPublicada = editingId === item.id;
@@ -1922,8 +1943,10 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                                 );
                               })}
                             </div>
+                            )}
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
