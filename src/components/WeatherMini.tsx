@@ -133,6 +133,8 @@ export default function WeatherMini() {
         setData({ current, days });
       } catch (error) {
         console.error("Error fetching weather forecast", error);
+        // Corte de red puntual: reintenta una vez a los 30s en vez de esperar el próximo ciclo.
+        setTimeout(fetchWeather, 30 * 1000);
       }
     }
     fetchWeather();
