@@ -2279,6 +2279,21 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
           <div className="space-y-6 fade-in max-w-3xl">
             <h2 className="text-2xl font-bold text-ink mb-6">Configuración del Pipeline</h2>
 
+            <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-3">
+              <h3 className="font-bold text-ink">Instagram</h3>
+              <p className="text-sm text-muted">
+                Conectá tu cuenta de Instagram (Business/Creator) para poder publicar directo desde
+                el tab Instagram. El token dura ~60 días, hay que repetir este paso cuando venza.
+              </p>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- ruta API que redirige a Instagram, no una página de Next */}
+              <a
+                href="/api/instagram/conectar"
+                className="inline-block px-5 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95"
+              >
+                🔗 Conectar/renovar Instagram
+              </a>
+            </div>
+
             <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
               <button
                 onClick={() => setSeccionesConfigAbierta((v) => !v)}

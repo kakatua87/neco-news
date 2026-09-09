@@ -4,6 +4,10 @@ import { esAdmin } from "@/lib/auth";
 import { renderInstagramCard, normalizarFormato } from "../../instagram-card/render";
 
 const GRAPH_VERSION = "v21.0";
+// "API de Instagram con inicio de sesión de Instagram para empresas": las
+// llamadas van contra graph.instagram.com (no graph.facebook.com, que es el
+// host del producto viejo "Facebook Login for Business" ligado a una Página).
+const GRAPH_HOST = "https://graph.instagram.com";
 
 function seccionSlug(seccion: string): string {
   return (seccion || "local")
@@ -81,7 +85,7 @@ export async function POST(request: Request) {
     if (destino === "historia") {
       mediaParams.set("media_type", "STORIES");
     }
-    const crearRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}/media`, {
+    const crearRes = await fetch(`${GRAPH_HOST}/${GRAPH_VERSION}/${igUserId}/media`, {
       method: "POST",
       body: mediaParams,
     });
@@ -98,7 +102,7 @@ export async function POST(request: Request) {
       creation_id: crearData.id,
       access_token: graphToken,
     });
-    const publicarRes = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${igUserId}/media_publish`, {
+    const publicarRes = await fetch(`${GRAPH_HOST}/${GRAPH_VERSION}/${igUserId}/media_publish`, {
       method: "POST",
       body: publicarParams,
     });
