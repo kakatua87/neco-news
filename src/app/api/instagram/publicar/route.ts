@@ -10,6 +10,10 @@ const GRAPH_VERSION = "v21.0";
 // host del producto viejo "Facebook Login for Business" ligado a una Página).
 const GRAPH_HOST = "https://graph.instagram.com";
 
+// El poll de status_code del contenedor puede tardar hasta ~25s; el timeout
+// por defecto de Vercel (10s) no alcanza.
+export const maxDuration = 45;
+
 function seccionSlug(seccion: string): string {
   return (seccion || "local")
     .toLowerCase()
@@ -98,6 +102,26 @@ export async function POST(request: Request) {
     if (!crearRes.ok || !crearData.id) {
       return NextResponse.json(
         { ok: false, error: crearData?.error?.message || "Error creando el contenedor de Instagram" },
+        { status: 502 }
+      );
+    }
+
+    // Paso 1.5: esperar a que el contenedor termine de procesar. Publicar
+    // apenas se crea (sin esperar) da "Media ID is not available" porque
+    // Instagram todavia esta bajando/procesando la imagen del image_url.
+    let statusCode = "IN_PROGRESS";
+    for (let intento = 0; intento < 15 && statusCode === "IN_PROGRESS"; intento++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const statusUrl = new URL(`${GRAPH_HOST}/${GRAPH_VERSION}/${crearData.id}`);
+      statusUrl.searchParams.set("fields", "status_code");
+      statusUrl.searchParams.set("access_token", graphToken);
+      const statusRes = await fetch(statusUrl.toString());
+      const statusData = await statusRes.json();
+      statusCode = statusData.status_code || "IN_PROGRESS";
+    }
+    if (statusCode !== "FINISHED") {
+      return NextResponse.json(
+        { ok: false, error: `El contenedor de Instagram no quedo listo a tiempo (estado: ${statusCode}).` },
         { status: 502 }
       );
     }
