@@ -6,7 +6,7 @@ import { esAdmin } from "@/lib/auth";
 // de la cuenta profesional. El Explorador de la API Graph de Meta NO sirve
 // para esto: ese solo emite tokens vía login de Facebook, y este producto
 // usa un flujo de login propio de Instagram.
-export async function GET(request: Request) {
+export async function GET() {
   if (!(await esAdmin())) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -28,11 +28,6 @@ export async function GET(request: Request) {
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("scope", scope);
-
-  const debug = new URL(request.url).searchParams.get("debug");
-  if (debug) {
-    return NextResponse.json({ appId, origin, redirectUri, authorizeUrl: authorizeUrl.toString() });
-  }
 
   return NextResponse.redirect(authorizeUrl.toString());
 }

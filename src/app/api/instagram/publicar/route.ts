@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
 import { renderInstagramCard, normalizarFormato } from "../../instagram-card/render";
+import sharp from "sharp";
 
 const GRAPH_VERSION = "v21.0";
 // "API de Instagram con inicio de sesión de Instagram para empresas": las
@@ -60,11 +61,15 @@ export async function POST(request: Request) {
     let imagenPublicaUrl = imagenUrlEditada;
     if (!imagenPublicaUrl) {
       const cardResponse = await renderInstagramCard(noticia, formato);
-      const bytes = Buffer.from(await cardResponse.arrayBuffer());
-      const path = `instagram-cards/${noticiaId}-${formato}-${Date.now()}.png`;
+      const pngBytes = Buffer.from(await cardResponse.arrayBuffer());
+      // Instagram solo acepta JPEG en image_url (PNG hace fallar el contenedor
+      // con "Media ID is not available" al publicar). next/og unicamente genera
+      // PNG, asi que lo convertimos antes de subirlo.
+      const jpegBytes = await sharp(pngBytes).jpeg({ quality: 92 }).toBuffer();
+      const path = `instagram-cards/${noticiaId}-${formato}-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("noticias-imagenes")
-        .upload(path, bytes, { contentType: "image/png", upsert: true });
+        .upload(path, jpegBytes, { contentType: "image/jpeg", upsert: true });
       if (uploadError) {
         return NextResponse.json({ ok: false, error: `No se pudo preparar la imagen: ${uploadError.message}` }, { status: 500 });
       }
