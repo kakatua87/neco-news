@@ -1143,7 +1143,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-muted mb-1">Proveedor Activo</p>
-                  <p className="font-bold">Groq (Llama 3.3)</p>
+                  <p className="font-bold">Gemini (2.5 Flash)</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-muted mb-1">Status</p>
@@ -2493,7 +2493,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                 </p>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-3 border border-border rounded-lg bg-gray-50">
-                    <span className="font-medium">Groq (Llama 3.3 70B)</span>
+                    <span className="font-medium">Gemini (2.5 Flash)</span>
                     <span className="bg-[#25D366]/20 text-[#1da64f] text-xs font-bold px-2 py-1 rounded">Activo (Gratis)</span>
                   </div>
                   <div className="flex justify-between items-center p-3 border border-border rounded-lg bg-blue-50/50">

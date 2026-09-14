@@ -102,17 +102,17 @@ export async function POST(request: Request) {
   // 2. Generar resumen editorial con IA
   let resumenIA = "Esta semana, Neco Now cubrió los hechos más relevantes de Necochea y la región.";
   try {
-    const groq = new OpenAI({
-      apiKey: process.env.AI_API_KEY ?? "",
-      baseURL: "https://api.groq.com/openai/v1",
+    const gemini = new OpenAI({
+      apiKey: process.env.GEMINI_API_KEY ?? "",
+      baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
     });
 
     const notasTexto = notas
       .map((n, i) => `${i + 1}. ${n.titulo}: ${(n.resumen_seo || n.cuerpo || "").slice(0, 150)}`)
       .join("\n");
 
-    const completion = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
+    const completion = await gemini.chat.completions.create({
+      model: "gemini-2.5-flash",
       messages: [
         {
           role: "user",

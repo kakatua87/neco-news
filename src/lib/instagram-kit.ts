@@ -13,13 +13,13 @@ interface NoticiaParaKit {
 // bloquea la respuesta de /api/publicar) para que el kit de Instagram
 // ya este listo cuando el admin abra el tab Instagram.
 export async function generarInstagramKit(noticiaId: string | number, noticia: NoticiaParaKit): Promise<void> {
-  const groq = new OpenAI({
-    apiKey: process.env.AI_API_KEY ?? "",
-    baseURL: "https://api.groq.com/openai/v1",
+  const gemini = new OpenAI({
+    apiKey: process.env.GEMINI_API_KEY ?? "",
+    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
   });
 
-  const completion = await groq.chat.completions.create({
-    model: "openai/gpt-oss-120b",
+  const completion = await gemini.chat.completions.create({
+    model: "gemini-2.5-flash",
     messages: [
       {
         role: "system",
