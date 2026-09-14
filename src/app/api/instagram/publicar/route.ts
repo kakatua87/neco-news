@@ -14,13 +14,6 @@ const GRAPH_HOST = "https://graph.instagram.com";
 // por defecto de Vercel (10s) no alcanza.
 export const maxDuration = 45;
 
-function seccionSlug(seccion: string): string {
-  return (seccion || "local")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Mark}/gu, "")
-    .replace(/\s+/g, "-");
-}
 
 export async function POST(request: Request) {
   if (!(await esAdmin())) {
@@ -81,9 +74,10 @@ export async function POST(request: Request) {
       imagenPublicaUrl = publicUrlData.publicUrl;
     }
 
-    const origin = new URL(request.url).origin;
-    const link = `${origin}/${seccionSlug(noticia.seccion)}/${noticia.slug}`;
-    const caption = `${noticia.instagram_titulo || noticia.titulo}\n\n${noticia.instagram_text || ""}\n\n${link}`;
+    // Instagram no permite links clickeables en el caption del feed, asi que
+    // no tiene sentido pegar la URL completa ahi: en cambio invitamos a ir al
+    // link de la bio (que hay que mantener apuntando al sitio desde el perfil).
+    const caption = `${noticia.instagram_titulo || noticia.titulo}\n\n${noticia.instagram_text || ""}\n\n🔗 Nota completa: link en la bio`;
 
     // Paso 1: crear el contenedor de medio.
     const mediaParams = new URLSearchParams({

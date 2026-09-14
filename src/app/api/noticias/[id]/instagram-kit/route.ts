@@ -37,7 +37,9 @@ export async function POST(
           content:
             "Sos el community manager de Neco News. A partir de una noticia ya publicada, " +
             "generá SOLO un JSON con: {\"instagram_titulo\": \"hook corto y atrapante, máx 60 caracteres, sin hashtags\", " +
-            "\"instagram_text\": \"gancho + contexto + 3-5 emojis + hashtags relevantes, para el caption del posteo\"}. " +
+            "\"instagram_text\": \"caption del posteo organizado en 2 o 3 párrafos cortos separados por un salto de línea doble (\\n\\n): " +
+            "primer párrafo el gancho, segundo párrafo el contexto o dato clave, y un último párrafo (también separado por \\n\\n) " +
+            "con 3-5 emojis relevantes seguidos de los hashtags. Nunca todo en un solo bloque de texto corrido.\"}. " +
             "Sin markdown, sin texto extra, sin mencionar la fuente original.",
         },
         {
