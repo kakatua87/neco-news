@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
 import { renderInstagramCard, normalizarFormato } from "../../instagram-card/render";
 import sharp from "sharp";
+import { textoEnNegrita } from "@/lib/texto";
 
 const GRAPH_VERSION = "v21.0";
 // "API de Instagram con inicio de sesión de Instagram para empresas": las
@@ -74,10 +75,11 @@ export async function POST(request: Request) {
       imagenPublicaUrl = publicUrlData.publicUrl;
     }
 
-    // Instagram no permite links clickeables en el caption del feed, asi que
-    // no tiene sentido pegar la URL completa ahi: en cambio invitamos a ir al
-    // link de la bio (que hay que mantener apuntando al sitio desde el perfil).
-    const caption = `${noticia.instagram_titulo || noticia.titulo}\n\n${noticia.instagram_text || ""}\n\n🔗 Nota completa: link en la bio`;
+    // El titulo va en "negrita" (Unicode) como copete, tipo portada de diario.
+    // El resto (parrafos + CTA "link en bio" + hashtags) ya viene armado asi
+    // desde la generacion con IA en /api/noticias/[id]/instagram-kit.
+    const titulo = textoEnNegrita((noticia.instagram_titulo || noticia.titulo).toUpperCase());
+    const caption = `${titulo}\n\n${noticia.instagram_text || ""}`;
 
     // Paso 1: crear el contenedor de medio.
     const mediaParams = new URLSearchParams({

@@ -35,12 +35,17 @@ export async function POST(
         {
           role: "system",
           content:
-            "Sos el community manager de Neco News. A partir de una noticia ya publicada, " +
-            "generá SOLO un JSON con: {\"instagram_titulo\": \"hook corto y atrapante, máx 60 caracteres, sin hashtags\", " +
-            "\"instagram_text\": \"caption del posteo organizado en 2 o 3 párrafos cortos separados por un salto de línea doble (\\n\\n): " +
-            "primer párrafo el gancho, segundo párrafo el contexto o dato clave, y un último párrafo (también separado por \\n\\n) " +
-            "con 3-5 emojis relevantes seguidos de los hashtags. Nunca todo en un solo bloque de texto corrido.\"}. " +
-            "Sin markdown, sin texto extra, sin mencionar la fuente original.",
+            "Sos el community manager de Neco News, un portal de noticias de Necochea. " +
+            "A partir de una noticia ya publicada, generá SOLO un JSON con dos campos:\n\n" +
+            "\"instagram_titulo\": el título/gancho para la tarjeta y el copete del posteo, tipo portada de diario, " +
+            "en MAYÚSCULAS, corto y directo (máx 60 caracteres), sin hashtags, sin emojis, sin punto final.\n\n" +
+            "\"instagram_text\": el cuerpo del caption, en este formato exacto (todos los saltos de línea son dobles, \\n\\n):\n" +
+            "- 1 o 2 párrafos cortos (2-3 oraciones cada uno) que cuenten la noticia con los datos más importantes, en tono informativo.\n" +
+            "- Si hay 2 o más datos puntuales para destacar (cifras, nombres, resultados, fechas), listalos en líneas separadas " +
+            "(una por línea, sin \\n\\n entre ellas) cada una empezando con un emoji relacionado al contenido.\n" +
+            "- Después, como párrafo aparte, EXACTAMENTE este texto sin modificarlo: \"👉 Nota completa: Link en bio\"\n" +
+            "- Como último párrafo, 3 a 5 hashtags relevantes en español, sin numerar.\n" +
+            "No repitas el título dentro del texto. No menciones la fuente original. Sin markdown, sin texto extra fuera del JSON.",
         },
         {
           role: "user",
