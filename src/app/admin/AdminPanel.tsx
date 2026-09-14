@@ -823,6 +823,48 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     });
   };
 
+  const fusionarGrupos = async (grupoIdDestino: string, grupoIdOrigen: string) => {
+    if (!confirm("¿Fusionar estos dos grupos? Se van a procesar juntos como una sola noticia.")) return;
+    const refId = rawGrupos[grupoIdDestino]?.[0]?.id ?? grupoIdDestino;
+    withSaving(refId, async () => {
+      try {
+        const res = await fetch("/api/noticias/raw/fusionar-grupos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ grupo_id_destino: grupoIdDestino, grupo_id_origen: grupoIdOrigen }),
+        });
+        if (res.ok) {
+          setRawGrupos(prev => {
+            const next = { ...prev };
+            const notasOrigen = next[grupoIdOrigen] || [];
+            next[grupoIdDestino] = [...(next[grupoIdDestino] || []), ...notasOrigen];
+            delete next[grupoIdOrigen];
+            return next;
+          });
+          setGrupoStates(prev => {
+            const next = { ...prev };
+            const origenState = next[grupoIdOrigen];
+            const destinoState = next[grupoIdDestino];
+            if (origenState && destinoState) {
+              next[grupoIdDestino] = {
+                ...destinoState,
+                seleccionadas: new Set([...destinoState.seleccionadas, ...origenState.seleccionadas]),
+              };
+            }
+            delete next[grupoIdOrigen];
+            return next;
+          });
+        } else {
+          const err = await res.json();
+          alert(`Error al fusionar: ${err.error || "Error desconocido"}`);
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión al fusionar los grupos.");
+      }
+    });
+  };
+
   const descartarPorFecha = async (fecha: string, grupoIdsEnFecha: string[]) => {
     const totalGrupos = grupoIdsEnFecha.length;
     const totalNotas = grupoIdsEnFecha.reduce((sum, gid) => sum + (rawGrupos[gid]?.length || 0), 0);
@@ -1184,6 +1226,56 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             grupoMes.fechaKeys.push(fechaKey);
           }
 
+          // ── Sugerencias de fusión: notas de otro sitio que podrían ser la misma historia ──
+          // El scraper ya agrupa por similitud de título server-side; esto es solo
+          // una ayuda visual más simple para los casos que ese algoritmo no detectó
+          // (fechas cercanas, fuentes distintas) -- el humano confirma con un click.
+          const normalizarTitulo = (t: string): string[] =>
+            t
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9\s]/g, " ")
+              .split(/\s+/)
+              .filter((w) => w.length > 3);
+
+          const similitudTitulos = (a: string, b: string): number => {
+            const wa = new Set(normalizarTitulo(a));
+            const wb = new Set(normalizarTitulo(b));
+            if (wa.size === 0 || wb.size === 0) return 0;
+            let inter = 0;
+            wa.forEach((w) => { if (wb.has(w)) inter++; });
+            return inter / Math.min(wa.size, wb.size);
+          };
+
+          const UMBRAL_SIMILITUD_FUSION = 0.6;
+          const gruposParaSimilitud = Object.entries(rawGrupos)
+            .filter(([, notas]) => notas.length > 0)
+            .map(([grupoId, notas]) => ({
+              grupoId,
+              notas,
+              titulo: notas[0].titulo_original || notas[0].titulo,
+              fecha: new Date(notas[0].created_at).getTime(),
+              fuentes: new Set(notas.map((n) => n.fuente || "Sin fuente")),
+            }));
+          const sugerenciasFusion: Record<string, { grupoId: string; fuente: string; score: number }> = {};
+          for (const a of gruposParaSimilitud) {
+            let mejor: { grupoId: string; fuente: string; score: number } | null = null;
+            for (const b of gruposParaSimilitud) {
+              if (a.grupoId === b.grupoId) continue;
+              // Si ya comparten alguna fuente, el scraper ya los agrupó bien.
+              let comparten = false;
+              b.fuentes.forEach((f) => { if (a.fuentes.has(f)) comparten = true; });
+              if (comparten) continue;
+              if (Math.abs(a.fecha - b.fecha) > 36 * 60 * 60 * 1000) continue;
+              const score = similitudTitulos(a.titulo, b.titulo);
+              if (score >= UMBRAL_SIMILITUD_FUSION && (!mejor || score > mejor.score)) {
+                mejor = { grupoId: b.grupoId, fuente: b.notas[0]?.fuente || "otra fuente", score };
+              }
+            }
+            if (mejor) sugerenciasFusion[a.grupoId] = mejor;
+          }
+
           return (
           <div className="space-y-6 fade-in">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-2">
@@ -1363,10 +1455,37 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                                   </button>
                                 </div>
 
-                                {/* ── Grupos del día ── */}
-                                {!diaColapsado && (
+                                {/* ── Grupos del día, agrupados por sitio de origen ── */}
+                                {!diaColapsado && (() => {
+                                  const gruposPorSitio: Record<string, { grupoId: string; notas: Noticia[] }[]> = {};
+                                  for (const g of gruposDelDia) {
+                                    const fuentesDistintas = new Set(g.notas.map(n => n.fuente || "Sin fuente"));
+                                    const sitio = fuentesDistintas.size > 1 ? "Varias fuentes" : (g.notas[0]?.fuente || "Sin fuente");
+                                    if (!gruposPorSitio[sitio]) gruposPorSitio[sitio] = [];
+                                    gruposPorSitio[sitio].push(g);
+                                  }
+                                  const sitiosOrdenados = Object.keys(gruposPorSitio).sort(
+                                    (a, b) => gruposPorSitio[b].length - gruposPorSitio[a].length
+                                  );
+                                  return (
+                                <div className="space-y-7">
+                                  {sitiosOrdenados.map((sitio) => {
+                                    const gruposDelSitio = gruposPorSitio[sitio];
+                                    const sitioColapsado = inboxColapsados.has(`s:${isoDate}:${sitio}`);
+                                    return (
+                                    <div key={sitio}>
+                                      <button
+                                        onClick={() => toggleInboxColapsado(`s:${isoDate}:${sitio}`)}
+                                        className="flex items-center gap-2 mb-3 text-left"
+                                      >
+                                        <span className={`inline-block transition-transform text-muted text-[10px] ${sitioColapsado ? "" : "rotate-180"}`}>▾</span>
+                                        <span className="text-[11px] font-bold uppercase tracking-wider text-muted bg-gray-100 px-2.5 py-1 rounded-full">
+                                          📰 {sitio} · {gruposDelSitio.length}
+                                        </span>
+                                      </button>
+                                      {!sitioColapsado && (
                                 <div className="space-y-6">
-                                  {gruposDelDia.map(({ grupoId, notas }) => {
+                                  {gruposDelSitio.map(({ grupoId, notas }) => {
                           const gs = grupoStates[grupoId];
                           const isSaving = notas.some(n => savingIds.includes(n.id));
                           if (!gs) return null;
@@ -1389,6 +1508,15 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                                   <h3 className="text-lg font-bold text-ink leading-tight">
                                     {notas[0].titulo_original || notas[0].titulo}
                                   </h3>
+                                  {sugerenciasFusion[grupoId] && (
+                                    <button
+                                      onClick={() => fusionarGrupos(grupoId, sugerenciasFusion[grupoId].grupoId)}
+                                      className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-full transition-colors"
+                                      title="Un grupo de otro sitio con un título parecido y fecha cercana — probablemente la misma historia"
+                                    >
+                                      ⚠ Posible duplicado en {sugerenciasFusion[grupoId].fuente} · Fusionar
+                                    </button>
+                                  )}
                                 </div>
                                 
                                 {/* Sección selector */}
@@ -1552,7 +1680,13 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                           );
                         })}
                       </div>
-                                )}
+                                      )}
+                                    </div>
+                                    );
+                                  })}
+                                </div>
+                                  );
+                                })()}
                               </div>
                             );
                           })}
