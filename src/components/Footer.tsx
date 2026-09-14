@@ -20,7 +20,12 @@ export default function Footer() {
             </Link>
           ))}
         </nav>
-        <p className="text-white/30 text-xs">© {new Date().getFullYear()} Neco Now · Necochea · Todos los derechos reservados</p>
+        <div className="flex flex-col items-center md:items-end gap-1">
+          <p className="text-white/30 text-xs">© {new Date().getFullYear()} Neco Now · Necochea · Todos los derechos reservados</p>
+          <Link href="/privacidad" className="text-white/30 hover:text-white/60 text-xs transition-colors">
+            Políticas de Privacidad
+          </Link>
+        </div>
       </div>
     </footer>
   );
