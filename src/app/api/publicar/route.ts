@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
 import { esAdmin } from "@/lib/auth";
 import { enviarPushNotification } from "@/lib/push";
+import { generarInstagramKit } from "@/lib/instagram-kit";
 
 type Body = {
   id?: number;
@@ -65,6 +66,16 @@ export async function POST(request: Request) {
         url: notaUrl,
         imagen_url: noticia.imagen_url ?? undefined,
       }).catch((e) => console.error("Error enviando push:", e));
+
+      // Kit de Instagram (titulo/caption con IA): se genera solo al publicar,
+      // asi ya esta listo cuando el admin abra el tab Instagram. Fire and
+      // forget, no bloquea la respuesta ni falla la publicacion si la IA falla.
+      generarInstagramKit(body.id, {
+        titulo,
+        cuerpo: noticia.cuerpo,
+        resumen_seo: noticia.resumen_seo,
+        seccion: noticia.seccion,
+      }).catch((e) => console.error("Error generando kit de Instagram:", e));
     }
   } catch (pushErr) {
     console.error("Error preparando push notification:", pushErr);

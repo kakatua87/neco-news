@@ -418,25 +418,6 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
   const noticiaLink = (item: { seccion: string; slug?: string }) => `${igBase}/${seccionSlug(item.seccion)}/${item.slug}`;
 
-  const generarCopyIA = async (item: InstagramKitItem) => {
-    setIgBusyIds((prev) => [...prev, item.id]);
-    try {
-      const res = await fetch(`/api/noticias/${item.id}/instagram-kit`, { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        setIgItems((prev) =>
-          prev.map((n) => (n.id === item.id ? { ...n, instagram_titulo: data.instagram_titulo, instagram_text: data.instagram_text } : n))
-        );
-      } else {
-        alert(`No se pudo generar el copy: ${data.error || "error desconocido"}`);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIgBusyIds((prev) => prev.filter((x) => x !== item.id));
-    }
-  };
-
   const generarImagenIAPublicada = async (item: InstagramKitItem) => {
     setIgBusyIds((prev) => [...prev, item.id]);
     try {
@@ -2318,13 +2299,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
                       {item.instagram_titulo ? (
                         <h3 className="font-editorial text-lg font-bold text-ink leading-tight">{item.instagram_titulo}</h3>
                       ) : (
-                        <button
-                          onClick={() => generarCopyIA(item)}
-                          disabled={busy}
-                          className="text-sm font-medium text-accent hover:underline text-left disabled:opacity-50 w-fit"
-                        >
-                          {busy ? "Generando..." : "✨ Generar copy IA"}
-                        </button>
+                        <p className="text-sm text-muted italic">Generando copy con IA…</p>
                       )}
 
                       {item.instagram_text && (
