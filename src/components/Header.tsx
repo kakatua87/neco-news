@@ -72,7 +72,10 @@ export default function Header() {
           </div>
 
           {/* Botón mobile + Leyenda */}
-          <div className="flex-1 flex items-center justify-between px-4 md:px-8">
+          <div
+            className="flex-1 flex items-center justify-between px-4 md:px-8"
+            style={{ background: "linear-gradient(to right, #111827 0%, #ffffff 32%, #ffffff 100%)" }}
+          >
             <button
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
@@ -94,8 +97,22 @@ export default function Header() {
               </svg>
             </button>
 
-            <span className="hidden lg:block flex-1 text-center text-[15px] font-extrabold uppercase tracking-wider text-accent">
-              — Al pulso de las noticias —
+            <span className="hidden lg:flex flex-1 items-center justify-center gap-2 text-[26px] font-medium text-accent whitespace-nowrap">
+              Al pulso de las noticias
+              <svg
+                className="w-[1.15em] h-[0.46em] shrink-0"
+                viewBox="0 0 100 40"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M0,20 H33 L40,12 L47,30 L56,3 L64,20 H100"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </span>
           </div>
         </div>
