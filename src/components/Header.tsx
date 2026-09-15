@@ -55,8 +55,8 @@ export default function Header() {
           </Link>
         </div>
 
-        {/* RIGHT: White + Subtitle + Nav */}
-        <div className="bg-white flex-1 flex flex-col border-b border-border min-w-0">
+        {/* RIGHT: White + Subtitle + Botón/Búsqueda */}
+        <div className="bg-white flex-1 flex flex-col min-w-0">
           {/* Subtítulo — marquesina en loop infinito, de derecha a izquierda */}
           <div className="overflow-hidden min-w-0 pt-2 pb-1.5 border-b-2 border-accent">
             <div className="marquee-track">
@@ -71,57 +71,8 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Nav + Botón */}
-          <div className="flex-1 flex items-center justify-between px-4 md:px-8">
-            <nav className="hidden lg:flex items-center gap-4 lg:gap-6 relative">
-              {MAIN_NAV.map((s) => (
-                <Link
-                  key={s}
-                  href={`/${encodeURIComponent(s.toLowerCase())}`}
-                  className="text-[13px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent transition-colors"
-                >
-                  {s}
-                </Link>
-              ))}
-
-              {/* DROPDOWN MÁS */}
-              <div className="group relative py-4 cursor-pointer">
-                <span className="text-[13px] font-bold uppercase tracking-wider text-ink/70 group-hover:text-accent transition-colors flex items-center gap-1">
-                  Más
-                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:rotate-180 transition-transform">
-                    <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-
-                {/* Menú oculto */}
-                <div className="absolute top-full left-0 mt-0 w-48 bg-white border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col overflow-hidden z-50">
-                  {EXTRA_NAV.map((s) => (
-                    <Link
-                      key={s}
-                      href={`/${encodeURIComponent(s.toLowerCase())}`}
-                      className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent hover:bg-gray-50 border-b border-border transition-colors"
-                    >
-                      {s}
-                    </Link>
-                  ))}
-                  <a
-                    href="https://www.instagram.com/d.cnecochea/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent hover:bg-gray-50 border-b border-border transition-colors flex justify-between items-center"
-                  >
-                    Defensa Civil ↗
-                  </a>
-                  <Link
-                    href="/archivo"
-                    className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-accent bg-accent/5 hover:bg-accent/10 transition-colors"
-                  >
-                    Archivo Histórico
-                  </Link>
-                </div>
-              </div>
-            </nav>
-
+          {/* Botón mobile + Búsqueda */}
+          <div className="flex-1 flex items-center justify-between lg:justify-end px-4 md:px-8">
             <button
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
@@ -160,6 +111,58 @@ export default function Header() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Barra de secciones — debajo del logo, desde el margen izquierdo */}
+      <div className="hidden lg:flex bg-white border-b border-border px-4 md:px-8">
+        <nav className="flex items-center gap-4 lg:gap-6 relative">
+          {MAIN_NAV.map((s) => (
+            <Link
+              key={s}
+              href={`/${encodeURIComponent(s.toLowerCase())}`}
+              className="text-[13px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent transition-colors"
+            >
+              {s}
+            </Link>
+          ))}
+
+          {/* DROPDOWN MÁS */}
+          <div className="group relative py-4 cursor-pointer">
+            <span className="text-[13px] font-bold uppercase tracking-wider text-ink/70 group-hover:text-accent transition-colors flex items-center gap-1">
+              Más
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform group-hover:rotate-180 transition-transform">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+
+            {/* Menú oculto */}
+            <div className="absolute top-full left-0 mt-0 w-48 bg-white border border-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 flex flex-col overflow-hidden z-50">
+              {EXTRA_NAV.map((s) => (
+                <Link
+                  key={s}
+                  href={`/${encodeURIComponent(s.toLowerCase())}`}
+                  className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent hover:bg-gray-50 border-b border-border transition-colors"
+                >
+                  {s}
+                </Link>
+              ))}
+              <a
+                href="https://www.instagram.com/d.cnecochea/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent hover:bg-gray-50 border-b border-border transition-colors flex justify-between items-center"
+              >
+                Defensa Civil ↗
+              </a>
+              <Link
+                href="/archivo"
+                className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-accent bg-accent/5 hover:bg-accent/10 transition-colors"
+              >
+                Archivo Histórico
+              </Link>
+            </div>
+          </div>
+        </nav>
       </div>
 
       {/* MENÚ MOBILE / TABLET */}
