@@ -47,8 +47,8 @@ export default function Header() {
             <Image
               src="/logo-oficial.png"
               alt="Neco Now"
-              width={832}
-              height={350}
+              width={1540}
+              height={688}
               priority
               className="h-12 md:h-18 lg:h-20 w-auto object-contain"
             />
