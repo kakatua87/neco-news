@@ -12,11 +12,11 @@ export async function generateMetadata({ params }: Props) {
   const noticia = await getNoticiaBySlug(slug);
   if (!noticia) return { title: "Noticia no encontrada" };
   return {
-    title: `${noticia.titulo} | Neco Now`,
+    title: `${noticia.titulo} | Neco Beat`,
     description: noticia.resumen_seo || cuerpoPlainText(noticia.cuerpo).slice(0, 160),
     openGraph: {
       title: noticia.titulo,
-      siteName: "Neco Now",
+      siteName: "Neco Beat",
       description: noticia.resumen_seo || cuerpoPlainText(noticia.cuerpo).slice(0, 160),
       images: noticia.imagen_url ? [{ url: noticia.imagen_url }] : [],
     },
@@ -34,7 +34,7 @@ export default async function NoticiaPage({ params }: Props) {
     headline: noticia.titulo,
     image: noticia.imagen_url ? [noticia.imagen_url] : [],
     datePublished: noticia.fecha_publicacion || noticia.created_at,
-    author: [{ "@type": "Organization", name: "Redacción Neco Now" }],
+    author: [{ "@type": "Organization", name: "Redacción Neco Beat" }],
   };
 
   const fecha = new Date(noticia.fecha_publicacion || noticia.created_at).toLocaleDateString("es-AR", {
@@ -66,7 +66,7 @@ export default async function NoticiaPage({ params }: Props) {
         )}
 
         <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-muted uppercase tracking-wider py-4 border-y border-border mb-10">
-          <span>Por <strong className="text-ink">Redacción Neco Now</strong></span>
+          <span>Por <strong className="text-ink">Redacción Neco Beat</strong></span>
           <span>•</span>
           <span>{fecha}</span>
         </div>

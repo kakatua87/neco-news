@@ -24,8 +24,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${title} | Neco Now`,
-    description: "Detalles de los avisos fúnebres publicados en Neco Now.",
+    title: `${title} | Neco Beat`,
+    description: "Detalles de los avisos fúnebres publicados en Neco Beat.",
   };
 }
 

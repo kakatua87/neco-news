@@ -46,7 +46,7 @@ export default function Header() {
           <Link href="/" className="flex items-center" onClick={closeMobile}>
             <Image
               src="/logo-oficial.png"
-              alt="Neco Now"
+              alt="Neco Beat"
               width={1540}
               height={688}
               priority

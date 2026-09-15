@@ -46,7 +46,7 @@ function buildEmailHtml(
     
     <!-- Header -->
     <div style="background:#111827;padding:28px 32px;">
-      <h1 style="margin:0;color:#fff;font-size:24px;font-weight:800;letter-spacing:-0.02em;">Neco Now</h1>
+      <h1 style="margin:0;color:#fff;font-size:24px;font-weight:800;letter-spacing:-0.02em;">Neco Beat</h1>
       <p style="margin:6px 0 0;color:rgba(255,255,255,.5);font-size:13px;">Resumen semanal de noticias de Necochea</p>
     </div>
 
@@ -65,7 +65,7 @@ function buildEmailHtml(
     <!-- Footer -->
     <div style="padding:20px 32px;background:#f3f4f6;text-align:center;">
       <p style="margin:0;font-size:12px;color:#9ca3af;">
-        Recibís este email porque te suscribiste a Neco Now.<br/>
+        Recibís este email porque te suscribiste a Neco Beat.<br/>
         <a href="${baseUrl}" style="color:#d72b3f;">Ver portal completo</a>
       </p>
     </div>
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   }
 
   // 2. Generar resumen editorial con IA
-  let resumenIA = "Esta semana, Neco Now cubrió los hechos más relevantes de Necochea y la región.";
+  let resumenIA = "Esta semana, Neco Beat cubrió los hechos más relevantes de Necochea y la región.";
   try {
     const gemini = new OpenAI({
       apiKey: process.env.GEMINI_API_KEY ?? "",
@@ -151,9 +151,9 @@ export async function POST(request: Request) {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: process.env.NEWSLETTER_FROM ?? "Neco Now <noticias@neconow.com.ar>",
+      from: process.env.NEWSLETTER_FROM ?? "Neco Beat <noticias@neconow.com.ar>",
       to: recipients,
-      subject: `📰 Neco Now — Resumen semanal ${semana}`,
+      subject: `📰 Neco Beat — Resumen semanal ${semana}`,
       html: htmlContent,
     }),
   });

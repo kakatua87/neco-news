@@ -61,7 +61,7 @@ export default function HeroCarousel({ items }: { items: Noticia[] }) {
                 {hero.titulo}
               </h1>
               <p className="text-white/60 text-sm">
-                Redacción Neco Now • {timeAgo(hero.fecha_publicacion ?? hero.created_at)}
+                Redacción Neco Beat • {timeAgo(hero.fecha_publicacion ?? hero.created_at)}
               </p>
             </div>
             {items.length > 1 && (
@@ -78,16 +78,16 @@ export default function HeroCarousel({ items }: { items: Noticia[] }) {
         </>
       ) : (
         <div className="relative h-[280px] sm:h-[360px] md:h-[440px] w-full overflow-hidden bg-gray-900 rounded-xl">
-          <img src="/placeholder-hero.png" alt="Neco Now" className="w-full h-full object-contain" />
+          <img src="/placeholder-hero.png" alt="Neco Beat" className="w-full h-full object-contain" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
           <span className="absolute top-4 left-4 bg-accent text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded z-10">
             Destacado
           </span>
           <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8 z-10">
             <h1 className="text-white font-extrabold text-xl md:text-3xl lg:text-4xl leading-[1.12] mb-3">
-              Neco Now: Tu portal de noticias de Necochea
+              Neco Beat: Tu portal de noticias de Necochea
             </h1>
-            <p className="text-white/60 text-sm">Redacción Neco Now</p>
+            <p className="text-white/60 text-sm">Redacción Neco Beat</p>
           </div>
         </div>
       )}

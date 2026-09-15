@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Políticas de Privacidad | Neco Now",
-  description: "Políticas de privacidad y tratamiento de datos personales de Neco Now.",
+  title: "Políticas de Privacidad | Neco Beat",
+  description: "Políticas de privacidad y tratamiento de datos personales de Neco Beat.",
 };
 
 export default function PrivacidadPage() {
@@ -14,7 +14,7 @@ export default function PrivacidadPage() {
 
       <div className="prose prose-neutral max-w-none space-y-6 text-charcoal/90 leading-relaxed">
         <p>
-          En Neco Now valoramos la privacidad de quienes visitan nuestro sitio web. Esta
+          En Neco Beat valoramos la privacidad de quienes visitan nuestro sitio web. Esta
           política describe qué información recopilamos, cómo la usamos y qué derechos
           tenés sobre tus datos personales.
         </p>
@@ -53,11 +53,11 @@ export default function PrivacidadPage() {
         <section>
           <h2 className="font-bold text-xl mt-8 mb-3 text-charcoal">4. Redes sociales e integraciones</h2>
           <p>
-            Neco Now utiliza integraciones con plataformas de terceros (como Instagram)
+            Neco Beat utiliza integraciones con plataformas de terceros (como Instagram)
             para publicar contenido periodístico. Estas integraciones operan bajo las
             políticas de privacidad propias de cada plataforma, y el acceso se limita a
             las funciones estrictamente necesarias para publicar contenido en cuentas
-            propias de Neco Now.
+            propias de Neco Beat.
           </p>
         </section>
 

@@ -996,7 +996,7 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
           <Link href="/">
             <img
               src="/logo-oficial.png"
-              alt="Neco Now"
+              alt="Neco Beat"
               className="h-8 w-auto object-contain"
             />
           </Link>
