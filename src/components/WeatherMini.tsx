@@ -158,17 +158,17 @@ export default function WeatherMini() {
         </div>
       )}
       <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-2.5 shrink-0">
-          <WeatherIcon code={data.current.code} className="w-9 h-9 shrink-0" />
-          <div className="flex items-center gap-2">
-            <span className="font-editorial text-2xl font-bold text-accent-dark leading-none">
+        <div className="flex items-center gap-3 shrink-0">
+          <WeatherIcon code={data.current.code} className="w-12 h-12 shrink-0" />
+          <div className="flex items-center gap-2.5">
+            <span className="text-4xl font-bold text-accent-dark leading-none">
               {data.current.temp}°
             </span>
             <div className="flex flex-col">
-              <span className="text-[11px] font-bold uppercase tracking-wide text-accent-dark">
+              <span className="text-sm font-bold uppercase tracking-wide text-accent-dark">
                 {condicionDesdeCode(data.current.code)}
               </span>
-              <span className="text-[10px] text-muted">Necochea / Quequén</span>
+              <span className="text-xs text-muted">Necochea / Quequén</span>
             </div>
           </div>
         </div>
