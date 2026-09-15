@@ -71,8 +71,8 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Botón mobile + Búsqueda */}
-          <div className="flex-1 flex items-center justify-between lg:justify-end px-4 md:px-8">
+          {/* Botón mobile + Leyenda */}
+          <div className="flex-1 flex items-center justify-between px-4 md:px-8">
             <button
               type="button"
               onClick={() => setMobileOpen((v) => !v)}
@@ -94,27 +94,15 @@ export default function Header() {
               </svg>
             </button>
 
-            <div className="hidden lg:flex items-center shrink-0 ml-8">
-              <form onSubmit={handleSearch} className="flex items-center gap-2 border border-border rounded-lg px-3 py-1.5 w-[220px] shrink-0 focus-within:border-accent transition-colors">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-muted shrink-0">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar noticias..."
-                  className="text-[12px] font-medium normal-case tracking-normal text-ink placeholder:text-muted bg-transparent outline-none w-full min-w-0"
-                />
-              </form>
-            </div>
+            <span className="hidden lg:block flex-1 text-center text-[15px] font-extrabold uppercase tracking-wider text-accent">
+              — Al pulso de las noticias —
+            </span>
           </div>
         </div>
       </div>
 
       {/* Barra de secciones — debajo del logo, desde el margen izquierdo */}
-      <div className="hidden lg:flex bg-white border-b border-border px-4 md:px-8">
+      <div className="hidden lg:flex items-center justify-between bg-white border-b border-border px-4 md:px-8">
         <nav className="flex items-center gap-4 lg:gap-6 relative">
           {MAIN_NAV.map((s) => (
             <Link
@@ -163,6 +151,22 @@ export default function Header() {
             </div>
           </div>
         </nav>
+
+        <div className="flex items-center shrink-0 ml-8">
+          <form onSubmit={handleSearch} className="flex items-center gap-2 border border-border rounded-lg px-3 py-1.5 w-[220px] shrink-0 focus-within:border-accent transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-muted shrink-0">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar noticias..."
+              className="text-[12px] font-medium normal-case tracking-normal text-ink placeholder:text-muted bg-transparent outline-none w-full min-w-0"
+            />
+          </form>
+        </div>
       </div>
 
       {/* MENÚ MOBILE / TABLET */}
