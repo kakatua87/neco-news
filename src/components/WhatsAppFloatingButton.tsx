@@ -5,7 +5,14 @@ import TipModal from "./TipModal";
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 const MENSAJE_PRECARGADO = encodeURIComponent(
-  "Hola! Quiero compartir una info/noticia con la redaccion de Neco Beat."
+  `Hola Neco Beat! 👋 Quiero compartir esto:
+
+📌 Categoría (elegí una y borrá las demás): Denuncia / Dato o Info / Evento / Otro
+
+📝 Contame qué pasó, dónde y cuándo:
+
+
+📎 Si tenés fotos, videos o notas de audio, adjuntalos en este mismo chat después de mandar este mensaje.`
 );
 
 function WhatsAppIcon({ className }: { className?: string }) {
