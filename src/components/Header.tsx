@@ -71,33 +71,9 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Botón mobile + Leyenda */}
-          <div
-            className="flex-1 flex items-center justify-between px-4 md:px-8"
-            style={{ background: "linear-gradient(to right, #111827 0%, #ffffff 32%, #ffffff 100%)" }}
-          >
-            <button
-              type="button"
-              onClick={() => setMobileOpen((v) => !v)}
-              className="lg:hidden text-ink p-1 -m-1"
-              aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
-              aria-expanded={mobileOpen}
-            >
-              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                {mobileOpen ? (
-                  <>
-                    <line x1="5" y1="5" x2="19" y2="19" />
-                    <line x1="19" y1="5" x2="5" y2="19" />
-                  </>
-                ) : (
-                  <>
-                    <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-                  </>
-                )}
-              </svg>
-            </button>
-
-            <span className="hidden lg:flex flex-1 items-center justify-center gap-2 text-[26px] font-medium text-accent whitespace-nowrap">
+          {/* Leyenda + Botón mobile */}
+          <div className="flex-1 flex items-center px-4 md:px-8">
+            <span className="flex-1 flex items-center justify-start lg:justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-sm md:text-xl lg:text-[26px] font-medium text-accent whitespace-nowrap">
               Al pulso de las noticias
               <svg
                 className="w-[1.15em] h-[0.46em] shrink-0"
@@ -114,6 +90,27 @@ export default function Header() {
                 />
               </svg>
             </span>
+
+            <button
+              type="button"
+              onClick={() => setMobileOpen((v) => !v)}
+              className="lg:hidden text-ink p-1 -m-1 shrink-0"
+              aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={mobileOpen}
+            >
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                {mobileOpen ? (
+                  <>
+                    <line x1="5" y1="5" x2="19" y2="19" />
+                    <line x1="19" y1="5" x2="5" y2="19" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+                  </>
+                )}
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -196,6 +193,25 @@ export default function Header() {
             className="lg:hidden absolute top-full left-0 right-0 h-screen z-40 bg-black/40"
           />
           <nav className="lg:hidden absolute top-full left-0 right-0 z-50 bg-white border-t border-border shadow-xl flex flex-col max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <form
+              onSubmit={(e) => {
+                handleSearch(e);
+                closeMobile();
+              }}
+              className="flex items-center gap-2 border border-border rounded-lg mx-5 my-3 px-3 py-2.5 focus-within:border-accent transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-muted shrink-0">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar noticias..."
+                className="text-sm font-medium normal-case tracking-normal text-ink placeholder:text-muted bg-transparent outline-none w-full min-w-0"
+              />
+            </form>
             {MAIN_NAV.map((s) => (
               <Link
                 key={s}

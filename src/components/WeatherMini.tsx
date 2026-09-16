@@ -157,26 +157,26 @@ export default function WeatherMini() {
           <span className="text-xs font-bold text-accent-dark tabular-nums">{now.time}</span>
         </div>
       )}
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-3 shrink-0">
-          <WeatherIcon code={data.current.code} className="w-12 h-12 shrink-0" />
-          <div className="flex items-center gap-2.5">
-            <span className="text-4xl font-bold text-accent-dark leading-none">
+      <div className="flex items-center justify-between gap-2 md:gap-3 px-3 md:px-4 py-3">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <WeatherIcon code={data.current.code} className="w-10 h-10 md:w-12 md:h-12 shrink-0" />
+          <div className="flex items-center gap-2 md:gap-2.5">
+            <span className="text-3xl md:text-4xl font-bold text-accent-dark leading-none">
               {data.current.temp}°
             </span>
             <div className="flex flex-col">
-              <span className="text-sm font-bold uppercase tracking-wide text-accent-dark">
+              <span className="text-xs md:text-sm font-bold uppercase tracking-wide text-accent-dark">
                 {condicionDesdeCode(data.current.code)}
               </span>
-              <span className="text-xs text-muted">Necochea / Quequén</span>
+              <span className="text-[11px] md:text-xs text-muted">Necochea / Quequén</span>
             </div>
           </div>
         </div>
 
         {data.days.length > 0 && (
-          <div className="flex items-center gap-2.5 border-l border-accent/30 pl-3">
+          <div className="flex items-center gap-2 md:gap-2.5 border-l border-accent/30 pl-2 md:pl-3 overflow-x-auto no-scrollbar">
             {data.days.map((d) => (
-              <div key={d.label} className="flex flex-col items-center gap-0.5">
+              <div key={d.label} className="flex flex-col items-center gap-0.5 shrink-0">
                 <span className="text-[10px] font-bold uppercase text-accent-dark">{d.label}</span>
                 <WeatherIcon code={d.code} className="w-5 h-5" />
                 <span className="text-xs font-bold text-ink">{d.temp}°</span>
