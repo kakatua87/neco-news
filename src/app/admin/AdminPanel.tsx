@@ -6,6 +6,7 @@ import type { Noticia, FuenteUrl } from "@/types/noticia";
 import { logoutAction } from "./actions";
 import EditorModal from "./EditorModal";
 import BannersPanel from "./BannersPanel";
+import EnviosPanel from "./EnviosPanel";
 import InstagramCardEditor from "./InstagramCardEditor";
 import { FORMATOS, type FormatoKey } from "./instagramFormatos";
 
@@ -43,7 +44,7 @@ type Props = {
   dbSecciones?: string[];
 };
 
-type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "obituarios" | "instagram" | "banners" | "config";
+type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "obituarios" | "instagram" | "envios" | "banners" | "config";
 
 type InstagramKitItem = Pick<
   Noticia,
@@ -1061,6 +1062,14 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             }`}
           >
             📸 Instagram
+          </button>
+          <button
+            onClick={() => handleTabChange("envios")}
+            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "envios" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
+            }`}
+          >
+            📬 Envíos
           </button>
           <button
             onClick={() => handleTabChange("banners")}
@@ -2381,6 +2390,8 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
         )}
 
         {/* TAB: BANNERS */}
+        {activeTab === "envios" && <EnviosPanel />}
+
         {activeTab === "banners" && <BannersPanel secciones={customSecciones} />}
 
         {/* TAB: CONFIGURACIÓN */}
