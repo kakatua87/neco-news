@@ -5,7 +5,7 @@ import TipModal from "./TipModal";
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
 const MENSAJE_PRECARGADO = encodeURIComponent(
-  "Hola! Quiero compartir una info/noticia con la redaccion de Neco Now."
+  "Hola! Quiero compartir una info/noticia con la redaccion de Neco Beat."
 );
 
 export default function WhatsAppFloatingButton() {
