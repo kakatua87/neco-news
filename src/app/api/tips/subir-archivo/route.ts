@@ -10,6 +10,11 @@ const TIPOS: Record<string, { extension: string; maxBytes: number }> = {
   "video/mp4": { extension: "mp4", maxBytes: 60 * 1024 * 1024 },
   "video/quicktime": { extension: "mov", maxBytes: 60 * 1024 * 1024 },
   "video/webm": { extension: "webm", maxBytes: 60 * 1024 * 1024 },
+  "audio/mpeg": { extension: "mp3", maxBytes: 20 * 1024 * 1024 },
+  "audio/mp4": { extension: "m4a", maxBytes: 20 * 1024 * 1024 },
+  "audio/ogg": { extension: "ogg", maxBytes: 20 * 1024 * 1024 },
+  "audio/webm": { extension: "weba", maxBytes: 20 * 1024 * 1024 },
+  "audio/wav": { extension: "wav", maxBytes: 20 * 1024 * 1024 },
 };
 
 // Endpoint público (sin esAdmin): lo usa el formulario web de envíos ciudadanos
@@ -26,7 +31,7 @@ export async function POST(request: Request) {
     const tipo = TIPOS[file.type];
     if (!tipo) {
       return NextResponse.json(
-        { ok: false, error: "Formato no soportado. Usá JPG, PNG, WEBP, GIF, PDF o video MP4/MOV/WEBM." },
+        { ok: false, error: "Formato no soportado. Usá imagen, video, audio o PDF." },
         { status: 400 }
       );
     }

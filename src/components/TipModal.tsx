@@ -8,8 +8,6 @@ const CATEGORIAS = [
   { key: "Denuncia", emoji: "🚨", placeholder: "Contanos qué pasó, dónde y cuándo lo viste..." },
   { key: "Dato/Info", emoji: "📰", placeholder: "Qué información querés compartir?" },
   { key: "Evento", emoji: "📅", placeholder: "Qué evento es, dónde y cuándo es?" },
-  { key: "Foto/Video", emoji: "📷", placeholder: "Contanos qué muestra la foto o el video que vas a adjuntar..." },
-  { key: "Obituario", emoji: "🕯", placeholder: "Nombre completo, edad, y datos del velorio/despedida..." },
   { key: "Otro", emoji: "✍️", placeholder: "Contanos qué querés compartir..." },
 ];
 
@@ -74,6 +72,13 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const iconoArchivo = (tipo: string) => {
+    if (tipo.startsWith("image/")) return "🖼️";
+    if (tipo.startsWith("video/")) return "🎬";
+    if (tipo.startsWith("audio/")) return "🎙️";
+    return "📄";
+  };
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 px-4 pb-4 sm:pb-0">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
@@ -131,9 +136,36 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
                     value={mensaje}
                     onChange={(e) => setMensaje(e.target.value)}
                     placeholder={categoriaInfo?.placeholder}
-                    rows={6}
+                    rows={5}
                     className="w-full border border-border-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                   />
+
+                  <label className="flex items-center justify-center gap-2 border-2 border-dashed border-border-strong rounded-xl p-4 cursor-pointer hover:border-accent transition-colors">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,audio/*,application/pdf"
+                      className="hidden"
+                      onChange={(e) => handleArchivos(e.target.files)}
+                    />
+                    <span className="text-sm text-muted">
+                      {subiendo ? "Subiendo..." : "📎 Adjuntar fotos, video, audio o PDF"}
+                    </span>
+                  </label>
+                  {archivos.length > 0 && (
+                    <ul className="space-y-1">
+                      {archivos.map((a) => (
+                        <li key={a.url} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                          <span className="truncate">{iconoArchivo(a.tipo)} {a.nombre}</span>
+                          <button onClick={() => quitarArchivo(a.url)} className="text-red-500 hover:text-red-700 ml-2">
+                            Quitar
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {error && <p className="text-sm text-red-600">{error}</p>}
+
                   <div className="flex justify-between gap-2">
                     <button onClick={() => setStep(1)} className="text-sm text-muted hover:text-ink px-3 py-2">
                       ← Volver
@@ -150,48 +182,6 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
               )}
 
               {step === 3 && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted">¿Tenés fotos, videos o un PDF para adjuntar? (opcional)</p>
-                  <label className="flex items-center justify-center border-2 border-dashed border-border-strong rounded-xl p-6 cursor-pointer hover:border-accent transition-colors">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,video/*,application/pdf"
-                      className="hidden"
-                      onChange={(e) => handleArchivos(e.target.files)}
-                    />
-                    <span className="text-sm text-muted">
-                      {subiendo ? "Subiendo..." : "📎 Elegir archivos"}
-                    </span>
-                  </label>
-                  {archivos.length > 0 && (
-                    <ul className="space-y-1">
-                      {archivos.map((a) => (
-                        <li key={a.url} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                          <span className="truncate">{a.nombre}</span>
-                          <button onClick={() => quitarArchivo(a.url)} className="text-red-500 hover:text-red-700 ml-2">
-                            Quitar
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {error && <p className="text-sm text-red-600">{error}</p>}
-                  <div className="flex justify-between gap-2">
-                    <button onClick={() => setStep(2)} className="text-sm text-muted hover:text-ink px-3 py-2">
-                      ← Volver
-                    </button>
-                    <button
-                      onClick={() => setStep(4)}
-                      className="bg-accent hover:bg-accent-dark text-white font-medium rounded-lg px-5 py-2 text-sm"
-                    >
-                      Siguiente →
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {step === 4 && (
                 <div className="space-y-3">
                   <p className="text-sm text-muted">Datos de contacto (opcional, por si necesitamos confirmar algo)</p>
                   <input
@@ -210,7 +200,7 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
                   />
                   {error && <p className="text-sm text-red-600">{error}</p>}
                   <div className="flex justify-between gap-2">
-                    <button onClick={() => setStep(3)} className="text-sm text-muted hover:text-ink px-3 py-2">
+                    <button onClick={() => setStep(2)} className="text-sm text-muted hover:text-ink px-3 py-2">
                       ← Volver
                     </button>
                     <button

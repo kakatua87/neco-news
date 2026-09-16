@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
 
-const CATEGORIAS = ["Denuncia", "Dato/Info", "Evento", "Foto/Video", "Obituario", "Otro"];
+const CATEGORIAS = ["Denuncia", "Dato/Info", "Evento", "Otro"];
 
 async function notificarTelegram(mensaje: string, categoria: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN;

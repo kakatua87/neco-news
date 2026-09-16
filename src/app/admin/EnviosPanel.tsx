@@ -190,7 +190,7 @@ export default function EnviosPanel() {
                       onChange={(e) => setEditCategoria(e.target.value)}
                       className="border border-border-strong rounded-lg px-2 py-1 text-sm"
                     >
-                      {["Denuncia", "Dato/Info", "Evento", "Foto/Video", "Obituario", "Otro"].map((c) => (
+                      {["Denuncia", "Dato/Info", "Evento", "Otro"].map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>
