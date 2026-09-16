@@ -3,6 +3,7 @@ import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 import Script from "next/script";
 
 const inter = Inter({
@@ -79,6 +80,7 @@ export default function RootLayout({
                     {children}
                 </main>
                 <Footer />
+                <WhatsAppFloatingButton />
             </body>
         </html>
     );
