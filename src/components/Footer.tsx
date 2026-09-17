@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const NAV = ["Política", "Economía", "Policiales", "Local", "Deportes", "Sociedad", "Cultura", "Salud"];
+const NAV = ["Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura", "Tendencias", "Obituarios", "Farmacias"];
 
 export default function Footer() {
   return (
