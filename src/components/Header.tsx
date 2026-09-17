@@ -6,8 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import HeaderDate from "./HeaderDate";
 
-const MAIN_NAV = ["Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura"];
-const EXTRA_NAV = ["Tendencias", "Obituarios", "Farmacias"];
+const MAIN_NAV = ["Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura", "Tendencias"];
+const EXTRA_NAV = ["Obituarios", "Farmacias"];
 
 function SubtitleSegment() {
   return (
@@ -148,14 +148,6 @@ export default function Header() {
                   {s}
                 </Link>
               ))}
-              <a
-                href="https://www.instagram.com/d.cnecochea/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-ink/70 hover:text-accent hover:bg-gray-50 border-b border-border transition-colors flex justify-between items-center"
-              >
-                Defensa Civil ↗
-              </a>
               <Link
                 href="/archivo"
                 className="px-4 py-3 text-[12px] font-bold uppercase tracking-wider text-accent bg-accent/5 hover:bg-accent/10 transition-colors"
@@ -239,15 +231,6 @@ export default function Header() {
             >
               Archivo Histórico
             </Link>
-            <a
-              href="https://www.instagram.com/d.cnecochea/"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={closeMobile}
-              className="px-5 py-3.5 text-sm font-bold uppercase tracking-wider text-ink/70 flex justify-between items-center active:bg-gray-50"
-            >
-              Defensa Civil ↗
-            </a>
             <div className="px-5 py-3.5 text-[11px] font-bold uppercase tracking-widest text-muted flex items-center gap-3 border-t border-border">
               <HeaderDate />
             </div>
