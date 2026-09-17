@@ -6,8 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import HeaderDate from "./HeaderDate";
 
-const MAIN_NAV = ["Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad"];
-const EXTRA_NAV = ["Opinión", "Cultura", "Tendencias", "Obituarios", "Farmacias"];
+const MAIN_NAV = ["Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura"];
+const EXTRA_NAV = ["Tendencias", "Obituarios", "Farmacias"];
 
 function SubtitleSegment() {
   return (
