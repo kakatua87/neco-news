@@ -78,10 +78,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
     }
 
-    await supabase
-      .from("borradores_redaccion")
-      .update({ estado: "procesado", noticia_id: noticia.id, updated_at: new Date().toISOString() })
-      .eq("id", id);
+    // Una vez creada la noticia en "pendientes", el borrador ya cumplió su
+    // función -- se elimina para que no quede dando vueltas en la lista de
+    // "Redacción".
+    await supabase.from("borradores_redaccion").delete().eq("id", id);
 
     return NextResponse.json({ ok: true, noticia_id: noticia.id });
   } catch (error: any) {

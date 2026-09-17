@@ -201,6 +201,7 @@ export default function RedaccionPanel() {
         setError(data.error || "No se pudo procesar con IA");
         return;
       }
+      nuevoBorrador();
       setMensaje("¡Lista! La nota quedó creada en Pendientes, en el grupo \"Producción propia\".");
       fetchBorradores();
     } catch (e) {
