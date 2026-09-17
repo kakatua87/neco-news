@@ -106,6 +106,7 @@ export default async function AdminPage() {
     created_at: n.created_at,
     url_original: n.url_original,
     fuentes_urls: n.fuentes_urls,
+    origen: n.origen,
   }));
 
   return (

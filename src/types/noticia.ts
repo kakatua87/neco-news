@@ -29,4 +29,5 @@ export type Noticia = {
   imagen_fuente?: string | null;
   instagram_descartado?: boolean;
   fuentes_urls?: FuenteUrl[] | null;
+  origen?: string;
 };

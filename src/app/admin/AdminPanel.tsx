@@ -7,6 +7,7 @@ import { logoutAction } from "./actions";
 import EditorModal from "./EditorModal";
 import BannersPanel from "./BannersPanel";
 import EnviosPanel from "./EnviosPanel";
+import RedaccionPanel from "./RedaccionPanel";
 import InstagramCardEditor from "./InstagramCardEditor";
 import { FORMATOS, type FormatoKey } from "./instagramFormatos";
 
@@ -23,7 +24,7 @@ type GrupoEditState = {
   seccion: string;
 };
 
-type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at"> & {
+type Editable = Pick<Noticia, "id" | "titulo" | "cuerpo" | "seccion" | "imagen_url" | "created_at" | "origen"> & {
   slug?: string;
   tiene_perspectiva_editorial?: boolean;
   es_portada?: boolean;
@@ -44,7 +45,7 @@ type Props = {
   dbSecciones?: string[];
 };
 
-type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "obituarios" | "instagram" | "envios" | "banners" | "config";
+type Tab = "dashboard" | "inbox" | "pendientes" | "publicadas" | "obituarios" | "instagram" | "envios" | "redaccion" | "banners" | "config";
 
 type InstagramKitItem = Pick<
   Noticia,
@@ -989,6 +990,154 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
     }
   };
 
+  const renderPendienteCard = (item: Editable) => {
+                  const saving = savingIds.includes(item.id);
+                  const isEditing = editingId === item.id;
+                  
+                  return (
+                    <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col md:flex-row">
+                      {/* Imagen Preview */}
+                      <div className="md:w-48 h-32 md:h-auto bg-gray-100 flex-shrink-0">
+                        {item.imagen_url ? (
+                          <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">Sin foto</div>
+                        )}
+                      </div>
+                      
+                      {/* Contenido */}
+                      <div className="p-5 flex-1 flex flex-col">
+                        <div className="flex flex-col gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
+                              {item.seccion}
+                            </span>
+                            {item.tiene_perspectiva_editorial && (
+                              <span className="text-xs font-bold text-[#1da64f] bg-[#25D366]/20 px-2 py-1 rounded flex items-center">
+                                ✍ Con análisis
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Selector de Sección */}
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <select 
+                              value={item.seccion || ""}
+                              onChange={(e) => cambiarSeccion(item, e.target.value)}
+                              className="text-xs border border-border rounded px-2 py-1.5 outline-none focus:border-accent bg-gray-50"
+                            >
+                              {customSecciones.map((sec) => (
+                                <option key={sec} value={sec}>{sec}</option>
+                              ))}
+                            </select>
+                            <div className="flex">
+                              <input 
+                                type="text" 
+                                placeholder="Nueva sección..." 
+                                className="text-xs border border-border rounded px-2 py-1.5 w-32 outline-none focus:border-accent"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                    const val = e.currentTarget.value.trim();
+                                    if (!customSecciones.includes(val)) {
+                                      setCustomSecciones([...customSecciones, val]);
+                                    }
+                                    cambiarSeccion(item, val);
+                                    e.currentTarget.value = "";
+                                  }
+                                }}
+                              />
+                            </div>
+                            {getRecomendacionSeccion(item.id) && (
+                              <div className="text-[10px] text-muted flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 
+                                Sugerencia: <strong className="text-blue-700">{getRecomendacionSeccion(item.id)}</strong>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="mt-1">
+                          <h3 className="font-editorial text-xl font-bold text-ink">{item.titulo}</h3>
+                          <p className="text-sm text-muted mt-2 line-clamp-2 leading-relaxed">
+                            {item.cuerpo}
+                          </p>
+                        </div>
+
+                        {/* Fuentes originales usadas por la IA */}
+                        {item.fuentes_urls && item.fuentes_urls.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {item.fuentes_urls.map((f, idx) => (
+                              <a
+                                key={`${item.id}-fuente-${idx}`}
+                                href={f.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors"
+                              >
+                                🔗 {f.fuente || "Ver fuente"}
+                              </a>
+                            ))}
+                          </div>
+                        ) : item.url_original ? (
+                          <div className="mt-3">
+                            <a
+                              href={item.url_original}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors inline-block"
+                            >
+                              🔗 Ver artículo original
+                            </a>
+                          </div>
+                        ) : null}
+
+                        {/* Acciones */}
+                        <div className="mt-auto pt-4 flex gap-2 justify-end">
+                          <button
+                            onClick={() => descartar(item)}
+                            disabled={saving}
+                            className="px-4 py-2 text-sm font-medium text-muted hover:text-ink hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            Descartar
+                          </button>
+
+                          <button
+                            onClick={() => setEditingId(item.id)}
+                            disabled={saving}
+                            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 bg-ink text-white hover:bg-ink/80"
+                          >
+                            ✏️ Editar
+                          </button>
+
+                          <button
+                            onClick={() => publicar(item)}
+                            disabled={saving}
+                            className="px-6 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-dark shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                          >
+                            {saving ? "Guardando..." : "Publicar"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {isEditing && (
+                        <EditorModal
+                          isOpen={isEditing}
+                          noticiaId={item.id}
+                          titulo={item.titulo}
+                          cuerpo={item.cuerpo}
+                          seccion={item.seccion}
+                          imagenUrl={item.imagen_url}
+                          onClose={() => setEditingId(null)}
+                          onSave={(titulo, cuerpo, imagenUrl) => {
+                            updateItemFields(item.id, { titulo, cuerpo, imagen_url: imagenUrl });
+                            setEditingId(null);
+                          }}
+                        />
+                      )}
+                    </article>
+                  );
+  };
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       {/* ─── SIDEBAR ─── */}
@@ -1070,6 +1219,14 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
             }`}
           >
             📬 Envíos
+          </button>
+          <button
+            onClick={() => handleTabChange("redaccion")}
+            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "redaccion" ? "bg-accent text-white" : "text-cream/70 hover:bg-cream/10"
+            }`}
+          >
+            ✨ Redacción
           </button>
           <button
             onClick={() => handleTabChange("banners")}
@@ -1706,154 +1863,26 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
               </div>
             ) : (
               <div className="space-y-4">
-                {items.map((item) => {
-                  const saving = savingIds.includes(item.id);
-                  const isEditing = editingId === item.id;
-                  
+                {(() => {
+                  const itemsPropios = items.filter((i) => i.origen === "redaccion");
+                  const itemsResto = items.filter((i) => i.origen !== "redaccion");
                   return (
-                    <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col md:flex-row">
-                      {/* Imagen Preview */}
-                      <div className="md:w-48 h-32 md:h-auto bg-gray-100 flex-shrink-0">
-                        {item.imagen_url ? (
-                          <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">Sin foto</div>
-                        )}
-                      </div>
-                      
-                      {/* Contenido */}
-                      <div className="p-5 flex-1 flex flex-col">
-                        <div className="flex flex-col gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-                              {item.seccion}
-                            </span>
-                            {item.tiene_perspectiva_editorial && (
-                              <span className="text-xs font-bold text-[#1da64f] bg-[#25D366]/20 px-2 py-1 rounded flex items-center">
-                                ✍ Con análisis
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Selector de Sección */}
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <select 
-                              value={item.seccion || ""}
-                              onChange={(e) => cambiarSeccion(item, e.target.value)}
-                              className="text-xs border border-border rounded px-2 py-1.5 outline-none focus:border-accent bg-gray-50"
-                            >
-                              {customSecciones.map((sec) => (
-                                <option key={sec} value={sec}>{sec}</option>
-                              ))}
-                            </select>
-                            <div className="flex">
-                              <input 
-                                type="text" 
-                                placeholder="Nueva sección..." 
-                                className="text-xs border border-border rounded px-2 py-1.5 w-32 outline-none focus:border-accent"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                                    const val = e.currentTarget.value.trim();
-                                    if (!customSecciones.includes(val)) {
-                                      setCustomSecciones([...customSecciones, val]);
-                                    }
-                                    cambiarSeccion(item, val);
-                                    e.currentTarget.value = "";
-                                  }
-                                }}
-                              />
-                            </div>
-                            {getRecomendacionSeccion(item.id) && (
-                              <div className="text-[10px] text-muted flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 
-                                Sugerencia: <strong className="text-blue-700">{getRecomendacionSeccion(item.id)}</strong>
-                              </div>
-                            )}
-                          </div>
+                    <>
+                      {itemsPropios.length > 0 && (
+                        <div className="space-y-4 mb-8">
+                          <h3 className="text-sm font-bold text-accent uppercase tracking-wide flex items-center gap-2">
+                            ✨ Producción propia
+                          </h3>
+                          {itemsPropios.map(renderPendienteCard)}
                         </div>
-                        
-                        <div className="mt-1">
-                          <h3 className="font-editorial text-xl font-bold text-ink">{item.titulo}</h3>
-                          <p className="text-sm text-muted mt-2 line-clamp-2 leading-relaxed">
-                            {item.cuerpo}
-                          </p>
-                        </div>
-
-                        {/* Fuentes originales usadas por la IA */}
-                        {item.fuentes_urls && item.fuentes_urls.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {item.fuentes_urls.map((f, idx) => (
-                              <a
-                                key={`${item.id}-fuente-${idx}`}
-                                href={f.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors"
-                              >
-                                🔗 {f.fuente || "Ver fuente"}
-                              </a>
-                            ))}
-                          </div>
-                        ) : item.url_original ? (
-                          <div className="mt-3">
-                            <a
-                              href={item.url_original}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[10px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full transition-colors inline-block"
-                            >
-                              🔗 Ver artículo original
-                            </a>
-                          </div>
-                        ) : null}
-
-                        {/* Acciones */}
-                        <div className="mt-auto pt-4 flex gap-2 justify-end">
-                          <button
-                            onClick={() => descartar(item)}
-                            disabled={saving}
-                            className="px-4 py-2 text-sm font-medium text-muted hover:text-ink hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            Descartar
-                          </button>
-
-                          <button
-                            onClick={() => setEditingId(item.id)}
-                            disabled={saving}
-                            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 bg-ink text-white hover:bg-ink/80"
-                          >
-                            ✏️ Editar
-                          </button>
-
-                          <button
-                            onClick={() => publicar(item)}
-                            disabled={saving}
-                            className="px-6 py-2 text-sm font-medium bg-accent text-white rounded-lg hover:bg-accent-dark shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-                          >
-                            {saving ? "Guardando..." : "Publicar"}
-                          </button>
-                        </div>
-                      </div>
-
-                      {isEditing && (
-                        <EditorModal
-                          isOpen={isEditing}
-                          noticiaId={item.id}
-                          titulo={item.titulo}
-                          cuerpo={item.cuerpo}
-                          seccion={item.seccion}
-                          imagenUrl={item.imagen_url}
-                          onClose={() => setEditingId(null)}
-                          onSave={(titulo, cuerpo, imagenUrl) => {
-                            updateItemFields(item.id, { titulo, cuerpo, imagen_url: imagenUrl });
-                            setEditingId(null);
-                          }}
-                        />
                       )}
-                    </article>
+                      {itemsResto.length > 0 && itemsPropios.length > 0 && (
+                        <h3 className="text-sm font-bold text-muted uppercase tracking-wide mb-4">Bandeja general</h3>
+                      )}
+                      {itemsResto.map(renderPendienteCard)}
+                    </>
                   );
-                })}
-              </div>
+                })()}              </div>
             )}
           </div>
         )}
@@ -2391,6 +2420,8 @@ export default function AdminPanel({ initialItems, initialRawGrupos = {}, stats,
 
         {/* TAB: BANNERS */}
         {activeTab === "envios" && <EnviosPanel />}
+
+        {activeTab === "redaccion" && <RedaccionPanel />}
 
         {activeTab === "banners" && <BannersPanel secciones={customSecciones} />}
 

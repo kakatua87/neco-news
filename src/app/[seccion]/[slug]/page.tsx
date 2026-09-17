@@ -93,6 +93,18 @@ export default async function NoticiaPage({ params }: Props) {
                   <p>{b.text}</p>
                 )
               )}
+              {b.type === "ul" && (
+                <ul className="list-disc pl-6 space-y-1">
+                  {b.items.map((item, idx) => (
+                    <li key={idx}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              {b.type === "img" && (
+                <figure className="rounded-xl overflow-hidden">
+                  <img src={b.url} alt="" className="w-full h-auto" />
+                </figure>
+              )}
               {i === 0 && <BannerZone zone="in-article" className="w-full h-24 my-6" />}
             </React.Fragment>
           ))}
