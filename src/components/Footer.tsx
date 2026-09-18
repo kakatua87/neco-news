@@ -68,8 +68,8 @@ export default function Footer() {
           ))}
         </nav>
 
-        <div className="border-t border-white/10 py-4">
-          <p className="text-white/30 text-xs">
+        <div className="border-t border-white/10 py-4 pr-0 md:pr-24">
+          <p className="text-white/30 text-xs max-w-xl">
             © {new Date().getFullYear()} Neco Beat · Necochea · Todos los derechos reservados ·{" "}
             <Link href="/privacidad" className="hover:text-white/60 transition-colors">
               Políticas de Privacidad
