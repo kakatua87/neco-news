@@ -14,8 +14,8 @@ export default function QuienesSomosPage() {
 
       <div className="prose prose-neutral max-w-none space-y-6 text-charcoal/90 leading-relaxed">
         <p>
-          Somos un portal de noticias de Necochea, Quequén y la región. Nacimos de acá,
-          para acá: gente que camina estas calles, conoce esta zona y quiere contarla con
+          Somos un portal de noticias de Necochea, Quequén y la región. Nacimos acá:
+          gente que camina estas calles, conoce esta zona y quiere contarla con
           seriedad y cercanía.
         </p>
 
