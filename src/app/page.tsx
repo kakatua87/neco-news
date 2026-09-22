@@ -4,6 +4,7 @@ import type { Noticia } from "@/types/noticia";
 import BannerZone from "@/components/BannerZone";
 import HeroCarousel from "@/components/HeroCarousel";
 import WeatherMini from "@/components/WeatherMini";
+import { REDES } from "@/lib/social";
 
 /* ═══ Helpers ═══ */
 
@@ -50,6 +51,8 @@ export default async function Home() {
     noticias: seccionNoticias[i],
   })).filter((s) => s.noticias.length > 0);
 
+  const redesActivas = REDES.filter((r) => r.url && r.key !== "youtube");
+
   return (
     <>
       {/* ══════════ HERO + SIDEBAR ══════════ */}
@@ -66,6 +69,25 @@ export default async function Home() {
                 <BannerZone zone="portada-fila2-2" className="w-full h-16 md:h-20" fixed />
                 <BannerZone zone="portada-fila2-3" className="w-full h-16 md:h-20" fixed />
               </div>
+
+              {redesActivas.length > 0 && (
+                <div className="flex items-center justify-center gap-3">
+                  {redesActivas.map((r) => (
+                    <a
+                      key={r.key}
+                      href={r.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={r.key}
+                      className="w-9 h-9 rounded-full bg-accent-light hover:bg-accent/20 flex items-center justify-center transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-accent-dark" fill="currentColor">
+                        <path d={r.path} />
+                      </svg>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* SIDEBAR: Top Stories */}
