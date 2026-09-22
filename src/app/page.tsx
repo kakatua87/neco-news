@@ -19,8 +19,10 @@ function normalizeSeccion(s: string): string {
     .replace(/\s+/g, "-");
 }
 
-/* Secciones principales mostradas en la portada, en este orden. */
-const HOME_SECTIONS = ["Local", "Política", "Economía", "Policiales", "Deportes"];
+/* Secciones principales mostradas en la portada, en el mismo orden que la
+   barra de navegación (Header.tsx / Footer.tsx). "Economía" no está en esa
+   barra pero se deja al final porque todavía tiene notas publicadas. */
+const HOME_SECTIONS = ["Local", "Policiales", "Política", "Deportes", "Economía"];
 
 const DEMO_STORIES = [
   { title: "El municipio presentó el plan de obras 2026", desc: "Se anunciaron mejoras en infraestructura vial y nuevos espacios verdes...", img: "/placeholder-1.png", section: "Economía" },
@@ -36,7 +38,7 @@ export default async function Home() {
   const [noticias, carruselPortada, seccionNoticias] = await Promise.all([
     getPublicadas(60),
     getCarruselPortada(),
-    Promise.all(HOME_SECTIONS.map((s) => getPublicadasPorSeccion(s, 3))),
+    Promise.all(HOME_SECTIONS.map((s) => getPublicadasPorSeccion(s, 5))),
   ]);
   const hasNews = noticias.length > 0;
 
@@ -139,24 +141,47 @@ export default async function Home() {
                   Ver más →
                 </Link>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {notas.map((note) => (
-                  <article key={note.id} className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
-                    <Link href={`/${normalizeSeccion(note.seccion)}/${note.slug}`} className="block">
-                      <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
-                        {note.imagen_url ? (
-                          <img src={note.imagen_url} alt={note.titulo} className="w-full h-full object-cover img-zoom" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Nota destacada, grande */}
+                {notas[0] && (
+                  <article className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
+                    <Link href={`/${normalizeSeccion(notas[0].seccion)}/${notas[0].slug}`} className="block h-full">
+                      <div className="w-full aspect-[16/10] overflow-hidden bg-gray-100">
+                        {notas[0].imagen_url ? (
+                          <img src={notas[0].imagen_url} alt={notas[0].titulo} className="w-full h-full object-cover img-zoom" />
                         ) : (
                           <div className="w-full h-full bg-gray-200" />
                         )}
                       </div>
                       <div className="p-5">
-                        <span className="text-accent text-[11px] font-bold uppercase tracking-widest">{note.seccion}</span>
-                        <h3 className="font-bold text-base leading-snug mt-2 title-hover line-clamp-2">{note.titulo}</h3>
+                        <span className="text-accent text-[11px] font-bold uppercase tracking-widest">{notas[0].seccion}</span>
+                        <h3 className="font-bold text-xl leading-snug mt-2 title-hover line-clamp-3">{notas[0].titulo}</h3>
                       </div>
                     </Link>
                   </article>
-                ))}
+                )}
+
+                {/* Resto de las notas, chicas y del mismo tamaño */}
+                {notas.length > 1 && (
+                  <div className="grid grid-cols-2 gap-4">
+                    {notas.slice(1, 5).map((note) => (
+                      <article key={note.id} className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
+                        <Link href={`/${normalizeSeccion(note.seccion)}/${note.slug}`} className="block h-full">
+                          <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
+                            {note.imagen_url ? (
+                              <img src={note.imagen_url} alt={note.titulo} className="w-full h-full object-cover img-zoom" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200" />
+                            )}
+                          </div>
+                          <div className="p-3">
+                            <h3 className="font-bold text-sm leading-snug title-hover line-clamp-3">{note.titulo}</h3>
+                          </div>
+                        </Link>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </section>
