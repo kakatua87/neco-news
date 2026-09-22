@@ -53,7 +53,7 @@ export default async function Home() {
     noticias: seccionNoticias[i],
   })).filter((s) => s.noticias.length > 0);
 
-  const redesActivas = REDES.filter((r) => r.url && r.key !== "youtube");
+  
 
   return (
     <>
@@ -72,24 +72,34 @@ export default async function Home() {
                 <BannerZone zone="portada-fila2-3" className="w-full h-16 md:h-20" fixed />
               </div>
 
-              {redesActivas.length > 0 && (
-                <div className="flex items-center justify-center gap-3">
-                  {redesActivas.map((r) => (
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-ink font-bold text-sm">Nuestras redes:</span>
+                {REDES.map((r) => {
+                  const icono = (
+                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
+                      <path d={r.path} />
+                    </svg>
+                  );
+                  const className = "w-12 h-12 rounded-full bg-accent-light flex items-center justify-center transition-colors text-accent-dark";
+
+                  return r.url ? (
                     <a
                       key={r.key}
                       href={r.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       aria-label={r.key}
-                      className="w-9 h-9 rounded-full bg-accent-light hover:bg-accent/20 flex items-center justify-center transition-colors"
+                      className={`${className} hover:bg-accent/20`}
                     >
-                      <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-accent-dark" fill="currentColor">
-                        <path d={r.path} />
-                      </svg>
+                      {icono}
                     </a>
-                  ))}
-                </div>
-              )}
+                  ) : (
+                    <span key={r.key} aria-hidden="true" className={`${className} opacity-40 cursor-default`}>
+                      {icono}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
 
             {/* SIDEBAR: Top Stories */}
