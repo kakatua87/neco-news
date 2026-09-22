@@ -120,7 +120,7 @@ export default async function Home() {
                       <>
                         <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-gray-100">
                           {note.imagen_url && (
-                            <img src={note.imagen_url} alt="" className="w-full h-full object-cover img-zoom" />
+                            <img src={note.imagen_url} alt="" className="w-full h-full object-cover object-center img-zoom" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -185,7 +185,7 @@ export default async function Home() {
                     <Link href={`/${normalizeSeccion(notas[0].seccion)}/${notas[0].slug}`} className="block h-full">
                       <div className="w-full aspect-[16/10] overflow-hidden bg-gray-100">
                         {notas[0].imagen_url ? (
-                          <img src={notas[0].imagen_url} alt={notas[0].titulo} className="w-full h-full object-cover img-zoom" />
+                          <img src={notas[0].imagen_url} alt={notas[0].titulo} className="w-full h-full object-cover object-center img-zoom" />
                         ) : (
                           <div className="w-full h-full bg-gray-200" />
                         )}
@@ -206,7 +206,7 @@ export default async function Home() {
                         <Link href={`/${normalizeSeccion(note.seccion)}/${note.slug}`} className="block h-full">
                           <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
                             {note.imagen_url ? (
-                              <img src={note.imagen_url} alt={note.titulo} className="w-full h-full object-cover img-zoom" />
+                              <img src={note.imagen_url} alt={note.titulo} className="w-full h-full object-cover object-center img-zoom" />
                             ) : (
                               <div className="w-full h-full bg-gray-200" />
                             )}
@@ -230,7 +230,7 @@ export default async function Home() {
               {DEMO_STORIES.map((d, i) => (
                 <article key={`demo-${i}`} className="group cursor-pointer card-lift rounded-xl overflow-hidden border border-border">
                   <div className="w-full aspect-[4/3] overflow-hidden bg-gray-100">
-                    <img src={d.img} alt="" className="w-full h-full object-cover" />
+                    <img src={d.img} alt="" className="w-full h-full object-cover object-center" />
                   </div>
                   <div className="p-5">
                     <span className="text-accent text-[11px] font-bold uppercase tracking-widest">{d.section}</span>
