@@ -26,8 +26,6 @@ const REDES = [
 ];
 
 export default function Footer() {
-  const redesActivas = REDES.filter((r) => r.url);
-
   return (
     <footer className="bg-charcoal mt-auto font-sans">
       <div className="mx-auto max-w-[1440px] px-4 md:px-8 pt-7">
@@ -40,24 +38,33 @@ export default function Footer() {
             Quiénes Somos
           </Link>
 
-          {redesActivas.length > 0 && (
-            <div className="flex items-center gap-2.5">
-              {redesActivas.map((r) => (
+          <div className="flex items-center gap-2.5">
+            {REDES.map((r) => {
+              const icono = (
+                <svg viewBox="0 0 24 24" className="w-4 h-4 text-white/70" fill="currentColor">
+                  <path d={r.path} />
+                </svg>
+              );
+              const className = "w-8 h-8 rounded-full bg-white/10 flex items-center justify-center transition-colors";
+
+              return r.url ? (
                 <a
                   key={r.key}
                   href={r.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={r.key}
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                  className={`${className} hover:bg-white/20`}
                 >
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 text-white/70" fill="currentColor">
-                    <path d={r.path} />
-                  </svg>
+                  {icono}
                 </a>
-              ))}
-            </div>
-          )}
+              ) : (
+                <span key={r.key} aria-hidden="true" className={`${className} opacity-40 cursor-default`}>
+                  {icono}
+                </span>
+              );
+            })}
+          </div>
         </div>
 
         <nav className="flex flex-wrap justify-center gap-x-7 gap-y-2 border-t border-white/10 mt-5 py-5">
