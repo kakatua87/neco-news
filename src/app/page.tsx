@@ -72,15 +72,15 @@ export default async function Home() {
                 <BannerZone zone="portada-fila2-3" className="w-full h-16 md:h-20" fixed />
               </div>
 
-              <div className="flex items-center justify-center gap-5 py-4">
-                <span className="text-ink font-bold text-base">Nuestras redes:</span>
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-3 sm:gap-5 py-4">
+                <span className="text-ink font-bold text-base whitespace-nowrap">Nuestras redes:</span>
                 {REDES.map((r) => {
                   const icono = (
-                    <svg viewBox="0 0 24 24" className="w-7 h-7" fill="currentColor">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 sm:w-7 sm:h-7" fill="currentColor">
                       <path d={r.path} />
                     </svg>
                   );
-                  const className = "w-14 h-14 rounded-full bg-accent-light flex items-center justify-center transition-colors text-accent-dark";
+                  const className = "w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-accent-light flex items-center justify-center transition-colors text-accent-dark";
 
                   return r.url ? (
                     <a
