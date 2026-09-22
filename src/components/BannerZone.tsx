@@ -84,8 +84,8 @@ export default function BannerZone({
 
     if (fixed) {
       return (
-        <div className={`flex items-center justify-center rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 ${className}`}>
-          <span className="text-gray-400 text-sm px-4 text-center">{placeholder}</span>
+        <div className={`flex items-center justify-center overflow-hidden rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 ${className}`}>
+          <span className="text-gray-400 text-[10px] leading-tight sm:text-sm sm:leading-normal px-2 sm:px-4 text-center line-clamp-3">{placeholder}</span>
         </div>
       );
     }
@@ -95,7 +95,7 @@ export default function BannerZone({
       <div className={`overflow-hidden rounded-lg bg-gray-100 border-2 border-dashed border-gray-300 ${className}`}>
         <div className="marquee-track h-full items-center py-2">
           {looped.map((text, i) => (
-            <span key={i} className="marquee-item h-full flex items-center px-8 text-gray-400 text-sm whitespace-nowrap">
+            <span key={i} className="marquee-item h-full flex items-center px-4 sm:px-8 text-gray-400 text-xs sm:text-sm whitespace-nowrap">
               {text}
             </span>
           ))}
