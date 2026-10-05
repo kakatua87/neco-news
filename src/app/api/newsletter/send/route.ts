@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import OpenAI from "openai";
+import { timingSafeEqual } from "node:crypto";
+import { escapeHtml, urlHttpSegura } from "@/lib/html";
 
 // ─── Auth guard ─────────────────────────────────────────────────
 function isAuthorized(request: Request): boolean {
   const authHeader = request.headers.get("authorization") ?? "";
   const token = authHeader.replace("Bearer ", "").trim();
-  return token === process.env.NEWSLETTER_SECRET;
+  const secreto = process.env.NEWSLETTER_SECRET;
+  if (!secreto) return false;
+  const a = Buffer.from(token);
+  const b = Buffer.from(secreto);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 // ─── HTML template ──────────────────────────────────────────────
@@ -22,17 +28,18 @@ function buildEmailHtml(
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-");
-      const url = `${baseUrl}/${seccionSlug}/${n.slug}`;
-      const img = n.imagen_url
-        ? `<img src="${n.imagen_url}" alt="" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:12px;" />`
+      const url = escapeHtml(`${baseUrl}/${seccionSlug}/${n.slug}`);
+      const imgUrl = urlHttpSegura(n.imagen_url);
+      const img = imgUrl
+        ? `<img src="${escapeHtml(imgUrl)}" alt="" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-bottom:12px;" />`
         : "";
 
       return `
         <div style="margin-bottom:32px;padding-bottom:32px;border-bottom:1px solid #e5e7eb;">
           ${img}
-          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#d72b3f;">${n.seccion}</span>
-          <h2 style="margin:8px 0 10px;font-size:20px;line-height:1.3;color:#111827;">${n.titulo}</h2>
-          <p style="margin:0 0 12px;font-size:15px;color:#6b7280;line-height:1.6;">${n.resumen_seo ?? ""}</p>
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#d72b3f;">${escapeHtml(n.seccion)}</span>
+          <h2 style="margin:8px 0 10px;font-size:20px;line-height:1.3;color:#111827;">${escapeHtml(n.titulo)}</h2>
+          <p style="margin:0 0 12px;font-size:15px;color:#6b7280;line-height:1.6;">${escapeHtml(n.resumen_seo)}</p>
           <a href="${url}" style="display:inline-block;padding:8px 20px;background:#d72b3f;color:#fff;font-size:13px;font-weight:600;text-decoration:none;border-radius:6px;">Leer nota →</a>
         </div>`;
     })
@@ -53,7 +60,7 @@ function buildEmailHtml(
     <!-- AI summary -->
     <div style="padding:24px 32px;background:#fef2f2;border-bottom:1px solid #fecdd3;">
       <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#d72b3f;">✍ Análisis editorial de la semana</p>
-      <p style="margin:0;font-size:15px;color:#374151;line-height:1.7;">${resumenIA}</p>
+      <p style="margin:0;font-size:15px;color:#374151;line-height:1.7;">${escapeHtml(resumenIA)}</p>
     </div>
 
     <!-- Notes -->

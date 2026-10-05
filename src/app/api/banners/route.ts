@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin as requireAuth } from "@/lib/auth";
+import { validarCamposBanner } from "@/lib/html";
 
 // Lista todos los banners (activos e inactivos) para el panel de admin.
 export async function GET() {
@@ -35,6 +36,11 @@ export async function POST(request: Request) {
     const codigoHtml = typeof body.codigo_html === "string" ? body.codigo_html.trim() : "";
     if (!imagenUrl && !codigoHtml) {
       return NextResponse.json({ ok: false, error: "Cargá una imagen o un código HTML" }, { status: 400 });
+    }
+
+    const errorCampos = validarCamposBanner(body);
+    if (errorCampos) {
+      return NextResponse.json({ ok: false, error: errorCampos }, { status: 400 });
     }
 
     const supabase = createSupabaseAdminClient();

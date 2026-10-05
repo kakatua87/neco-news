@@ -4,6 +4,10 @@ import { esAdmin } from "@/lib/auth";
 
 export async function GET() {
   try {
+    if (!(await esAdmin())) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase.from("scraper_config").select("*").eq("id", 1).single();
 

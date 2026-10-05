@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SECCIONES } from "@/lib/secciones";
 
 type Borrador = {
   id: string;
@@ -11,12 +12,6 @@ type Borrador = {
   noticia_id: string | null;
   updated_at: string;
 };
-
-const SECCIONES = [
-  "Política", "Economía", "Policiales", "Local",
-  "Deportes", "Sociedad", "Salud", "Cultura",
-  "Tecnología", "Educación",
-];
 
 export default function RedaccionPanel() {
   const [borradores, setBorradores] = useState<Borrador[]>([]);

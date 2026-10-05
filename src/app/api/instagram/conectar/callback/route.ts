@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { esAdmin } from "@/lib/auth";
+import { escapeHtml } from "@/lib/html";
 
 function paginaHtml(titulo: string, cuerpoHtml: string, ok: boolean): NextResponse {
   const html = `<!doctype html>
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const errorParam = searchParams.get("error_description") || searchParams.get("error");
   if (errorParam) {
-    return paginaHtml("❌ Instagram rechazó la conexión", `<p>${errorParam}</p>`, false);
+    return paginaHtml("❌ Instagram rechazó la conexión", `<p>${escapeHtml(errorParam)}</p>`, false);
   }
   if (!code) {
     return paginaHtml("❌ Falta el código", `<p>No llegó el parámetro "code" en la respuesta de Instagram.</p>`, false);
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
     if (!cortoRes.ok || !cortoData.access_token) {
       return paginaHtml(
         "❌ No se pudo canjear el código",
-        `<pre class="valor">${JSON.stringify(cortoData, null, 2)}</pre>`,
+        `<pre class="valor">${escapeHtml(JSON.stringify(cortoData, null, 2))}</pre>`,
         false
       );
     }
@@ -82,7 +83,7 @@ export async function GET(request: Request) {
     if (!largoRes.ok || !largoData.access_token) {
       return paginaHtml(
         "❌ No se pudo generar el token de larga duración",
-        `<pre class="valor">${JSON.stringify(largoData, null, 2)}</pre>`,
+        `<pre class="valor">${escapeHtml(JSON.stringify(largoData, null, 2))}</pre>`,
         false
       );
     }
@@ -99,17 +100,17 @@ export async function GET(request: Request) {
     return paginaHtml(
       "✅ ¡Instagram conectado!",
       `
-        <p>Cuenta: <strong>@${meData.username || "?"}</strong> — el token dura ~${dias} días, hay que renovarlo antes de que venza.</p>
+        <p>Cuenta: <strong>@${escapeHtml(meData.username || "?")}</strong> — el token dura ~${dias} días, hay que renovarlo antes de que venza.</p>
         <p class="label">INSTAGRAM_BUSINESS_ACCOUNT_ID</p>
-        <div class="valor">${meData.id || "(no se pudo obtener)"}</div>
+        <div class="valor">${escapeHtml(meData.id || "(no se pudo obtener)")}</div>
         <p class="label">INSTAGRAM_GRAPH_TOKEN</p>
-        <div class="valor">${largoData.access_token}</div>
+        <div class="valor">${escapeHtml(largoData.access_token)}</div>
         <p>Copiá estos dos valores como variables de entorno en Vercel (Project Settings → Environment Variables) y volvé a hacer deploy.</p>
       `,
       true
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
-    return paginaHtml("❌ Error inesperado", `<p>${message}</p>`, false);
+    return paginaHtml("❌ Error inesperado", `<p>${escapeHtml(message)}</p>`, false);
   }
 }

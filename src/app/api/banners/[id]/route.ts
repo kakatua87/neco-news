@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin as requireAuth } from "@/lib/auth";
+import { validarCamposBanner } from "@/lib/html";
 
 const CAMPOS_EDITABLES = [
   "zona",
@@ -32,6 +33,13 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: "Nada para actualizar" }, { status: 400 });
     }
     if (typeof patch.zona === "string") patch.zona = patch.zona.trim();
+    if (typeof patch.activo !== "undefined" && typeof patch.activo !== "boolean") {
+      return NextResponse.json({ ok: false, error: "activo debe ser booleano" }, { status: 400 });
+    }
+    const errorCampos = validarCamposBanner(patch);
+    if (errorCampos) {
+      return NextResponse.json({ ok: false, error: errorCampos }, { status: 400 });
+    }
 
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase

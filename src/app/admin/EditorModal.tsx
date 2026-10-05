@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import ImageEditorModal from "./ImageEditorModal";
+import { cuerpoAHtml, htmlACuerpo } from "@/lib/cuerpo-editor";
 
 type Props = {
   isOpen: boolean;
@@ -14,13 +15,6 @@ type Props = {
   onSave: (titulo: string, cuerpo: string, imagenUrl: string | null) => void;
   onClose: () => void;
 };
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 
 export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion, imagenUrl, onSave, onClose }: Props) {
   const [editTitulo, setEditTitulo] = useState(titulo);
@@ -120,19 +114,8 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
   useEffect(() => {
     setEditTitulo(titulo);
     setEditImagen(imagenUrl);
-    // Convertir el cuerpo (texto plano, bloques separados por línea en blanco,
-    // subtítulos como "## Texto" / "### Texto") a HTML editable.
-    if (editorRef.current) {
-      const blocks = cuerpo.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
-      const htmlContent = blocks
-        .map(block => {
-          if (block.startsWith("### ")) return `<h3>${escapeHtml(block.slice(4))}</h3>`;
-          if (block.startsWith("## ")) return `<h2>${escapeHtml(block.slice(3))}</h2>`;
-          return `<p>${escapeHtml(block)}</p>`;
-        })
-        .join("");
-      editorRef.current.innerHTML = htmlContent || `<p>${escapeHtml(cuerpo)}</p>`;
-    }
+    // Convertir el cuerpo (texto plano con "## ", "- " y "![](url)") a HTML editable.
+    if (editorRef.current) editorRef.current.innerHTML = cuerpoAHtml(cuerpo);
   }, [titulo, cuerpo, imagenUrl, isOpen]);
 
   const exec = useCallback((command: string, value?: string) => {
@@ -142,35 +125,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
 
   const handleSave = () => {
     if (!editorRef.current) return;
-    // Recorrer los bloques de nivel superior y volver a texto plano,
-    // preservando subtítulos (## / ###) como marcadores de línea.
-    const lines: string[] = [];
-    Array.from(editorRef.current.children).forEach(node => {
-      const tag = node.tagName.toLowerCase();
-      const text = (node.textContent || "").trim();
-      if (!text) return;
-      if (tag === "h2") lines.push(`## ${text}`);
-      else if (tag === "h3") lines.push(`### ${text}`);
-      else if (tag === "blockquote") lines.push(`> ${text}`);
-      else if (tag === "ul" || tag === "ol") {
-        Array.from(node.children).forEach(li => {
-          const liText = (li.textContent || "").trim();
-          if (liText) lines.push(`- ${liText}`);
-        });
-      } else {
-        lines.push(text);
-      }
-    });
-    const text = lines.join("\n\n").trim();
-    onSave(editTitulo, text, editImagen);
-  };
-
-  const insertImage = () => {
-    if (imageInputUrl.trim()) {
-      exec("insertImage", imageInputUrl.trim());
-      setImageInputUrl("");
-      setShowImageInput(false);
-    }
+    onSave(editTitulo, htmlACuerpo(editorRef.current), editImagen);
   };
 
   if (!isOpen) return null;
@@ -282,25 +237,7 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block shrink-0">Cuerpo de la noticia</label>
             <div className="border border-gray-200 rounded-xl overflow-hidden flex-1 min-h-0 flex flex-col">
               <div className="bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-wrap gap-1 shrink-0">
-                {/* Formato */}
-                <ToolbarGroup>
-                  <ToolbarBtn title="Negrita (Ctrl+B)" onClick={() => exec("bold")}>
-                    <b>B</b>
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Cursiva (Ctrl+I)" onClick={() => exec("italic")}>
-                    <i>I</i>
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Subrayado (Ctrl+U)" onClick={() => exec("underline")}>
-                    <u>U</u>
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Tachado" onClick={() => exec("strikeThrough")}>
-                    <s>S</s>
-                  </ToolbarBtn>
-                </ToolbarGroup>
-
-                <ToolbarDivider />
-
-                {/* Tamaño */}
+                {/* Bloques que el sitio sabe mostrar */}
                 <ToolbarGroup>
                   <ToolbarBtn title="Título H2" onClick={() => exec("formatBlock", "h2")}>
                     H2
@@ -311,41 +248,13 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
                   <ToolbarBtn title="Párrafo" onClick={() => exec("formatBlock", "p")}>
                     ¶
                   </ToolbarBtn>
-                </ToolbarGroup>
-
-                <ToolbarDivider />
-
-                {/* Alineación */}
-                <ToolbarGroup>
-                  <ToolbarBtn title="Alinear izquierda" onClick={() => exec("justifyLeft")}>
-                    ≡←
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Centrar" onClick={() => exec("justifyCenter")}>
-                    ≡↔
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Alinear derecha" onClick={() => exec("justifyRight")}>
-                    →≡
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Justificar" onClick={() => exec("justifyFull")}>
-                    ≡≡
-                  </ToolbarBtn>
-                </ToolbarGroup>
-
-                <ToolbarDivider />
-
-                {/* Listas */}
-                <ToolbarGroup>
                   <ToolbarBtn title="Lista con viñetas" onClick={() => exec("insertUnorderedList")}>
                     • ≡
                   </ToolbarBtn>
-                  <ToolbarBtn title="Lista numerada" onClick={() => exec("insertOrderedList")}>
-                    1. ≡
-                  </ToolbarBtn>
                 </ToolbarGroup>
 
                 <ToolbarDivider />
 
-                {/* Extras */}
                 <ToolbarGroup>
                   <ToolbarBtn
                     title="Insertar imagen desde la PC"
@@ -367,18 +276,6 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
                   }}>
                     🖼
                   </ToolbarBtn>
-                  <ToolbarBtn title="Insertar enlace" onClick={() => {
-                    const url = prompt("URL del enlace:");
-                    if (url) exec("createLink", url);
-                  }}>
-                    🔗
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Cita / Blockquote" onClick={() => exec("formatBlock", "blockquote")}>
-                    ❝
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Línea horizontal" onClick={() => exec("insertHorizontalRule")}>
-                    ―
-                  </ToolbarBtn>
                 </ToolbarGroup>
 
                 <ToolbarDivider />
@@ -390,9 +287,6 @@ export default function EditorModal({ isOpen, noticiaId, titulo, cuerpo, seccion
                   </ToolbarBtn>
                   <ToolbarBtn title="Rehacer (Ctrl+Y)" onClick={() => exec("redo")}>
                     ↪
-                  </ToolbarBtn>
-                  <ToolbarBtn title="Limpiar formato" onClick={() => exec("removeFormat")}>
-                    ⊘
                   </ToolbarBtn>
                 </ToolbarGroup>
               </div>

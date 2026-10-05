@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
+import { esListaIds } from "@/lib/validar";
 
 type Body = {
   ids?: Array<string | number>;
@@ -13,8 +14,8 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as Body;
-    if (!body.ids || body.ids.length === 0) {
-      return NextResponse.json({ ok: false, error: "ids es requerido" }, { status: 400 });
+    if (!esListaIds(body.ids)) {
+      return NextResponse.json({ ok: false, error: "ids inválido (lista de 1 a 500 ids)" }, { status: 400 });
     }
 
     const supabase = createSupabaseAdminClient();

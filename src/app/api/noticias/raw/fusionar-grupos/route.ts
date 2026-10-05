@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
+import { esId } from "@/lib/validar";
 
 export async function POST(request: Request) {
   if (!(await esAdmin())) {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   const grupo_id_destino = body?.grupo_id_destino;
   const grupo_id_origen = body?.grupo_id_origen;
 
-  if (!grupo_id_destino || !grupo_id_origen) {
+  if (!esId(grupo_id_destino) || !esId(grupo_id_origen)) {
     return NextResponse.json(
       { ok: false, error: "grupo_id_destino y grupo_id_origen son requeridos" },
       { status: 400 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { urlHttpSegura } from "@/lib/html";
 
 type BannerData = {
   id: string;
@@ -9,7 +10,16 @@ type BannerData = {
   imagen_url: string | null;
   url_destino: string | null;
   codigo_html: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
 };
+
+/** true si el banner está dentro de su ventana de vigencia (si la tiene). */
+function estaVigente(b: BannerData, ahora = new Date()): boolean {
+  if (b.fecha_inicio && new Date(b.fecha_inicio) > ahora) return false;
+  if (b.fecha_fin && new Date(b.fecha_fin) < ahora) return false;
+  return true;
+}
 
 function BannerItem({ banner, zone }: { banner: BannerData; zone: string }) {
   if (banner.codigo_html) {
@@ -30,9 +40,10 @@ function BannerItem({ banner, zone }: { banner: BannerData; zone: string }) {
       />
     );
 
-    if (banner.url_destino) {
+    const destino = urlHttpSegura(banner.url_destino);
+    if (destino) {
       return (
-        <a href={banner.url_destino} target="_blank" rel="noopener noreferrer" className="block h-full">
+        <a href={destino} target="_blank" rel="noopener noreferrer" className="block h-full">
           {imgContent}
         </a>
       );
@@ -62,12 +73,12 @@ export default function BannerZone({
       const supabase = createSupabaseBrowserClient();
       const { data, error } = await supabase
         .from("banners")
-        .select("id, zona, imagen_url, url_destino, codigo_html")
+        .select("id, zona, imagen_url, url_destino, codigo_html, fecha_inicio, fecha_fin")
         .eq("zona", zone)
         .eq("activo", true);
 
       if (data) {
-        setBanners(data as BannerData[]);
+        setBanners((data as BannerData[]).filter((b) => estaVigente(b)));
       }
       setLoading(false);
     }
