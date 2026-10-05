@@ -1,7 +1,6 @@
-import { requireAdmin } from "../_lib/guard";
-import EnviosPanel from "../EnviosPanel";
+import { redirect } from "next/navigation";
 
-export default async function EnviosPage() {
-  await requireAdmin();
-  return <EnviosPanel />;
+// Los envíos ciudadanos ahora viven dentro de la Bandeja de Entrada (filtro "Ciudadanos").
+export default function EnviosPage() {
+  redirect("/admin/bandeja?origen=ciudadano");
 }

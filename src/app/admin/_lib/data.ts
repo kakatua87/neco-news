@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SECCIONES, unirSecciones } from "@/lib/secciones";
 import type { Editable } from "./types";
+import { ESTADOS_ACTIVOS, type Envio } from "./envios";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { normalizarScraperConfig, type ScraperConfig } from "./scraperConfig";
 
@@ -133,5 +134,27 @@ export const getActividad = cache(async (): Promise<Actividad> => {
 export const getRawCount = cache(async (): Promise<number> => {
   const supabase = await createSupabaseServerClient();
   const { count } = await supabase.from("noticias").select("id", { count: "exact", head: true }).eq("estado", "raw");
+  return count ?? 0;
+});
+
+/** Envíos ciudadanos recientes (activos e historial). La página ya pasó por requireAdmin. */
+export const getEnviosAdmin = cache(async (limit = 200): Promise<Envio[]> => {
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin
+    .from("envios_ciudadanos")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) console.error("Error al obtener envíos (admin):", error.message);
+  return (data ?? []) as Envio[];
+});
+
+/** Envíos que todavía esperan trabajo (nuevos o en revisión). */
+export const getEnviosActivosCount = cache(async (): Promise<number> => {
+  const admin = createSupabaseAdminClient();
+  const { count } = await admin
+    .from("envios_ciudadanos")
+    .select("id", { count: "exact", head: true })
+    .in("estado", ESTADOS_ACTIVOS);
   return count ?? 0;
 });

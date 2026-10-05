@@ -99,7 +99,7 @@ export default function ResumenTab({
           <Dato titulo="Último ingreso">{formatearFecha(actividad.ultimoIngreso)}</Dato>
           <Dato titulo="Última publicación">{formatearFecha(actividad.ultimaPublicacion)}</Dato>
           <Dato titulo="Envíos ciudadanos nuevos">
-            <Link href="/admin/envios" className="hover:underline">{actividad.enviosNuevos}</Link>
+            <Link href="/admin/bandeja?origen=ciudadano" className="hover:underline">{actividad.enviosNuevos}</Link>
           </Dato>
         </div>
       </div>

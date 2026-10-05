@@ -3,7 +3,7 @@ import AdminShell from "./AdminShell";
 import LoginForm from "./LoginForm";
 import { logoutAction } from "./actions";
 import { getEsAdmin, getUsuario } from "./_lib/guard";
-import { getInboxCount, getStats } from "./_lib/data";
+import { getEnviosActivosCount, getInboxCount, getStats } from "./_lib/data";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getUsuario();
@@ -27,7 +27,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     );
   }
 
-  const [stats, inboxCount] = await Promise.all([getStats(), getInboxCount()]);
+  // La bandeja suma los grupos del scraper y los envíos ciudadanos que esperan revisión.
+  const [stats, gruposScraper, enviosActivos] = await Promise.all([getStats(), getInboxCount(), getEnviosActivosCount()]);
+  const inboxCount = gruposScraper + enviosActivos;
 
   return (
     <div className="min-h-screen bg-[#f3f4f6] text-ink font-sans">

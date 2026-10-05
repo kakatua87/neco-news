@@ -20,7 +20,6 @@ const ITEMS: Array<{ href: string; label: string; badge?: "inbox" | "pendientes"
   { href: "/admin/obituarios", label: "🕯 Obituarios" },
   { href: "/admin/descartadas", label: "🗂 Descartadas" },
   { href: "/admin/instagram", label: "📸 Instagram" },
-  { href: "/admin/envios", label: "📬 Envíos" },
   { href: "/admin/redaccion", label: "✨ Redacción" },
   { href: "/admin/banners", label: "🖼️ Banners" },
   { href: "/admin/configuracion", label: "⚙️ Configuración" },

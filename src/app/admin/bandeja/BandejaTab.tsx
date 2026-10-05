@@ -11,6 +11,8 @@ import type { ScraperConfig } from "../_lib/scraperConfig";
 import GrupoCard, { type AiProvider, type GrupoEditState } from "./GrupoCard";
 import ScraperControl from "./ScraperControl";
 import AvisoLimite from "../_lib/AvisoLimite";
+import EnviosBandeja from "./EnviosBandeja";
+import { ESTADOS_ACTIVOS, type Envio } from "../_lib/envios";
 import { agruparDiasPorMes, agruparPorFecha, agruparPorSitio, calcularSugerenciasFusion } from "./agrupar";
 
 type Props = {
@@ -19,7 +21,11 @@ type Props = {
   secciones: string[];
   notasMostradas: number;
   notasTotal: number;
+  initialEnvios: Envio[];
+  origenInicial?: Origen;
 };
+
+type Origen = "todos" | "scraper" | "ciudadano";
 
 function estadoInicial(rawGrupos: Record<string, Noticia[]>): Record<string, GrupoEditState> {
   const estados: Record<string, GrupoEditState> = {};
@@ -34,7 +40,15 @@ function estadoInicial(rawGrupos: Record<string, Noticia[]>): Record<string, Gru
   return estados;
 }
 
-export default function BandejaTab({ initialRawGrupos, scraperConfig, secciones, notasMostradas, notasTotal }: Props) {
+export default function BandejaTab({
+  initialRawGrupos,
+  scraperConfig,
+  secciones,
+  notasMostradas,
+  notasTotal,
+  initialEnvios,
+  origenInicial = "todos",
+}: Props) {
   const router = useRouter();
   const toast = useToast();
 
@@ -42,6 +56,9 @@ export default function BandejaTab({ initialRawGrupos, scraperConfig, secciones,
   const [grupoStates, setGrupoStates] = useState(() => estadoInicial(initialRawGrupos));
   const [ocupados, setOcupados] = useState<string[]>([]); // grupos con una acción en curso
   const [seccionFiltro, setSeccionFiltro] = useState("Todas");
+  const [origen, setOrigen] = useState<Origen>(origenInicial);
+  const [envios, setEnvios] = useState(initialEnvios);
+  const enviosActivos = envios.filter((e) => ESTADOS_ACTIVOS.includes(e.estado)).length;
   // Meses/días/sitios COLAPSADOS (vacío = todo visible, el usuario colapsa lo que no le interesa).
   const [colapsados, toggleColapsado] = useToggleSet<string>();
 
@@ -220,31 +237,49 @@ export default function BandejaTab({ initialRawGrupos, scraperConfig, secciones,
 
   return (
     <div className="space-y-6 fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-2">
-        <div>
-          <h2 className="text-2xl font-bold text-ink">📥 Bandeja de Entrada</h2>
-          <p className="text-sm text-muted mt-1">Noticias crudas recién scrapeadas. Seleccioná fuentes, elegí imagen, y procesá con IA.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
-            {inboxCount} grupo{inboxCount !== 1 ? "s" : ""} nuevos
-          </span>
-          <button
-            onClick={() => setMostrarScraper((v) => !v)}
-            className="px-3 py-1.5 text-xs font-medium border border-border rounded-full hover:bg-gray-50 transition-colors"
-          >
-            ⚙️ Control del scraper
-          </button>
-          {inboxCount > 0 && (
-            <button
-              onClick={eliminarTodosLosGrupos}
-              className="px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 rounded-full hover:bg-red-50 transition-colors"
-            >
-              🗑 Eliminar todos los grupos
-            </button>
-          )}
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-ink">📥 Bandeja de Entrada</h2>
+        <p className="text-sm text-muted mt-1">Material crudo para revisar y procesar con IA: noticias del scraper y envíos de la gente.</p>
       </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => setOrigen("todos")} className={chipCls(origen === "todos")}>
+          Todos · {inboxCount + enviosActivos}
+        </button>
+        <button onClick={() => setOrigen("scraper")} className={chipCls(origen === "scraper")}>
+          Scraper · {inboxCount}
+        </button>
+        <button onClick={() => setOrigen("ciudadano")} className={chipCls(origen === "ciudadano")}>
+          Ciudadanos · {enviosActivos}
+        </button>
+      </div>
+
+      {origen !== "scraper" && <EnviosBandeja envios={envios} setEnvios={setEnvios} />}
+
+      {origen !== "ciudadano" && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            {origen === "todos" && <h3 className="text-lg font-bold text-ink">Noticias del scraper</h3>}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
+                {inboxCount} grupo{inboxCount !== 1 ? "s" : ""} nuevos
+              </span>
+              <button
+                onClick={() => setMostrarScraper((v) => !v)}
+                className="px-3 py-1.5 text-xs font-medium border border-border rounded-full hover:bg-gray-50 transition-colors"
+              >
+                ⚙️ Control del scraper
+              </button>
+              {inboxCount > 0 && (
+                <button
+                  onClick={eliminarTodosLosGrupos}
+                  className="px-3 py-1.5 text-xs font-medium text-red-500 border border-red-200 rounded-full hover:bg-red-50 transition-colors"
+                >
+                  🗑 Eliminar todos los grupos
+                </button>
+              )}
+            </div>
+          </div>
 
       <AvisoLimite mostrados={notasMostradas} total={notasTotal} cosa="noticias crudas" />
 
@@ -393,6 +428,8 @@ export default function BandejaTab({ initialRawGrupos, scraperConfig, secciones,
               </div>
             );
           })}
+        </div>
+      )}
         </div>
       )}
     </div>
