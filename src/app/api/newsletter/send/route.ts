@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       .join("\n");
 
     const completion = await gemini.chat.completions.create({
-      model: "gemini-2.5-flash",
+      model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
       messages: [
         {
           role: "user",

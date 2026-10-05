@@ -12,6 +12,10 @@ interface NoticiaParaKit {
 // noticia. Se llama automaticamente al publicar (fire-and-forget, no
 // bloquea la respuesta de /api/publicar) para que el kit de Instagram
 // ya este listo cuando el admin abra el tab Instagram.
+// Google da de baja modelos para cuentas nuevas (gemini-2.5-flash ya devuelve 404);
+// se puede cambiar sin tocar código con la variable de entorno GEMINI_MODEL.
+const MODELO_GEMINI_POR_DEFECTO = "gemini-3.8-flash";
+
 export async function generarInstagramKit(noticiaId: string | number, noticia: NoticiaParaKit): Promise<void> {
   const gemini = new OpenAI({
     apiKey: process.env.GEMINI_API_KEY ?? "",
@@ -19,7 +23,7 @@ export async function generarInstagramKit(noticiaId: string | number, noticia: N
   });
 
   const completion = await gemini.chat.completions.create({
-    model: "gemini-2.5-flash",
+    model: process.env.GEMINI_MODEL || MODELO_GEMINI_POR_DEFECTO,
     messages: [
       {
         role: "system",
