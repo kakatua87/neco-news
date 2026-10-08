@@ -154,6 +154,8 @@ export default function BandejaTab({
       });
       if (!r.ok) {
         toast(`Error al procesar: ${r.error}`);
+        // Ya la procesó otra pestaña o un clic anterior: el grupo no corresponde seguir mostrándolo.
+        if (r.data?.codigo === "ya_procesada") quitarGrupos([grupoId]);
         return;
       }
       quitarGrupos([grupoId]);
