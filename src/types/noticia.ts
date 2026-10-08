@@ -28,6 +28,12 @@ export type Noticia = {
   fuente?: string | null;
   imagen_fuente?: string | null;
   instagram_descartado?: boolean;
+  instagram_publicado_at?: string | null;
+  instagram_post_id?: string | null;
+  instagram_permalink?: string | null;
+  facebook_publicado_at?: string | null;
+  facebook_post_id?: string | null;
+  facebook_permalink?: string | null;
   fuentes_urls?: FuenteUrl[] | null;
   origen?: string;
 };

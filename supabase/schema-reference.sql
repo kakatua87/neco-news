@@ -17,7 +17,8 @@
 --                     instagram_descartado bool, twitter_text, guion_video, slug (unique),
 --                     origen text ('scraper'|'redaccion'), fecha_publicacion, created_at,
 --                     es_portada bool, orden_portada int, grupo_id uuid, titulo_original,
---                     fuentes_urls jsonb
+--                     fuentes_urls jsonb, instagram_publicado_at / instagram_post_id / instagram_permalink y
+--                     facebook_publicado_at / facebook_post_id / facebook_permalink (marca de "ya publicada" en redes)
 -- admins              user_id uuid PK -> auth.users
 -- scraper_config      fila única (id = 1): activo, fuentes_activas text[], fecha_inicio,
 --                     fuentes_custom jsonb [{key,label,url}], updated_at

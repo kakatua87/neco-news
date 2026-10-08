@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
 import { obtenerCredencialesInstagram } from "@/lib/instagram-credenciales";
-import { renderInstagramCard, normalizarFormato } from "../../instagram-card/render";
-import sharp from "sharp";
+import { normalizarFormato } from "../../instagram-card/render";
+import { urlPublicaDeTarjeta } from "@/lib/tarjeta-publica";
 import { textoEnNegrita } from "@/lib/texto";
 
 const GRAPH_VERSION = "v21.0";
@@ -39,6 +39,8 @@ export async function POST(request: Request) {
     const destino: "feed" | "historia" = body.destino === "historia" ? "historia" : "feed";
     const formato = normalizarFormato(body.formato);
     const imagenUrlEditada: string | undefined = body.imagenUrlEditada;
+    // Sin esto, una nota ya publicada se rechaza: evita el doble clic y que dos editores la publiquen dos veces.
+    const forzar = body.forzar === true;
 
     if (!noticiaId) {
       return NextResponse.json({ ok: false, error: "Falta noticiaId" }, { status: 400 });
@@ -47,36 +49,25 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdminClient();
     const { data: noticia, error } = await supabase
       .from("noticias")
-      .select("titulo, instagram_titulo, instagram_text, imagen_url, seccion, slug, estado")
+      .select("titulo, instagram_titulo, instagram_text, imagen_url, seccion, slug, estado, instagram_publicado_at")
       .eq("id", noticiaId)
       .single();
 
     if (error || !noticia || noticia.estado !== "publicada") {
       return NextResponse.json({ ok: false, error: "Noticia no encontrada" }, { status: 404 });
     }
-
-    // Imagen: si ya viene editada/subida a Storage se usa esa URL; si no,
-    // se genera la tarjeta ahora mismo y se sube a Storage — la API de
-    // Instagram necesita una URL pública, y nuestra ruta de preview
-    // requiere sesión de admin, así que no sirve pasársela directo.
-    let imagenPublicaUrl = imagenUrlEditada;
-    if (!imagenPublicaUrl) {
-      const cardResponse = await renderInstagramCard(noticia, formato);
-      const pngBytes = Buffer.from(await cardResponse.arrayBuffer());
-      // Instagram solo acepta JPEG en image_url (PNG hace fallar el contenedor
-      // con "Media ID is not available" al publicar). next/og unicamente genera
-      // PNG, asi que lo convertimos antes de subirlo.
-      const jpegBytes = await sharp(pngBytes).jpeg({ quality: 92 }).toBuffer();
-      const path = `instagram-cards/${noticiaId}-${formato}-${Date.now()}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from("noticias-imagenes")
-        .upload(path, jpegBytes, { contentType: "image/jpeg", upsert: true });
-      if (uploadError) {
-        return NextResponse.json({ ok: false, error: `No se pudo preparar la imagen: ${uploadError.message}` }, { status: 500 });
-      }
-      const { data: publicUrlData } = supabase.storage.from("noticias-imagenes").getPublicUrl(path);
-      imagenPublicaUrl = publicUrlData.publicUrl;
+    if (noticia.instagram_publicado_at && !forzar) {
+      return NextResponse.json(
+        { ok: false, yaPublicada: true, error: "Esta noticia ya se publicó en Instagram." },
+        { status: 409 }
+      );
     }
+
+    const imagen = await urlPublicaDeTarjeta(supabase, noticia, noticiaId, formato, imagenUrlEditada);
+    if (!imagen.ok) {
+      return NextResponse.json({ ok: false, error: imagen.error }, { status: 500 });
+    }
+    const imagenPublicaUrl = imagen.url;
 
     // El titulo va en "negrita" (Unicode) como copete, tipo portada de diario.
     // El resto (parrafos + CTA "link en bio" + hashtags) ya viene armado asi
@@ -142,7 +133,34 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, publicacionId: publicarData.id });
+    // Marca de "ya publicada" + link al post. Si algo de esto falla la publicación ya salió: se avisa, no se falla.
+    let permalink: string | null = null;
+    try {
+      const permaUrl = new URL(`${GRAPH_HOST}/${GRAPH_VERSION}/${publicarData.id}`);
+      permaUrl.searchParams.set("fields", "permalink");
+      permaUrl.searchParams.set("access_token", graphToken);
+      const permaData = await (await fetch(permaUrl.toString())).json();
+      if (typeof permaData.permalink === "string") permalink = permaData.permalink;
+    } catch {
+      // el permalink es un extra
+    }
+    const { error: marcaError } = await supabase
+      .from("noticias")
+      .update({
+        instagram_publicado_at: new Date().toISOString(),
+        instagram_post_id: String(publicarData.id),
+        instagram_permalink: permalink,
+      })
+      .eq("id", noticiaId);
+    if (marcaError) console.error("instagram/publicar: no se pudo guardar la marca de publicada:", marcaError.message);
+
+    return NextResponse.json({
+      ok: true,
+      publicacionId: publicarData.id,
+      permalink,
+      publicadoAt: marcaError ? null : new Date().toISOString(),
+      avisoMarca: marcaError ? "Se publicó, pero no se pudo guardar la marca de publicada." : undefined,
+    });
   } catch (err) {
     console.error("Catch error in POST instagram/publicar:", err);
     const message = err instanceof Error ? err.message : "Error desconocido";

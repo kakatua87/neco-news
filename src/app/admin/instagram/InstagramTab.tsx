@@ -10,6 +10,20 @@ import { useNoticiaLink } from "../_lib/useNoticiaLink";
 import type { InstagramKitItem } from "../_lib/types";
 import { agruparPorMesYDia } from "@/lib/fechas";
 
+type Filtro = "todas" | "sin_publicar" | "publicadas";
+
+/** "8 oct 22:18", en hora de Argentina. */
+function fechaCorta(iso: string): string {
+  return new Date(iso).toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 export default function InstagramTab({ initialItems }: { initialItems: InstagramKitItem[] }) {
   const toast = useToast();
   const noticiaLink = useNoticiaLink();
@@ -24,7 +38,21 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
   const [editadas, setEditadas] = useState<Record<string, string>>({});
   const [formatoElegido, setFormatoElegido] = useState<Record<string | number, FormatoKey>>({});
 
-  const agrupadas = useMemo(() => agruparPorMesYDia(items), [items]);
+  const [filtro, setFiltro] = useState<Filtro>("todas");
+
+  const estaPublicada = (n: InstagramKitItem) => !!(n.instagram_publicado_at || n.facebook_publicado_at);
+  const conteo = useMemo(() => {
+    const publicadas = items.filter((n) => n.instagram_publicado_at || n.facebook_publicado_at).length;
+    return { todas: items.length, publicadas, sin_publicar: items.length - publicadas };
+  }, [items]);
+  const visibles = useMemo(
+    () =>
+      filtro === "todas"
+        ? items
+        : items.filter((n) => !!(n.instagram_publicado_at || n.facebook_publicado_at) === (filtro === "publicadas")),
+    [items, filtro]
+  );
+  const agrupadas = useMemo(() => agruparPorMesYDia(visibles), [visibles]);
 
   const generarImagenIA = async (item: InstagramKitItem) => {
     setBusyIds((prev) => [...prev, item.id]);
@@ -80,18 +108,38 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
     const formato = formatoElegido[item.id] || "cuadrado";
     const destino = formato === "historia" ? "historia" : "feed";
     const imagenUrlEditada = editadas[`${item.id}-${formato}`];
+    const yaPublicada = !!item.instagram_publicado_at;
+    if (yaPublicada && !confirm("Esta noticia ya se publicó en Instagram. ¿Publicarla de nuevo? Va a quedar duplicada en el perfil.")) {
+      return;
+    }
     setPublicandoIds((prev) => [...prev, item.id]);
-    const r = await adminFetch("/api/instagram/publicar", {
-      method: "POST",
-      json: { noticiaId: item.id, formato, destino, imagenUrlEditada },
-    });
+    const r = await adminFetch<{ permalink?: string | null; publicadoAt?: string | null; avisoMarca?: string }>(
+      "/api/instagram/publicar",
+      { method: "POST", json: { noticiaId: item.id, formato, destino, imagenUrlEditada, forzar: yaPublicada } }
+    );
     setPublicandoIds((prev) => prev.filter((id) => id !== item.id));
-    if (r.ok) toast("¡Publicado en Instagram!", "ok");
-    else toast(`No se pudo publicar: ${r.error}`);
+    if (r.status === 409) {
+      // Otro editor (u otra pestaña) ya la publicó: se refleja la marca sin recargar.
+      setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, instagram_publicado_at: n.instagram_publicado_at || new Date().toISOString() } : n)));
+      toast("Esta noticia ya estaba publicada en Instagram.");
+      return;
+    }
+    if (!r.ok) {
+      toast(`No se pudo publicar: ${r.error}`);
+      return;
+    }
+    setItems((prev) =>
+      prev.map((n) =>
+        n.id === item.id
+          ? { ...n, instagram_publicado_at: r.data?.publicadoAt || new Date().toISOString(), instagram_permalink: r.data?.permalink ?? null }
+          : n
+      )
+    );
+    toast(r.data?.avisoMarca || "¡Publicado en Instagram!", r.data?.avisoMarca ? undefined : "ok");
   };
 
   const seleccionarTodas = () =>
-    setSeleccionadas((prev) => (prev.size === items.length ? new Set() : new Set(items.map((n) => n.id))));
+    setSeleccionadas((prev) => (prev.size === visibles.length ? new Set() : new Set(visibles.map((n) => n.id))));
 
   const quitarSeleccionadas = async () => {
     if (seleccionadas.size === 0) return;
@@ -122,7 +170,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
               <label className="flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={items.length > 0 && seleccionadas.size === items.length}
+                  checked={visibles.length > 0 && seleccionadas.size === visibles.length}
                   onChange={seleccionarTodas}
                   className="w-4 h-4 accent-accent"
                 />
@@ -138,6 +186,30 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
             </div>
           )}
         </div>
+
+        {items.length > 0 && (
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filtrar por estado de publicación">
+            {(
+              [
+                ["todas", "Todas"],
+                ["sin_publicar", "Sin publicar"],
+                ["publicadas", "Ya publicadas"],
+              ] as Array<[Filtro, string]>
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={filtro === key}
+                onClick={() => setFiltro(key)}
+                className={`px-3 py-1.5 text-sm rounded-full border transition-colors ${
+                  filtro === key ? "bg-accent text-white border-accent font-bold" : "bg-white text-muted border-border hover:bg-gray-50"
+                }`}
+              >
+                {label} ({conteo[key]})
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="space-y-4">
           {agrupadas.map((mes) => {
@@ -166,7 +238,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                             const busy = busyIds.includes(item.id);
                             const selected = seleccionadas.has(item.id);
                             return (
-                              <article key={item.id} className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col relative ${selected ? "border-accent ring-2 ring-accent/30" : "border-border"}`}>
+                              <article key={item.id} className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col relative ${selected ? "border-accent ring-2 ring-accent/30" : estaPublicada(item) ? "border-green-300 bg-green-50/40" : "border-border"}`}>
                                 <label className="absolute top-3 left-3 z-10 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
                                   <input
                                     type="checkbox"
@@ -245,15 +317,43 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                                         disabled={publicandoIds.includes(item.id)}
                                         className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-50 whitespace-nowrap"
                                       >
-                                        {publicandoIds.includes(item.id) ? "Publicando..." : "📸 Publicar"}
+                                        {publicandoIds.includes(item.id) ? "Publicando..." : item.instagram_publicado_at ? "↻ Volver a publicar" : "📸 Publicar"}
                                       </button>
                                     </div>
                                   )}
                                 </div>
                                 <div className="p-4 flex-1 flex flex-col gap-3">
-                                  <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded w-fit">
-                                    {item.seccion}
-                                  </span>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded w-fit">
+                                      {item.seccion}
+                                    </span>
+                                    {item.instagram_publicado_at && (
+                                      <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
+                                        ✓ Instagram · {fechaCorta(item.instagram_publicado_at)}
+                                        {item.instagram_permalink && (
+                                          <>
+                                            {" "}
+                                            <a href={item.instagram_permalink} target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                                              ver
+                                            </a>
+                                          </>
+                                        )}
+                                      </span>
+                                    )}
+                                    {item.facebook_publicado_at && (
+                                      <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                                        ✓ Facebook · {fechaCorta(item.facebook_publicado_at)}
+                                        {item.facebook_permalink && (
+                                          <>
+                                            {" "}
+                                            <a href={item.facebook_permalink} target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                                              ver
+                                            </a>
+                                          </>
+                                        )}
+                                      </span>
+                                    )}
+                                  </div>
 
                                   {item.instagram_titulo ? (
                                     <h3 className="font-editorial text-lg font-bold text-ink leading-tight">{item.instagram_titulo}</h3>
@@ -317,6 +417,9 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
 
           {items.length === 0 && (
             <div className="text-center py-12 text-muted">No hay noticias publicadas para mostrar.</div>
+          )}
+          {items.length > 0 && visibles.length === 0 && (
+            <div className="text-center py-12 text-muted">No hay noticias en este filtro.</div>
           )}
         </div>
       </div>

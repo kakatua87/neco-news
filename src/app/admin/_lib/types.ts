@@ -17,4 +17,11 @@ export type Editable = Pick<
 export type InstagramKitItem = Pick<
   Noticia,
   "id" | "titulo" | "instagram_titulo" | "instagram_text" | "imagen_url" | "seccion" | "slug" | "fecha_publicacion"
->;
+> &
+  Pick<
+    Noticia,
+    | "instagram_publicado_at"
+    | "instagram_permalink"
+    | "facebook_publicado_at"
+    | "facebook_permalink"
+  >;

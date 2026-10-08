@@ -209,7 +209,9 @@ export async function getInstagramKit(limit = 60): Promise<Noticia[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select("id, titulo, instagram_titulo, instagram_text, imagen_url, imagen_fuente, slug, seccion, fecha_publicacion")
+    .select(
+      "id, titulo, instagram_titulo, instagram_text, imagen_url, imagen_fuente, slug, seccion, fecha_publicacion, instagram_publicado_at, instagram_permalink, facebook_publicado_at, facebook_permalink"
+    )
     .eq("estado", "publicada")
     .eq("instagram_descartado", false)
     .order("fecha_publicacion", { ascending: false, nullsFirst: false })
