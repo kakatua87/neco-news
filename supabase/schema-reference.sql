@@ -29,6 +29,11 @@
 -- banners             zona, nombre, imagen_url, url_destino, codigo_html, activo,
 --                     fecha_inicio, fecha_fin, created_at
 -- suscriptores        email (unique), activo, created_at
+-- seccion_redirects   anterior (PK, minúsculas), nueva, created_at: al renombrar una sección el listado viejo
+--                     redirige (301) al nuevo (las notas se redirigen solas por su página)
+-- instagram_credenciales  una sola fila (id = 1): access_token, ig_user_id, expira_en, actualizado_en;
+--                     el cron diario /api/instagram/renovar extiende el token
+-- rate_limit_envios   ip_hash, accion, created_at: límite por visitante del formulario público
 --
 -- Storage: buckets noticias-imagenes y tips-ciudadanos (público).
 
@@ -119,6 +124,9 @@ CREATE POLICY admin_full_access ON public.scraper_config FOR ALL TO authenticate
   USING (is_admin()) WITH CHECK (is_admin());
 -- envíos ciudadanos: SIN política para anon. El formulario inserta siempre por /api/tips (service role).
 --   (las políticas de INSERT anónimo se eliminaron el 2026-10-08, ver migraciones/2026-10-08_seguridad_envios.sql)
+-- seccion_redirects: lectura pública (solo nombres de secciones); escribe únicamente la service role
+CREATE POLICY "Redirecciones de sección públicas" ON public.seccion_redirects FOR SELECT TO anon, authenticated
+  USING (true);
 -- storage.objects (bucket tips-ciudadanos: solo lectura pública; las subidas van por /api/tips/subir-archivo)
 CREATE POLICY tips_ciudadanos_lectura_publica ON storage.objects FOR SELECT TO anon
   USING (bucket_id = 'tips-ciudadanos');
@@ -127,5 +135,5 @@ CREATE POLICY tips_ciudadanos_lectura_publica ON storage.objects FOR SELECT TO a
 -- rate_limit_envios (ip_hash, accion, created_at): límite por visitante del formulario público; la IP se guarda
 --   hasheada con sal, nunca en claro. RLS activo y sin políticas: solo la service role.
 
--- admins, borradores_redaccion, suscriptores y rate_limit_envios no tienen políticas: solo se accede con la
+-- admins, borradores_redaccion, suscriptores, rate_limit_envios e instagram_credenciales no tienen políticas: solo se accede con la
 -- service role desde las rutas /api (correcto, pero cualquier ruta nueva debe llamar a esAdmin()).
