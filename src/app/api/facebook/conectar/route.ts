@@ -27,6 +27,9 @@ export async function GET() {
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");
+  // Fuerza a Facebook a mostrar de nuevo el diálogo de permisos y de elección de Páginas: si el usuario ya había
+  // autorizado la app, Facebook lo saltea y el token queda sin ninguna Página asociada.
+  url.searchParams.set("auth_type", "rerequest");
   // Con "Facebook Login for Business" Meta exige una configuración (config_id) en lugar de scope; si no hay, se usa scope.
   const configId = process.env.FACEBOOK_LOGIN_CONFIG_ID?.trim();
   if (configId) {
