@@ -117,14 +117,15 @@ CREATE POLICY admin_full_access ON public.banners FOR ALL TO authenticated
 -- scraper_config
 CREATE POLICY admin_full_access ON public.scraper_config FOR ALL TO authenticated
   USING (is_admin()) WITH CHECK (is_admin());
--- envíos ciudadanos (formulario público)
-CREATE POLICY envios_ciudadanos_insert_publico ON public.envios_ciudadanos FOR INSERT TO anon
-  WITH CHECK (true);
--- storage.objects
-CREATE POLICY tips_ciudadanos_insert_publico ON storage.objects FOR INSERT TO anon
-  WITH CHECK (bucket_id = 'tips-ciudadanos');
+-- envíos ciudadanos: SIN política para anon. El formulario inserta siempre por /api/tips (service role).
+--   (las políticas de INSERT anónimo se eliminaron el 2026-10-08, ver migraciones/2026-10-08_seguridad_envios.sql)
+-- storage.objects (bucket tips-ciudadanos: solo lectura pública; las subidas van por /api/tips/subir-archivo)
 CREATE POLICY tips_ciudadanos_lectura_publica ON storage.objects FOR SELECT TO anon
   USING (bucket_id = 'tips-ciudadanos');
 
--- admins, borradores_redaccion y suscriptores no tienen políticas: solo se accede con la
+-- Bucket tips-ciudadanos: file_size_limit = 60 MB y allowed_mime_types = imágenes, PDF, video y audio (13 tipos).
+-- rate_limit_envios (ip_hash, accion, created_at): límite por visitante del formulario público; la IP se guarda
+--   hasheada con sal, nunca en claro. RLS activo y sin políticas: solo la service role.
+
+-- admins, borradores_redaccion, suscriptores y rate_limit_envios no tienen políticas: solo se accede con la
 -- service role desde las rutas /api (correcto, pero cualquier ruta nueva debe llamar a esAdmin()).
