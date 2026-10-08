@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const supabase = createSupabaseAdminClient();
   const { data: envio, error: fetchError } = await supabase
     .from("envios_ciudadanos")
-    .select("mensaje, categoria, nombre, archivos")
+    .select("mensaje, categoria, nombre, archivos, created_at")
     .eq("id", id)
     .single();
 
@@ -41,6 +41,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         categoria: envio.categoria,
         contacto_nombre: envio.nombre,
         imagenes_urls: imagenesUrls,
+        fecha_aviso: envio.created_at, // para convertir 'ayer'/'anoche' desde cuando llegó el aviso
         provider,
       }),
     });
