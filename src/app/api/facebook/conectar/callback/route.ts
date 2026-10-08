@@ -101,17 +101,46 @@ export async function GET(request: Request) {
     paginasUrl.searchParams.set("fields", "id,name,access_token");
     paginasUrl.searchParams.set("access_token", largo.data.access_token);
     const paginasRes = await graph(paginasUrl);
-    const paginas = Array.isArray(paginasRes.data.data) ? (paginasRes.data.data as PaginaFb[]) : [];
-    if (!paginasRes.ok || paginas.length === 0) {
-      console.error("facebook/callback: sin páginas", { status: paginasRes.status, respuesta: paginasRes.data });
+    let paginas = Array.isArray(paginasRes.data.data) ? (paginasRes.data.data as PaginaFb[]) : [];
+
+    // Con "Facebook Login for Business" las Páginas que el usuario eligió en el diálogo no siempre salen en
+    // /me/accounts (p. ej. las que administra un portfolio comercial): vienen en los permisos granulares del token.
+    const diagnostico: Record<string, unknown> = { me_accounts: paginasRes.data };
+    if (paginas.length === 0) {
+      const debugUrl = new URL(`${base}/debug_token`);
+      debugUrl.searchParams.set("input_token", largo.data.access_token);
+      debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
+      const debug = await graph(debugUrl);
+      const info = (debug.data as { data?: { scopes?: string[]; granular_scopes?: { scope: string; target_ids?: string[] }[] } }).data;
+      diagnostico.permisos_concedidos = info?.scopes ?? null;
+      diagnostico.permisos_granulares = info?.granular_scopes ?? null;
+
+      const idsDePaginas = new Set<string>();
+      for (const g of info?.granular_scopes ?? []) {
+        if (g.scope.startsWith("pages_")) for (const id of g.target_ids ?? []) idsDePaginas.add(id);
+      }
+      for (const id of idsDePaginas) {
+        const paginaUrl = new URL(`${base}/${id}`);
+        paginaUrl.searchParams.set("fields", "id,name,access_token");
+        paginaUrl.searchParams.set("access_token", largo.data.access_token);
+        const r = await graph(paginaUrl);
+        const p = r.data as unknown as Partial<PaginaFb>;
+        if (r.ok && p.id && p.access_token) paginas.push({ id: p.id, name: p.name || p.id, access_token: p.access_token });
+        else diagnostico[`pagina_${id}`] = r.data;
+      }
+    }
+    if (paginas.length === 0) {
+      console.error("facebook/callback: sin páginas", diagnostico);
       return paginaOauth(
         "❌ No se encontró ninguna Página",
         `<p>La cuenta que autorizó no administra ninguna Página de Facebook, o no se concedió el permiso para verlas
          (en la ventana de Facebook hay que elegir la Página y aceptar todos los permisos).</p>
-         <pre class="valor">${escapeHtml(JSON.stringify(paginasRes.data, null, 2))}</pre>`,
+         <p class="label">Diagnóstico (sin tokens)</p>
+         <pre class="valor">${escapeHtml(JSON.stringify(diagnostico, null, 2))}</pre>`,
         false
       );
     }
+    paginas = [...new Map(paginas.map((p) => [p.id, p])).values()];
 
     const pageIdElegido = process.env.FACEBOOK_PAGE_ID?.trim();
     let pagina: PaginaFb | undefined;
