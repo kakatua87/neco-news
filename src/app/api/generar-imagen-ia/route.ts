@@ -50,6 +50,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: uploadError.message }, { status: 500 });
     }
 
+    // El nombre fijo cambia de extensión según lo que devuelva el generador: se borra la variante anterior
+    // para que no quede un archivo sin usar.
+    const otraExtension = extension === "png" ? "jpg" : "png";
+    const { error: limpiezaError } = await supabase.storage
+      .from("noticias-imagenes")
+      .remove([`noticias/${body.noticia_id}-ia.${otraExtension}`]);
+    if (limpiezaError) console.error("No se pudo borrar la variante anterior de la imagen IA:", limpiezaError.message);
+
     const { data: publicUrlData } = supabase.storage.from("noticias-imagenes").getPublicUrl(path);
     const imagenUrl = publicUrlData.publicUrl;
 

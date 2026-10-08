@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
+import { registrarRedireccionSeccion } from "@/lib/seccion-url";
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
       console.error("Error renombrando seccion:", error);
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
+
+    // El listado de la sección vieja redirige (301) a la nueva. Las notas se redirigen solas por su página.
+    await registrarRedireccionSeccion(supabase, anterior, nueva);
 
     return NextResponse.json({ ok: true, actualizadas: data?.length ?? 0, seccion: nueva });
   } catch (err) {

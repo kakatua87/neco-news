@@ -14,6 +14,156 @@ type Props = {
   seccionesDisponibles: string[];
 };
 
+type EstadoIg = {
+  conectado: boolean;
+  origen?: "base" | "env";
+  dias_restantes?: number | null;
+  alerta?: boolean;
+};
+
+/** Estado de la conexión con Instagram: vencimiento del token y botón para renovarlo en el momento. */
+function EstadoInstagram() {
+  const toast = useToast();
+  const [estado, setEstado] = useState<EstadoIg | null>(null);
+  const [renovando, setRenovando] = useState(false);
+
+  const cargar = () =>
+    adminFetch<EstadoIg>("/api/instagram/estado").then((r) => {
+      if (r.data) setEstado(r.data);
+    });
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  const renovar = async () => {
+    setRenovando(true);
+    const r = await adminFetch("/api/instagram/renovar", { method: "POST" });
+    setRenovando(false);
+    if (!r.ok) {
+      toast(`No se pudo renovar: ${r.error}`);
+      return;
+    }
+    toast("Token de Instagram renovado.", "ok");
+    cargar();
+  };
+
+  if (!estado) return <p className="text-xs text-muted">Consultando el estado de Instagram…</p>;
+  if (!estado.conectado) {
+    return <p className="text-sm font-medium text-red-600">● No conectado</p>;
+  }
+  if (estado.origen === "env") {
+    return (
+      <p className="text-sm font-medium text-amber-700">
+        ● Conectado con una variable de entorno (se desconoce cuándo vence). Reconectá la cuenta para que el token se
+        guarde y se renueve solo.
+      </p>
+    );
+  }
+  const dias = estado.dias_restantes;
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <p className={`text-sm font-medium ${estado.alerta ? "text-red-600" : "text-[#1da64f]"}`}>
+        ● Conectado{dias !== null && dias !== undefined ? ` · el token vence en ${dias} día${dias !== 1 ? "s" : ""}` : ""}
+        <span className="text-muted font-normal"> (se renueva solo cada día cuando faltan menos de 15)</span>
+      </p>
+      <button
+        onClick={renovar}
+        disabled={renovando}
+        className="px-3 py-1 text-xs font-medium border border-border rounded-full hover:bg-gray-50 disabled:opacity-50"
+      >
+        {renovando ? "Renovando..." : "Renovar ahora"}
+      </button>
+    </div>
+  );
+}
+
+type ResumenAlmacenamiento = {
+  aplicado: boolean;
+  total_huerfanos: number;
+  bytes_huerfanos: number;
+  eliminados: number;
+  quedan: number;
+  resumen: { bucket: string; prefijo: string; archivos: number; huerfanos: number; bytes: number }[];
+};
+
+const aMb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
+
+/** Revisa y borra archivos subidos que ya no usa ninguna noticia, borrador, banner ni envío. */
+function Almacenamiento() {
+  const toast = useToast();
+  const [resultado, setResultado] = useState<ResumenAlmacenamiento | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+
+  const correr = async (aplicar: boolean) => {
+    setOcupado(true);
+    const r = await adminFetch<ResumenAlmacenamiento>("/api/storage/limpiar", { method: "POST", json: { aplicar } });
+    setOcupado(false);
+    if (!r.ok || !r.data) {
+      toast(`No se pudo revisar el almacenamiento: ${r.error}`);
+      return;
+    }
+    setResultado(r.data);
+    if (aplicar) toast(`Se eliminaron ${r.data.eliminados} archivo(s).`, "ok");
+  };
+
+  const eliminar = async () => {
+    if (!resultado || resultado.total_huerfanos === 0) return;
+    const n = Math.min(resultado.total_huerfanos, 500);
+    if (!confirm(`¿Eliminar ${n} archivo(s) sin uso (${aMb(resultado.bytes_huerfanos)} MB aprox.)? No se puede deshacer.`)) return;
+    await correr(true);
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-3">
+      <h3 className="font-bold text-ink">Almacenamiento</h3>
+      <p className="text-sm text-muted">
+        Busca imágenes y adjuntos subidos que ya no usa ninguna noticia, borrador, banner ni envío. Revisar no borra
+        nada; solo se elimina cuando lo confirmás. Se consideran los archivos de más de 7 días (30 en los adjuntos de
+        envíos).
+      </p>
+      <button
+        onClick={() => correr(false)}
+        disabled={ocupado}
+        className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+      >
+        {ocupado ? "Revisando..." : "Revisar archivos sin uso"}
+      </button>
+
+      {resultado && (
+        <div className="space-y-3 pt-2">
+          <div className="border border-border rounded-lg divide-y divide-border text-sm">
+            {resultado.resumen.map((c) => (
+              <div key={c.bucket + c.prefijo} className="flex justify-between gap-3 px-3 py-2">
+                <span className="text-muted">
+                  {c.bucket}/{c.prefijo}
+                </span>
+                <span>
+                  {c.huerfanos} sin uso de {c.archivos} · {aMb(c.bytes)} MB
+                </span>
+              </div>
+            ))}
+          </div>
+          {resultado.total_huerfanos > 0 ? (
+            <button
+              onClick={eliminar}
+              disabled={ocupado}
+              className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 disabled:opacity-50"
+            >
+              🗑 Eliminar {Math.min(resultado.total_huerfanos, 500)} archivo(s) sin uso ({aMb(resultado.bytes_huerfanos)} MB)
+            </button>
+          ) : (
+            <p className="text-sm text-[#1da64f] font-medium">No hay archivos sin uso.</p>
+          )}
+          {resultado.aplicado && resultado.quedan > 0 && (
+            <p className="text-xs text-muted">Quedan {resultado.quedan} más: volvé a revisar y eliminar.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ConfiguracionTab({ scraperConfig, seccionesUsadas: usadasIniciales, seccionesDisponibles }: Props) {
   const router = useRouter();
   const toast = useToast();
@@ -68,8 +218,9 @@ export default function ConfiguracionTab({ scraperConfig, seccionesUsadas: usada
         <h3 className="font-bold text-ink">Instagram</h3>
         <p className="text-sm text-muted">
           Conectá tu cuenta de Instagram (Business/Creator) para poder publicar directo desde
-          el tab Instagram. El token dura ~60 días, hay que repetir este paso cuando venza.
+          el tab Instagram. El token se guarda y se renueva solo antes de vencer (dura ~60 días).
         </p>
+        <EstadoInstagram />
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- ruta API que redirige a Instagram, no una página de Next */}
         <a
           href="/api/instagram/conectar"
@@ -78,6 +229,8 @@ export default function ConfiguracionTab({ scraperConfig, seccionesUsadas: usada
           🔗 Conectar/renovar Instagram
         </a>
       </div>
+
+      <Almacenamiento />
 
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         <button
@@ -96,9 +249,8 @@ export default function ConfiguracionTab({ scraperConfig, seccionesUsadas: usada
         {seccionesAbierta && (
           <div className="px-6 pb-6 space-y-3 border-t border-border pt-4">
             <p className="text-sm text-muted">
-              Renombrar una sección actualiza todas las noticias que la usan. Los links de esa sección
-              cambian de URL, así que las notas ya publicadas y compartidas con el nombre anterior
-              dejarán de resolver en esa dirección.
+              Renombrar una sección actualiza todas las noticias que la usan. Las direcciones viejas
+              (el listado de la sección y los links de sus notas) redirigen solas a las nuevas.
             </p>
             {seccionesUsadas.length === 0 ? (
               <p className="text-sm text-muted">Todavía no hay noticias con una sección asignada.</p>

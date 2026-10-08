@@ -1,4 +1,7 @@
+import { permanentRedirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { buscarRedireccionSeccion } from "@/lib/seccion-redirects";
+import { decodificarSeguro } from "@/lib/seccion-url";
 import type { Noticia } from "@/types/noticia";
 import BannerZone from "@/components/BannerZone";
 import SeccionGrid from "./SeccionGrid";
@@ -11,7 +14,7 @@ type SeccionPageProps = {
 
 export default async function SeccionPage({ params }: SeccionPageProps) {
   const { seccion } = await params;
-  const normalized = decodeURIComponent(seccion).toLowerCase();
+  const normalized = decodificarSeguro(seccion).toLowerCase();
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("noticias")
@@ -22,6 +25,11 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
     .range(0, PAGE_SIZE);
 
   const traidas = (data as Noticia[]) ?? [];
+  // Sin notas: puede ser una sección que se renombró; si es así, 301 al nombre nuevo.
+  if (traidas.length === 0) {
+    const destino = await buscarRedireccionSeccion(normalized);
+    if (destino) permanentRedirect(destino);
+  }
   const hasMore = traidas.length > PAGE_SIZE;
   const noticias = traidas.slice(0, PAGE_SIZE);
 

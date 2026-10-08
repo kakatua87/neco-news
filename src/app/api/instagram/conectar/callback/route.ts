@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { esAdmin } from "@/lib/auth";
 import { escapeHtml } from "@/lib/html";
+import { guardarCredencialesInstagram } from "@/lib/instagram-credenciales";
 
 function paginaHtml(titulo: string, cuerpoHtml: string, ok: boolean): NextResponse {
   const html = `<!doctype html>
@@ -96,6 +97,25 @@ export async function GET(request: Request) {
     const meData = await meRes.json();
 
     const dias = Math.round((largoData.expires_in || 0) / 86400);
+
+    // Se guarda en la base y el cron diario lo renueva solo antes de que venza: ya no hay que copiar
+    // el token a Vercel. Si no se puede guardar (falta la tabla) se muestra como antes.
+    const guardado = await guardarCredencialesInstagram(
+      largoData.access_token,
+      String(meData.id || ""),
+      Number(largoData.expires_in) || 0
+    );
+    if (guardado) {
+      return paginaHtml(
+        "✅ ¡Instagram conectado!",
+        `
+          <p>Cuenta: <strong>@${escapeHtml(meData.username || "?")}</strong>.</p>
+          <p>El token se guardó de forma segura y se renueva solo antes de vencer (dura ~${dias} días y se extiende cada vez). No hace falta copiar nada ni tocar Vercel.</p>
+          <p><a href="/admin/configuracion">Volver a Configuración</a></p>
+        `,
+        true
+      );
+    }
 
     return paginaHtml(
       "✅ ¡Instagram conectado!",

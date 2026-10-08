@@ -1,5 +1,7 @@
 import { getNoticiaBySlug } from "@/lib/noticias";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { seccionSlug } from "@/lib/secciones";
+import { rutaNotaCanonica } from "@/lib/seccion-url";
 import Link from "next/link";
 import React from "react";
 import BannerZone from "@/components/BannerZone";
@@ -24,9 +26,16 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function NoticiaPage({ params }: Props) {
-  const { slug } = await params;
+  const { seccion, slug } = await params;
   const noticia = await getNoticiaBySlug(slug);
   if (!noticia) notFound();
+
+  // La nota se busca por slug, así que una URL con una sección vieja (renombrada) igual la abre: se
+  // redirige (301) a la URL actual para no tener la misma nota con direcciones distintas.
+  // Se aceptan las dos formas válidas hoy: "/vida cotidiana/..." (sitemap y links del sitio) y
+  // "/vida-cotidiana/..." (push, newsletter, Instagram).
+  const canonica = rutaNotaCanonica(seccion, noticia.seccion, seccionSlug(noticia.seccion), noticia.slug);
+  if (canonica) permanentRedirect(canonica);
 
   const jsonLd = {
     "@context": "https://schema.org",

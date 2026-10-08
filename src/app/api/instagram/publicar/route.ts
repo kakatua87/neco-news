@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
+import { obtenerCredencialesInstagram } from "@/lib/instagram-credenciales";
 import { renderInstagramCard, normalizarFormato } from "../../instagram-card/render";
 import sharp from "sharp";
 import { textoEnNegrita } from "@/lib/texto";
@@ -21,14 +22,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const igUserId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
-  const graphToken = process.env.INSTAGRAM_GRAPH_TOKEN;
-  if (!igUserId || !graphToken) {
+  // Credenciales guardadas en la base (las renueva solo el cron) o, si no hay, las variables de entorno.
+  const credenciales = await obtenerCredencialesInstagram();
+  if (!credenciales || !credenciales.igUserId) {
     return NextResponse.json(
-      { ok: false, error: "Falta conectar Instagram: configurá INSTAGRAM_BUSINESS_ACCOUNT_ID e INSTAGRAM_GRAPH_TOKEN en las variables de entorno." },
+      { ok: false, error: "Falta conectar Instagram: conectalo desde Configuración → Instagram." },
       { status: 500 }
     );
   }
+  const igUserId = credenciales.igUserId;
+  const graphToken = credenciales.token;
 
   try {
     const body = await request.json();
