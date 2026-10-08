@@ -32,3 +32,6 @@ export function validarArchivosEnvio(v: unknown, max = 10): ArchivoEnvio[] | nul
   }
   return limpios;
 }
+
+/** Escapa `\`, `%` y `_` para usar un texto del usuario dentro de un patrón LIKE/ILIKE como literal. */
+export const escaparLike = (texto: string): string => texto.replace(/[\\%_]/g, (c) => "\\" + c);

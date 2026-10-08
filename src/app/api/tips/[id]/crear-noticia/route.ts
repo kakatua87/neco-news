@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
+import { insertarNoticiaPendiente } from "@/lib/crear-noticia";
 
 // Admin: toma el borrador ya generado (o editado a mano) por el admin y crea
 // la noticia en estado 'pendiente', siguiendo desde ahí el flujo normal de
@@ -31,29 +32,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const primeraImagen = (envio.archivos || []).find((a: { tipo?: string }) => a.tipo?.startsWith("image/"));
 
-  const { data: noticia, error: insertError } = await supabase
-    .from("noticias")
-    .insert({
-      titulo: borrador.titulo,
-      cuerpo: borrador.cuerpo,
-      resumen_seo: borrador.resumen_seo ?? null,
-      seccion: borrador.seccion_sugerida || "Local",
-      estado: "pendiente",
-      imagen_url: primeraImagen?.url ?? null,
-      instagram_text: borrador.instagram_text ?? null,
-      instagram_titulo: borrador.instagram_titulo ?? null,
-      twitter_text: borrador.twitter_text ?? null,
-      guion_video: borrador.guion_video ?? null,
-      slug: borrador.slug,
-      es_portada: false,
-    })
-    .select("id")
-    .single();
-
-  if (insertError) {
-    console.error("Error creando noticia desde envío ciudadano:", insertError);
-    return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
+  const creada = await insertarNoticiaPendiente(supabase, {
+    titulo: borrador.titulo,
+    cuerpo: borrador.cuerpo,
+    resumen_seo: borrador.resumen_seo ?? null,
+    seccion: borrador.seccion_sugerida || "Local",
+    estado: "pendiente",
+    imagen_url: primeraImagen?.url ?? null,
+    instagram_text: borrador.instagram_text ?? null,
+    instagram_titulo: borrador.instagram_titulo ?? null,
+    twitter_text: borrador.twitter_text ?? null,
+    guion_video: borrador.guion_video ?? null,
+    slug: borrador.slug,
+    es_portada: false,
+  });
+  if (!creada.ok) {
+    return NextResponse.json({ ok: false, error: creada.error }, { status: creada.status });
   }
+  const noticia = { id: creada.id };
 
   const { error: updateError } = await supabase
     .from("envios_ciudadanos")

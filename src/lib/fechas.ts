@@ -34,3 +34,12 @@ export function agruparPorMesYDia<T extends { fecha_publicacion?: string | null 
     dias: Array.from(val.dias.values()),
   }));
 }
+
+/**
+ * Inicio y fin del día de HOY en Argentina (UTC-3 fijo, sin horario de verano), en formato ISO con offset.
+ * Hay que usarlo en vez de `toISOString()`: entre las 21 y las 24 h de Argentina, en UTC ya es el día siguiente.
+ */
+export function rangoDiaArgentina(ahora: Date = new Date()): { fecha: string; inicio: string; fin: string } {
+  const fecha = ahora.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }); // YYYY-MM-DD
+  return { fecha, inicio: `${fecha}T00:00:00-03:00`, fin: `${fecha}T23:59:59.999-03:00` };
+}

@@ -1,5 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Noticia } from "@/types/noticia";
+import { rangoDiaArgentina } from "@/lib/fechas";
+import { escaparLike } from "@/lib/validar";
 
 /** Noticias publicadas ordenadas por fecha, más recientes primero. Excluye Obituarios. */
 export async function getPublicadas(limit = 30): Promise<Noticia[]> {
@@ -29,15 +31,15 @@ export async function getPublicadas(limit = 30): Promise<Noticia[]> {
  */
 export async function getCarruselPortada(): Promise<Noticia[]> {
   const supabase = await createSupabaseServerClient();
-  const hoyArgentina = new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+  const { inicio, fin } = rangoDiaArgentina();
   const { data, error } = await supabase
     .from("noticias")
     .select("*")
     .eq("estado", "publicada")
     .eq("es_portada", true)
     .neq("seccion", "Obituarios")
-    .gte("fecha_publicacion", `${hoyArgentina}T00:00:00-03:00`)
-    .lt("fecha_publicacion", `${hoyArgentina}T23:59:59.999-03:00`)
+    .gte("fecha_publicacion", inicio)
+    .lte("fecha_publicacion", fin)
     .order("orden_portada", { ascending: true, nullsFirst: false })
     .limit(8);
 
@@ -70,14 +72,14 @@ export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promi
 /** Devuelve la noticia marcada como portada del día actual, o null si no hay. */
 export async function getPortadaDelDia(): Promise<Noticia | null> {
   const supabase = await createSupabaseServerClient();
-  const hoy = new Date().toISOString().split("T")[0];
+  const { inicio, fin } = rangoDiaArgentina();
   const { data } = await supabase
     .from("noticias")
     .select("*")
     .eq("estado", "publicada")
     .eq("es_portada", true)
-    .gte("fecha_publicacion", `${hoy}T00:00:00Z`)
-    .lte("fecha_publicacion", `${hoy}T23:59:59Z`)
+    .gte("fecha_publicacion", inicio)
+    .lte("fecha_publicacion", fin)
     .order("fecha_publicacion", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -102,25 +104,37 @@ export async function getPendientes(limit = 50): Promise<Noticia[]> {
   return data as Noticia[];
 }
 
-/** Busca noticias publicadas cuyo título o resumen contengan el término dado. */
+/**
+ * Busca noticias publicadas cuyo título o resumen contengan el término dado.
+ * Son dos consultas `.ilike()` (el valor viaja como parámetro y no como sintaxis de filtro): con un
+ * `.or()` armado a mano, una coma o un paréntesis del usuario rompía la consulta o inyectaba condiciones.
+ */
 export async function getBusqueda(query: string, limit = 30): Promise<Noticia[]> {
   const supabase = await createSupabaseServerClient();
-  const term = query.trim();
+  const term = query.trim().slice(0, 100);
   if (!term) return [];
+  const patron = `%${escaparLike(term)}%`;
 
-  const { data, error } = await supabase
-    .from("noticias")
-    .select("*")
-    .eq("estado", "publicada")
-    .or(`titulo.ilike.%${term}%,resumen_seo.ilike.%${term}%`)
-    .order("fecha_publicacion", { ascending: false, nullsFirst: false })
-    .limit(limit);
+  const buscarEn = (columna: "titulo" | "resumen_seo") =>
+    supabase
+      .from("noticias")
+      .select("*")
+      .eq("estado", "publicada")
+      .ilike(columna, patron)
+      .order("fecha_publicacion", { ascending: false, nullsFirst: false })
+      .limit(limit);
 
-  if (error) {
-    console.error("Error al buscar noticias:", error.message);
-    return [];
+  const [porTitulo, porResumen] = await Promise.all([buscarEn("titulo"), buscarEn("resumen_seo")]);
+  if (porTitulo.error || porResumen.error) {
+    console.error("Error al buscar noticias:", porTitulo.error?.message ?? porResumen.error?.message);
+    if (porTitulo.error && porResumen.error) return [];
   }
-  return data as Noticia[];
+
+  const unicas = new Map<string | number, Noticia>();
+  for (const n of [...(porTitulo.data ?? []), ...(porResumen.data ?? [])] as Noticia[]) unicas.set(n.id, n);
+  return Array.from(unicas.values())
+    .sort((a, b) => (b.fecha_publicacion ?? "").localeCompare(a.fecha_publicacion ?? ""))
+    .slice(0, limit);
 }
 
 /** Noticia individual por slug. */

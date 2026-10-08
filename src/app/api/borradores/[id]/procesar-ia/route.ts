@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
 import { htmlToCuerpo } from "@/lib/cuerpo";
+import { insertarNoticiaPendiente } from "@/lib/crear-noticia";
+import { esTextoHasta } from "@/lib/validar";
 
 // Admin: convierte el HTML del borrador a texto plano, lo manda al scraper
 // para que la IA lo pula y genere los campos adicionales, y crea la noticia
@@ -53,39 +55,48 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json(resultado, { status: res.ok ? 400 : res.status });
     }
 
-    const { data: noticia, error: insertError } = await supabase
-      .from("noticias")
-      .insert({
-        titulo: resultado.titulo,
-        cuerpo: resultado.cuerpo,
-        resumen_seo: resultado.resumen_seo ?? null,
-        seccion: resultado.seccion_sugerida || borrador.seccion || "Local",
-        estado: "pendiente",
-        origen: "redaccion",
-        imagen_url: borrador.imagen_portada_url ?? null,
-        instagram_text: resultado.instagram_text ?? null,
-        instagram_titulo: resultado.instagram_titulo ?? null,
-        twitter_text: resultado.twitter_text ?? null,
-        guion_video: resultado.guion_video ?? null,
-        slug: resultado.slug,
-        es_portada: false,
-      })
-      .select("id")
-      .single();
-
-    if (insertError) {
-      console.error("Error creando noticia desde borrador de redacción:", insertError);
-      return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
+    // La IA tiene que devolver lo mínimo para crear la nota; si no, el borrador se conserva.
+    if (
+      !esTextoHasta(resultado.titulo, 300) || !resultado.titulo ||
+      !esTextoHasta(resultado.cuerpo, 100000) || !resultado.cuerpo ||
+      !esTextoHasta(resultado.slug, 200)
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "La IA no devolvió una nota completa. Tu borrador sigue guardado: probá de nuevo." },
+        { status: 502 }
+      );
     }
+
+    const creada = await insertarNoticiaPendiente(supabase, {
+      titulo: resultado.titulo,
+      cuerpo: resultado.cuerpo,
+      resumen_seo: resultado.resumen_seo ?? null,
+      // La sección que eligió el editor en el borrador manda; la IA solo sugiere.
+      seccion: borrador.seccion || resultado.seccion_sugerida || "Local",
+      estado: "pendiente",
+      origen: "redaccion",
+      imagen_url: borrador.imagen_portada_url ?? null,
+      instagram_text: resultado.instagram_text ?? null,
+      instagram_titulo: resultado.instagram_titulo ?? null,
+      twitter_text: resultado.twitter_text ?? null,
+      guion_video: resultado.guion_video ?? null,
+      slug: resultado.slug,
+      es_portada: false,
+    });
+    if (!creada.ok) {
+      return NextResponse.json({ ok: false, error: creada.error }, { status: creada.status });
+    }
+    const noticia = { id: creada.id };
 
     // Una vez creada la noticia en "pendientes", el borrador ya cumplió su
     // función -- se elimina para que no quede dando vueltas en la lista de
     // "Redacción".
-    await supabase.from("borradores_redaccion").delete().eq("id", id);
+    const { error: deleteError } = await supabase.from("borradores_redaccion").delete().eq("id", id);
+    if (deleteError) console.error("No se pudo borrar el borrador ya procesado:", deleteError);
 
     return NextResponse.json({ ok: true, noticia_id: noticia.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error proxying redacción to scraper:", error);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "No se pudo procesar el borrador. Probá de nuevo." }, { status: 500 });
   }
 }

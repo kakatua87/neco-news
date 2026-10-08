@@ -9,7 +9,7 @@ type Body = {
   id?: number;
   titulo?: string;
   cuerpo?: string;
-  imagen_url?: string;
+  imagen_url?: string | null;
 };
 
 export async function POST(request: Request) {
@@ -23,13 +23,14 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const payload: Record<string, string> = {
+  const payload: Record<string, string | null> = {
     estado: "publicada",
     fecha_publicacion: new Date().toISOString(),
   };
   if (body.titulo) payload.titulo = body.titulo;
   if (body.cuerpo) payload.cuerpo = body.cuerpo;
-  if (body.imagen_url) payload.imagen_url = body.imagen_url;
+  // Si el editor sacó la imagen llega null: se limpia (antes se ignoraba y quedaba la anterior).
+  if ("imagen_url" in body) payload.imagen_url = body.imagen_url || null;
 
   const { error } = await supabase.from("noticias").update(payload).eq("id", body.id);
   if (error) {
