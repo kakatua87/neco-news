@@ -39,8 +39,9 @@ export async function GET(request: Request) {
     return paginaHtml("❌ Falta el código", `<p>No llegó el parámetro "code" en la respuesta de Instagram.</p>`, false);
   }
 
-  const appId = process.env.INSTAGRAM_APP_ID;
-  const appSecret = process.env.INSTAGRAM_APP_SECRET;
+  // trim(): un espacio o salto de línea pegado junto con la clave en Vercel hace que Instagram rechace el canje.
+  const appId = process.env.INSTAGRAM_APP_ID?.trim();
+  const appSecret = process.env.INSTAGRAM_APP_SECRET?.trim();
   if (!appId || !appSecret) {
     return paginaHtml(
       "❌ Falta configuración",
@@ -79,6 +80,8 @@ export async function GET(request: Request) {
         `<pre class="valor">${escapeHtml(JSON.stringify(cortoData, null, 2))}</pre>
          <p class="label">redirect_uri usada al canjear</p>
          <div class="valor">${escapeHtml(redirectUri)}</div>
+         <p class="label">App ID usado (debe coincidir con el "ID de la app de Instagram" de Meta) y largo del secreto</p>
+         <div class="valor">${escapeHtml(appId)} · secreto de ${appSecret.length} caracteres</div>
          <p>El código de Instagram sirve una sola vez: si recargaste esta página, volvé a <a href="/admin/configuracion">Configuración</a> y tocá "Conectar/renovar Instagram" de nuevo, sin recargar ni volver atrás.</p>`,
         false
       );

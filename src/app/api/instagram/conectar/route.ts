@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const appId = process.env.INSTAGRAM_APP_ID;
+  const appId = process.env.INSTAGRAM_APP_ID?.trim();
   if (!appId) {
     return NextResponse.json(
       { ok: false, error: "Falta INSTAGRAM_APP_ID en las variables de entorno." },
