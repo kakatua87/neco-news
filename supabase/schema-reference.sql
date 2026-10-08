@@ -34,6 +34,8 @@
 --                     redirige (301) al nuevo (las notas se redirigen solas por su página)
 -- instagram_credenciales  una sola fila (id = 1): access_token, ig_user_id, expira_en, actualizado_en;
 --                     el cron diario /api/instagram/renovar extiende el token
+-- facebook_credenciales  una sola fila (id = 1): page_id, page_name, access_token (token de la Página, no vence),
+--                     actualizado_en; la escribe /api/facebook/conectar/callback
 -- rate_limit_envios   ip_hash, accion, created_at: límite por visitante del formulario público
 --
 -- Storage: buckets noticias-imagenes y tips-ciudadanos (público).
@@ -136,5 +138,5 @@ CREATE POLICY tips_ciudadanos_lectura_publica ON storage.objects FOR SELECT TO a
 -- rate_limit_envios (ip_hash, accion, created_at): límite por visitante del formulario público; la IP se guarda
 --   hasheada con sal, nunca en claro. RLS activo y sin políticas: solo la service role.
 
--- admins, borradores_redaccion, suscriptores, rate_limit_envios e instagram_credenciales no tienen políticas: solo se accede con la
+-- admins, borradores_redaccion, suscriptores, rate_limit_envios, instagram_credenciales y facebook_credenciales no tienen políticas: solo se accede con la
 -- service role desde las rutas /api (correcto, pero cualquier ruta nueva debe llamar a esAdmin()).

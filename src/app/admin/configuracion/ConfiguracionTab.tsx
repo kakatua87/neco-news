@@ -78,6 +78,26 @@ function EstadoInstagram() {
   );
 }
 
+/** Estado de la conexión con la Página de Facebook (su token no vence, así que no hay cuenta regresiva). */
+function EstadoFacebook() {
+  const [estado, setEstado] = useState<{ conectado: boolean; pagina?: string | null } | null>(null);
+
+  useEffect(() => {
+    adminFetch<{ conectado: boolean; pagina?: string | null }>("/api/facebook/estado").then((r) => {
+      if (r.data) setEstado(r.data);
+    });
+  }, []);
+
+  if (!estado) return <p className="text-xs text-muted">Consultando el estado de Facebook…</p>;
+  if (!estado.conectado) return <p className="text-sm font-medium text-red-600">● No conectado</p>;
+  return (
+    <p className="text-sm font-medium text-[#1da64f]">
+      ● Conectado{estado.pagina ? ` · Página «${estado.pagina}»` : ""}
+      <span className="text-muted font-normal"> (el token de la Página no vence)</span>
+    </p>
+  );
+}
+
 type ResumenAlmacenamiento = {
   aplicado: boolean;
   total_huerfanos: number;
@@ -227,6 +247,22 @@ export default function ConfiguracionTab({ scraperConfig, seccionesUsadas: usada
           className="inline-block px-5 py-2.5 bg-accent hover:bg-accent-dark text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95"
         >
           🔗 Conectar/renovar Instagram
+        </a>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-3">
+        <h3 className="font-bold text-ink">Facebook</h3>
+        <p className="text-sm text-muted">
+          Conectá la Página de Facebook para publicar directo desde el tab Instagram (foto con la tarjeta o enlace a la
+          nota). Hay que iniciar sesión con una cuenta que administre la Página.
+        </p>
+        <EstadoFacebook />
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- ruta API que redirige a Facebook, no una página de Next */}
+        <a
+          href="/api/facebook/conectar"
+          className="inline-block px-5 py-2.5 bg-[#1877F2] hover:bg-[#1464cc] text-white rounded-lg font-bold text-sm shadow-md transition-all active:scale-95"
+        >
+          🔗 Conectar/reconectar Facebook
         </a>
       </div>
 

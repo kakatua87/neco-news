@@ -11,6 +11,7 @@ import type { InstagramKitItem } from "../_lib/types";
 import { agruparPorMesYDia } from "@/lib/fechas";
 
 type Filtro = "todas" | "sin_publicar" | "publicadas";
+type Red = "instagram" | "facebook";
 
 /** "8 oct 22:18", en hora de Argentina. */
 function fechaCorta(iso: string): string {
@@ -30,7 +31,9 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
 
   const [items, setItems] = useState(initialItems);
   const [busyIds, setBusyIds] = useState<Array<string | number>>([]);
-  const [publicandoIds, setPublicandoIds] = useState<Array<string | number>>([]);
+  // Claves "<red>-<id>" o "ambas-<id>" de lo que se está publicando ahora mismo.
+  const [publicandoIds, setPublicandoIds] = useState<string[]>([]);
+  const [modoFacebook, setModoFacebook] = useState<Record<string | number, "foto" | "enlace">>({});
   const [seleccionadas, toggleSeleccion, setSeleccionadas] = useToggleSet<string | number>();
   const [mesesExpandidos, toggleMes] = useToggleSet<string>();
   const [editando, setEditando] = useState<{ item: InstagramKitItem; formato: FormatoKey } | null>(null);
@@ -104,38 +107,74 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
     toast("Copiado. Pegalo en Instagram (no tiene un botón de compartir directo desde la web).", "ok");
   };
 
-  const publicarEnInstagram = async (item: InstagramKitItem) => {
+  const NOMBRE_RED = { instagram: "Instagram", facebook: "Facebook" } as const;
+
+  /** Publica una nota en una red y refleja la marca en pantalla. No muestra avisos: devuelve el resultado. */
+  const enviarARed = async (
+    red: Red,
+    item: InstagramKitItem,
+    forzar: boolean
+  ): Promise<{ ok: boolean; mensaje: string }> => {
     const formato = formatoElegido[item.id] || "cuadrado";
-    const destino = formato === "historia" ? "historia" : "feed";
     const imagenUrlEditada = editadas[`${item.id}-${formato}`];
-    const yaPublicada = !!item.instagram_publicado_at;
-    if (yaPublicada && !confirm("Esta noticia ya se publicó en Instagram. ¿Publicarla de nuevo? Va a quedar duplicada en el perfil.")) {
-      return;
-    }
-    setPublicandoIds((prev) => [...prev, item.id]);
+    const json =
+      red === "instagram"
+        ? { noticiaId: item.id, formato, destino: formato === "historia" ? "historia" : "feed", imagenUrlEditada, forzar }
+        : { noticiaId: item.id, formato, modo: modoFacebook[item.id] || "foto", imagenUrlEditada, forzar };
+    const campo = red === "instagram" ? "instagram" : "facebook";
+
     const r = await adminFetch<{ permalink?: string | null; publicadoAt?: string | null; avisoMarca?: string }>(
-      "/api/instagram/publicar",
-      { method: "POST", json: { noticiaId: item.id, formato, destino, imagenUrlEditada, forzar: yaPublicada } }
+      `/api/${campo}/publicar`,
+      { method: "POST", json }
     );
-    setPublicandoIds((prev) => prev.filter((id) => id !== item.id));
     if (r.status === 409) {
       // Otro editor (u otra pestaña) ya la publicó: se refleja la marca sin recargar.
-      setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, instagram_publicado_at: n.instagram_publicado_at || new Date().toISOString() } : n)));
-      toast("Esta noticia ya estaba publicada en Instagram.");
-      return;
+      setItems((prev) =>
+        prev.map((n) => (n.id === item.id ? { ...n, [`${campo}_publicado_at`]: n[`${campo}_publicado_at`] || new Date().toISOString() } : n))
+      );
+      return { ok: false, mensaje: `ya estaba publicada en ${NOMBRE_RED[red]}` };
     }
-    if (!r.ok) {
-      toast(`No se pudo publicar: ${r.error}`);
-      return;
-    }
+    if (!r.ok) return { ok: false, mensaje: `no se pudo publicar en ${NOMBRE_RED[red]}: ${r.error}` };
     setItems((prev) =>
       prev.map((n) =>
         n.id === item.id
-          ? { ...n, instagram_publicado_at: r.data?.publicadoAt || new Date().toISOString(), instagram_permalink: r.data?.permalink ?? null }
+          ? { ...n, [`${campo}_publicado_at`]: r.data?.publicadoAt || new Date().toISOString(), [`${campo}_permalink`]: r.data?.permalink ?? null }
           : n
       )
     );
-    toast(r.data?.avisoMarca || "¡Publicado en Instagram!", r.data?.avisoMarca ? undefined : "ok");
+    return { ok: true, mensaje: r.data?.avisoMarca || `¡Publicado en ${NOMBRE_RED[red]}!` };
+  };
+
+  const publicarEnRed = async (red: Red, item: InstagramKitItem) => {
+    const yaPublicada = !!(red === "instagram" ? item.instagram_publicado_at : item.facebook_publicado_at);
+    if (yaPublicada && !confirm(`Esta noticia ya se publicó en ${NOMBRE_RED[red]}. ¿Publicarla de nuevo? Va a quedar duplicada.`)) {
+      return;
+    }
+    const clave = `${red}-${item.id}`;
+    setPublicandoIds((prev) => [...prev, clave]);
+    const r = await enviarARed(red, item, yaPublicada);
+    setPublicandoIds((prev) => prev.filter((k) => k !== clave));
+    toast(r.ok ? r.mensaje : `${r.mensaje.charAt(0).toUpperCase()}${r.mensaje.slice(1)}`, r.ok ? "ok" : undefined);
+  };
+
+  /** Instagram primero y luego Facebook; salta la red donde ya está publicada y no revierte si una falla. */
+  const publicarEnAmbas = async (item: InstagramKitItem) => {
+    const redes = (["instagram", "facebook"] as Red[]).filter((red) => !(red === "instagram" ? item.instagram_publicado_at : item.facebook_publicado_at));
+    if (redes.length === 0) {
+      toast("Esta noticia ya está publicada en las dos redes.");
+      return;
+    }
+    const clave = `ambas-${item.id}`;
+    setPublicandoIds((prev) => [...prev, clave]);
+    const resultados: string[] = [];
+    let todoOk = true;
+    for (const red of redes) {
+      const r = await enviarARed(red, item, false);
+      todoOk = todoOk && r.ok;
+      resultados.push(r.ok ? `✓ ${NOMBRE_RED[red]}` : `✗ ${r.mensaje}`);
+    }
+    setPublicandoIds((prev) => prev.filter((k) => k !== clave));
+    toast(resultados.join(" · "), todoOk ? "ok" : undefined);
   };
 
   const seleccionarTodas = () =>
@@ -160,7 +199,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
       <div className="space-y-6 fade-in">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-ink">📸 Kit de Instagram</h2>
+            <h2 className="text-2xl font-bold text-ink">📸 Kit de redes (Instagram y Facebook)</h2>
             <p className="text-sm text-muted mt-1">
               Título gancho, imagen y link listos para copiar y postear manualmente con tus hashtags.
             </p>
@@ -237,6 +276,8 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                           {dia.items.map((item) => {
                             const busy = busyIds.includes(item.id);
                             const selected = seleccionadas.has(item.id);
+                            // Mientras se publica en una red (o en ambas) se bloquean los tres botones de esa nota.
+                            const ocupada = ["instagram", "facebook", "ambas"].some((p) => publicandoIds.includes(`${p}-${item.id}`));
                             return (
                               <article key={item.id} className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col relative ${selected ? "border-accent ring-2 ring-accent/30" : estaPublicada(item) ? "border-green-300 bg-green-50/40" : "border-border"}`}>
                                 <label className="absolute top-3 left-3 z-10 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
@@ -313,13 +354,42 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                                         ))}
                                       </select>
                                       <button
-                                        onClick={() => publicarEnInstagram(item)}
-                                        disabled={publicandoIds.includes(item.id)}
+                                        onClick={() => publicarEnRed("instagram", item)}
+                                        disabled={ocupada}
                                         className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-50 whitespace-nowrap"
                                       >
-                                        {publicandoIds.includes(item.id) ? "Publicando..." : item.instagram_publicado_at ? "↻ Volver a publicar" : "📸 Publicar"}
+                                        {publicandoIds.includes(`instagram-${item.id}`) ? "Publicando..." : item.instagram_publicado_at ? "↻ Instagram" : "📸 Instagram"}
                                       </button>
                                     </div>
+                                  )}
+                                  {item.imagen_url && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <select
+                                        value={modoFacebook[item.id] || "foto"}
+                                        onChange={(e) => setModoFacebook((prev) => ({ ...prev, [item.id]: e.target.value as "foto" | "enlace" }))}
+                                        className="flex-1 text-xs border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent bg-white"
+                                        aria-label="Formato de la publicación en Facebook"
+                                      >
+                                        <option value="foto">Facebook — Foto con la tarjeta</option>
+                                        <option value="enlace">Facebook — Enlace a la nota</option>
+                                      </select>
+                                      <button
+                                        onClick={() => publicarEnRed("facebook", item)}
+                                        disabled={ocupada}
+                                        className="px-3 py-1.5 text-xs font-bold bg-[#1877F2] text-white rounded hover:bg-[#1464cc] transition-colors disabled:opacity-50 whitespace-nowrap"
+                                      >
+                                        {publicandoIds.includes(`facebook-${item.id}`) ? "Publicando..." : item.facebook_publicado_at ? "↻ Facebook" : "📘 Facebook"}
+                                      </button>
+                                    </div>
+                                  )}
+                                  {item.imagen_url && (
+                                    <button
+                                      onClick={() => publicarEnAmbas(item)}
+                                      disabled={ocupada}
+                                      className="mt-2 w-full px-3 py-1.5 text-xs font-bold border border-accent text-accent rounded hover:bg-accent/10 transition-colors disabled:opacity-50"
+                                    >
+                                      {publicandoIds.includes(`ambas-${item.id}`) ? "Publicando en las dos..." : "🚀 Publicar en ambas"}
+                                    </button>
                                   )}
                                 </div>
                                 <div className="p-4 flex-1 flex flex-col gap-3">
