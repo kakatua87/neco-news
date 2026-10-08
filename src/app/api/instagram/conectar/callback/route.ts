@@ -67,9 +67,19 @@ export async function GET(request: Request) {
     });
     const cortoData = await cortoRes.json();
     if (!cortoRes.ok || !cortoData.access_token) {
+      // Diagnóstico sin datos sensibles: la respuesta de Instagram trae el motivo, y la redirect_uri tiene que
+      // ser idéntica a la usada al autorizar. El código es de un solo uso: recargar esta página siempre falla.
+      console.error("instagram/callback: no se pudo canjear el código", {
+        status: cortoRes.status,
+        redirectUri,
+        respuesta: cortoData,
+      });
       return paginaHtml(
         "❌ No se pudo canjear el código",
-        `<pre class="valor">${escapeHtml(JSON.stringify(cortoData, null, 2))}</pre>`,
+        `<pre class="valor">${escapeHtml(JSON.stringify(cortoData, null, 2))}</pre>
+         <p class="label">redirect_uri usada al canjear</p>
+         <div class="valor">${escapeHtml(redirectUri)}</div>
+         <p>El código de Instagram sirve una sola vez: si recargaste esta página, volvé a <a href="/admin/configuracion">Configuración</a> y tocá "Conectar/renovar Instagram" de nuevo, sin recargar ni volver atrás.</p>`,
         false
       );
     }
@@ -82,6 +92,10 @@ export async function GET(request: Request) {
     const largoRes = await fetch(largoUrl.toString());
     const largoData = await largoRes.json();
     if (!largoRes.ok || !largoData.access_token) {
+      console.error("instagram/callback: no se pudo generar el token de larga duración", {
+        status: largoRes.status,
+        respuesta: largoData,
+      });
       return paginaHtml(
         "❌ No se pudo generar el token de larga duración",
         `<pre class="valor">${escapeHtml(JSON.stringify(largoData, null, 2))}</pre>`,

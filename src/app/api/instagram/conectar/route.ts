@@ -29,5 +29,6 @@ export async function GET() {
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("scope", scope);
 
+  console.log("instagram/conectar: redirect_uri enviada a Instagram:", redirectUri);
   return NextResponse.redirect(authorizeUrl.toString());
 }
