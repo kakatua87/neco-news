@@ -22,6 +22,8 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviado, setEnviado] = useState(false);
+  // Honeypot: campo invisible para personas. Si un bot lo completa, la API descarta el envío.
+  const [sitioWeb, setSitioWeb] = useState("");
 
   const categoriaInfo = CATEGORIAS.find((c) => c.key === categoria);
 
@@ -34,9 +36,14 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
         const formData = new FormData();
         formData.append("file", file);
         const res = await fetch("/api/tips/subir-archivo", { method: "POST", body: formData });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          setError(data.error || "No se pudo subir el archivo");
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.ok) {
+          // 413: la plataforma corta los archivos grandes antes de que lleguen a la API (respuesta sin JSON).
+          setError(
+            res.status === 413
+              ? "El archivo es demasiado pesado para subirlo desde acá (el máximo real ronda los 4 MB). Probá con uno más liviano."
+              : data?.error || "No se pudo subir el archivo"
+          );
           continue;
         }
         setArchivos((prev) => [...prev, { url: data.url, tipo: data.tipo, nombre: data.nombre }]);
@@ -57,7 +64,7 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/tips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre, telefono, categoria, mensaje, archivos }),
+        body: JSON.stringify({ nombre, telefono, categoria, mensaje, archivos, sitio_web: sitioWeb }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -90,6 +97,16 @@ export default function TipModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="p-5 overflow-y-auto flex-1">
+          <input
+            type="text"
+            name="sitio_web"
+            value={sitioWeb}
+            onChange={(e) => setSitioWeb(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="absolute -left-[9999px] h-0 w-0 opacity-0"
+          />
           {enviado ? (
             <div className="text-center py-8">
               <p className="text-4xl mb-3">✅</p>

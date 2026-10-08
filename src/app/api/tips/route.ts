@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
 import { validarArchivosEnvio } from "@/lib/validar";
+import { superaLimite } from "@/lib/rate-limit";
 
 const CATEGORIAS = ["Denuncia", "Dato/Info", "Evento", "Otro"];
 
 // Tope global de envíos por hora: sin captcha ni IP en la tabla, es lo que evita que alguien
 // inunde la bandeja y el chat de Telegram.
 const MAX_ENVIOS_POR_HORA = 60;
+// Por visitante (IP hasheada): un vecino real manda pocos avisos por hora.
+const MAX_ENVIOS_POR_IP_POR_HORA = 5;
 
 async function notificarTelegram(mensaje: string, categoria: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -32,6 +35,11 @@ async function notificarTelegram(mensaje: string, categoria: string) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    // Honeypot: el campo está oculto para las personas; si viene lleno es un bot. Se responde "ok" sin
+    // guardar nada para no darle pistas.
+    if (typeof body.sitio_web === "string" && body.sitio_web.trim() !== "") {
+      return NextResponse.json({ ok: true, id: null });
+    }
     const nombre = (body.nombre ?? "").toString().trim().slice(0, 100) || null;
     const telefono = (body.telefono ?? "").toString().trim().slice(0, 40) || null;
     const categoria = (body.categoria ?? "").toString().trim();
@@ -53,6 +61,12 @@ export async function POST(request: Request) {
     }
 
     const supabase = createSupabaseAdminClient();
+    if (await superaLimite(supabase, request, "envio", MAX_ENVIOS_POR_IP_POR_HORA)) {
+      return NextResponse.json(
+        { ok: false, error: "Mandaste varios avisos seguidos. Esperá un rato antes de enviar otro." },
+        { status: 429 }
+      );
+    }
     const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { count } = await supabase
       .from("envios_ciudadanos")

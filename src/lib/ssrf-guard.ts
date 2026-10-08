@@ -97,3 +97,20 @@ export async function fetchExternoSeguro(
   }
   throw new Error("Demasiados redirects");
 }
+
+/**
+ * true si la URL es http(s), no trae usuario/clave y su host resuelve solo a IPs públicas.
+ * Se usa para validar las fuentes de noticias que el admin agrega a mano: el scraper las abre con un
+ * navegador, así que no pueden apuntar a localhost, redes internas ni metadata de nube.
+ */
+export async function urlEsPublica(valor: string): Promise<boolean> {
+  let url: URL;
+  try {
+    url = new URL(valor);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+  if (url.username || url.password) return false;
+  return resuelveAIpPublica(url.hostname.replace(/^\[|\]$/g, ""));
+}

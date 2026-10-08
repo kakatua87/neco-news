@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { superaLimite } from "@/lib/rate-limit";
 
 const TIPOS: Record<string, { extension: string; maxBytes: number }> = {
   "image/jpeg": { extension: "jpg", maxBytes: 8 * 1024 * 1024 },
@@ -17,10 +18,26 @@ const TIPOS: Record<string, { extension: string; maxBytes: number }> = {
   "audio/wav": { extension: "wav", maxBytes: 20 * 1024 * 1024 },
 };
 
+const MAX_SUBIDAS_POR_IP_POR_HORA = 20;
+const MAX_BODY_BYTES = 61 * 1024 * 1024; // el tope más alto (60 MB de video) + el armado del multipart
+
 // Endpoint público (sin esAdmin): lo usa el formulario web de envíos ciudadanos
 // para subir fotos/videos/PDF antes de mandar el envío con POST /api/tips.
 export async function POST(request: Request) {
   try {
+    // Se rechaza por el tamaño declarado ANTES de leer el cuerpo: formData() carga todo en memoria.
+    const largo = Number(request.headers.get("content-length") ?? 0);
+    if (largo > MAX_BODY_BYTES) {
+      return NextResponse.json({ ok: false, error: "El archivo pesa demasiado." }, { status: 413 });
+    }
+    const supabase = createSupabaseAdminClient();
+    if (await superaLimite(supabase, request, "subida", MAX_SUBIDAS_POR_IP_POR_HORA)) {
+      return NextResponse.json(
+        { ok: false, error: "Subiste muchos archivos seguidos. Probá de nuevo en un rato." },
+        { status: 429 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -43,7 +60,6 @@ export async function POST(request: Request) {
     }
 
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const supabase = createSupabaseAdminClient();
     const nombreAleatorio = Math.random().toString(36).slice(2, 10);
     const path = `envios/${Date.now()}-${nombreAleatorio}.${tipo.extension}`;
 
@@ -52,7 +68,8 @@ export async function POST(request: Request) {
       .upload(path, bytes, { contentType: file.type, upsert: false });
 
     if (uploadError) {
-      return NextResponse.json({ ok: false, error: uploadError.message }, { status: 500 });
+      console.error("Error subiendo archivo de envío:", uploadError);
+      return NextResponse.json({ ok: false, error: "No se pudo subir el archivo. Probá de nuevo." }, { status: 500 });
     }
 
     const { data: publicUrlData } = supabase.storage.from("tips-ciudadanos").getPublicUrl(path);
@@ -62,8 +79,8 @@ export async function POST(request: Request) {
       tipo: file.type,
       nombre: file.name,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("Catch error in POST tips/subir-archivo:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "No se pudo subir el archivo. Probá de nuevo." }, { status: 500 });
   }
 }

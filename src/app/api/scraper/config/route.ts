@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
+import { urlEsPublica } from "@/lib/ssrf-guard";
 
 export async function GET() {
   try {
@@ -34,7 +35,7 @@ type Body = {
   fuentes_custom?: FuenteCustom[];
 };
 
-function validarFuentesCustom(fuentes: unknown): FuenteCustom[] | null {
+async function validarFuentesCustom(fuentes: unknown): Promise<FuenteCustom[] | null> {
   if (!Array.isArray(fuentes)) return null;
   const limpias: FuenteCustom[] = [];
   for (const f of fuentes) {
@@ -50,6 +51,8 @@ function validarFuentesCustom(fuentes: unknown): FuenteCustom[] | null {
       return null;
     }
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    // El scraper abre estas URLs con un navegador: nada de localhost, redes internas ni metadata de nube.
+    if (!(await urlEsPublica(parsed.toString()))) return null;
     limpias.push({ key: key.trim(), label: label.trim().slice(0, 60), url: parsed.toString() });
   }
   return limpias;
@@ -69,9 +72,9 @@ export async function POST(request: Request) {
     if (body.fuentes_activas !== undefined) payload.fuentes_activas = body.fuentes_activas;
     if (body.fecha_inicio !== undefined) payload.fecha_inicio = body.fecha_inicio;
     if (body.fuentes_custom !== undefined) {
-      const limpias = validarFuentesCustom(body.fuentes_custom);
+      const limpias = await validarFuentesCustom(body.fuentes_custom);
       if (limpias === null) {
-        return NextResponse.json({ ok: false, error: "fuentes_custom inválido: revisá que cada fuente tenga key, label y una url http(s) válida." }, { status: 400 });
+        return NextResponse.json({ ok: false, error: "fuentes_custom inválido: revisá que cada fuente tenga key, label y una url http(s) pública y válida (no se aceptan direcciones internas)." }, { status: 400 });
       }
       payload.fuentes_custom = limpias;
     }
