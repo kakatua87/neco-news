@@ -89,24 +89,6 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Instagram no tiene un web-intent público para compartir contenido
-  // externo. En mobile, navigator.share() abre la bandeja nativa del
-  // sistema (que incluye Instagram como destino); en desktop no existe,
-  // así que caemos al copy-to-clipboard de siempre.
-  const compartirEnInstagram = async (item: InstagramKitItem) => {
-    const texto = `${item.instagram_titulo || item.titulo}\n\n${item.instagram_text || ""}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: item.instagram_titulo || item.titulo, text: texto, url: noticiaLink(item) });
-        return;
-      } catch {
-        // el usuario canceló el share sheet, o el navegador no pudo abrirlo — caemos al copy
-      }
-    }
-    copiarTodo(item);
-    toast("Copiado. Pegalo en Instagram (no tiene un botón de compartir directo desde la web).", "ok");
-  };
-
   const NOMBRE_RED = { instagram: "Instagram", facebook: "Facebook" } as const;
 
   /** Publica una nota en una red y refleja la marca en pantalla. No muestra avisos: devuelve el resultado. */
@@ -463,13 +445,6 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                       className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors"
                                     >
                                       𝕏 Compartir en X
-                                    </button>
-                                    <button
-                                      onClick={() => compartirEnInstagram(item)}
-                                      disabled={!item.instagram_titulo && !item.instagram_text}
-                                      className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-40"
-                                    >
-                                      📸 Compartir en Instagram
                                     </button>
                                   </div>
                                 </div>
