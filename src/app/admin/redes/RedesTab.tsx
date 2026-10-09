@@ -81,14 +81,6 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
     navigator.clipboard.writeText(noticiaLink(item));
   };
 
-  // X (Twitter) sí tiene un web-intent público: abre una ventana de
-  // compose con el texto y el link precargados.
-  const compartirEnX = (item: InstagramKitItem) => {
-    const texto = item.instagram_titulo || item.titulo;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(texto)}&url=${encodeURIComponent(noticiaLink(item))}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   const NOMBRE_RED = { instagram: "Instagram", facebook: "Facebook" } as const;
 
   /** Publica una nota en una red y refleja la marca en pantalla. No muestra avisos: devuelve el resultado. */
@@ -439,12 +431,6 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                       className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors"
                                     >
                                       🔗 Copiar link
-                                    </button>
-                                    <button
-                                      onClick={() => compartirEnX(item)}
-                                      className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200 transition-colors"
-                                    >
-                                      𝕏 Compartir en X
                                     </button>
                                   </div>
                                 </div>
