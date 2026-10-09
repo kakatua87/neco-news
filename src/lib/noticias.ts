@@ -1,11 +1,11 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePublicClient, createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Noticia } from "@/types/noticia";
 import { rangoDiaArgentina } from "@/lib/fechas";
 import { escaparLike } from "@/lib/validar";
 
 /** Noticias publicadas ordenadas por fecha, más recientes primero. Excluye Obituarios. */
 export async function getPublicadas(limit = 30): Promise<Noticia[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
     .select("*")
@@ -30,7 +30,7 @@ export async function getPublicadas(limit = 30): Promise<Noticia[]> {
  * como refuerzo, para no mostrar nunca una portada de un día anterior.
  */
 export async function getCarruselPortada(): Promise<Noticia[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const { inicio, fin } = rangoDiaArgentina();
   const { data, error } = await supabase
     .from("noticias")
@@ -52,7 +52,7 @@ export async function getCarruselPortada(): Promise<Noticia[]> {
 
 /** Noticias publicadas de una sección específica, más recientes primero. */
 export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promise<Noticia[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
     .select("*")
@@ -71,7 +71,7 @@ export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promi
 
 /** Devuelve la noticia marcada como portada del día actual, o null si no hay. */
 export async function getPortadaDelDia(): Promise<Noticia | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const { inicio, fin } = rangoDiaArgentina();
   const { data } = await supabase
     .from("noticias")
@@ -110,7 +110,7 @@ export async function getPendientes(limit = 50): Promise<Noticia[]> {
  * `.or()` armado a mano, una coma o un paréntesis del usuario rompía la consulta o inyectaba condiciones.
  */
 export async function getBusqueda(query: string, limit = 30): Promise<Noticia[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const term = query.trim().slice(0, 100);
   if (!term) return [];
   const patron = `%${escaparLike(term)}%`;
@@ -159,7 +159,7 @@ export async function getNoticiasByFecha(
   mes: number,
   dia: number
 ): Promise<Noticia[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const fecha = `${anio}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
   const { data, error } = await supabase
     .from("noticias")
@@ -181,7 +181,7 @@ export async function getNoticiasCountByMonth(
   anio: number,
   mes: number
 ): Promise<Record<number, number>> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const primerDia = `${anio}-${String(mes).padStart(2, "0")}-01T00:00:00Z`;
   const diasEnMes = new Date(anio, mes, 0).getDate();
   const ultimoStr = `${anio}-${String(mes).padStart(2, "0")}-${diasEnMes}T23:59:59Z`;

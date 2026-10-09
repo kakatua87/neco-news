@@ -1,5 +1,5 @@
 import { permanentRedirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { buscarRedireccionSeccion } from "@/lib/seccion-redirects";
 import { decodificarSeguro } from "@/lib/seccion-url";
 import type { Noticia } from "@/types/noticia";
@@ -15,7 +15,7 @@ type SeccionPageProps = {
 export default async function SeccionPage({ params }: SeccionPageProps) {
   const { seccion } = await params;
   const normalized = decodificarSeguro(seccion).toLowerCase();
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const { data } = await supabase
     .from("noticias")
     .select("*")

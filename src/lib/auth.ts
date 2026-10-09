@@ -1,4 +1,16 @@
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+/**
+ * Usuario de la sesión (validado contra Supabase Auth) o null. Cacheado por request:
+ * si varias partes del mismo render lo piden a la vez con un token vencido, solo una
+ * refresca (evita 409 "Too many concurrent token refresh requests").
+ */
+export const getUsuarioActual = cache(async () => {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  return error ? null : user;
+});
 
 /**
  * true si la sesión activa (cookie del navegador) pertenece a un admin real
@@ -8,10 +20,10 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
  * administración una vez logueado.
  */
 export async function esAdmin(): Promise<boolean> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) return false;
+  const user = await getUsuarioActual();
+  if (!user) return false;
 
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("is_admin");
   return !error && data === true;
 }

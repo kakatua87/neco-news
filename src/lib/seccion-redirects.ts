@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { claveSeccion } from "@/lib/seccion-url";
 
 /**
@@ -9,7 +9,7 @@ import { claveSeccion } from "@/lib/seccion-url";
 export async function buscarRedireccionSeccion(pedida: string): Promise<string | null> {
   const claves = Array.from(new Set([claveSeccion(pedida), claveSeccion(pedida).replaceAll("-", " ")]));
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabasePublicClient();
     const { data } = await supabase.from("seccion_redirects").select("nueva").in("anterior", claves).limit(1).maybeSingle();
     return data?.nueva ? `/${encodeURIComponent(data.nueva)}` : null;
   } catch {

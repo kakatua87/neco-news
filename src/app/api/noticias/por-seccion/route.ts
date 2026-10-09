@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabasePublicClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 9;
 
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Falta seccion" }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
     .select("*")

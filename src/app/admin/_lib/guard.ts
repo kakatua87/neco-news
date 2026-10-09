@@ -1,14 +1,9 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { esAdmin } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { esAdmin, getUsuarioActual } from "@/lib/auth";
 
 /** Usuario logueado (validado contra Supabase Auth) o null. Cacheado por request. */
-export const getUsuario = cache(async () => {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-});
+export const getUsuario = getUsuarioActual;
 
 export const getEsAdmin = cache(async () => esAdmin());
 
