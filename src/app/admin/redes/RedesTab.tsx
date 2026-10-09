@@ -25,7 +25,7 @@ function fechaCorta(iso: string): string {
   });
 }
 
-export default function InstagramTab({ initialItems }: { initialItems: InstagramKitItem[] }) {
+export default function RedesTab({ initialItems }: { initialItems: InstagramKitItem[] }) {
   const toast = useToast();
   const noticiaLink = useNoticiaLink();
 
@@ -199,7 +199,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
       <div className="space-y-6 fade-in">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-ink">📸 Kit de redes (Instagram y Facebook)</h2>
+            <h2 className="text-2xl font-bold text-ink">📣 Redes</h2>
             <p className="text-sm text-muted mt-1">
               Título gancho, imagen y link listos para copiar y postear manualmente con tus hashtags.
             </p>
@@ -345,7 +345,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                                       <select
                                         value={formatoElegido[item.id] || "cuadrado"}
                                         onChange={(e) => setFormatoElegido((prev) => ({ ...prev, [item.id]: e.target.value as FormatoKey }))}
-                                        className="flex-1 text-xs border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent bg-white"
+                                        className="flex-1 min-w-0 text-xs border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent bg-white"
                                       >
                                         {FORMATOS.map((f) => (
                                           <option key={f.key} value={f.key}>
@@ -356,7 +356,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                                       <button
                                         onClick={() => publicarEnRed("instagram", item)}
                                         disabled={ocupada}
-                                        className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-50 whitespace-nowrap"
+                                        className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark transition-colors disabled:opacity-50 whitespace-nowrap shrink-0 w-28 text-center"
                                       >
                                         {publicandoIds.includes(`instagram-${item.id}`) ? "Publicando..." : item.instagram_publicado_at ? "↻ Instagram" : "📸 Instagram"}
                                       </button>
@@ -367,7 +367,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                                       <select
                                         value={modoFacebook[item.id] || "foto"}
                                         onChange={(e) => setModoFacebook((prev) => ({ ...prev, [item.id]: e.target.value as "foto" | "enlace" }))}
-                                        className="flex-1 text-xs border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent bg-white"
+                                        className="flex-1 min-w-0 text-xs border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent bg-white"
                                         aria-label="Formato de la publicación en Facebook"
                                       >
                                         <option value="foto">Facebook — Foto con la tarjeta</option>
@@ -376,7 +376,7 @@ export default function InstagramTab({ initialItems }: { initialItems: Instagram
                                       <button
                                         onClick={() => publicarEnRed("facebook", item)}
                                         disabled={ocupada}
-                                        className="px-3 py-1.5 text-xs font-bold bg-[#1877F2] text-white rounded hover:bg-[#1464cc] transition-colors disabled:opacity-50 whitespace-nowrap"
+                                        className="px-3 py-1.5 text-xs font-bold bg-[#1877F2] text-white rounded hover:bg-[#1464cc] transition-colors disabled:opacity-50 whitespace-nowrap shrink-0 w-28 text-center"
                                       >
                                         {publicandoIds.includes(`facebook-${item.id}`) ? "Publicando..." : item.facebook_publicado_at ? "↻ Facebook" : "📘 Facebook"}
                                       </button>

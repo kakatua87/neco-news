@@ -238,7 +238,7 @@ export default function ConfiguracionTab({ scraperConfig, seccionesUsadas: usada
         <h3 className="font-bold text-ink">Instagram</h3>
         <p className="text-sm text-muted">
           Conectá tu cuenta de Instagram (Business/Creator) para poder publicar directo desde
-          el tab Instagram. El token se guarda y se renueva solo antes de vencer (dura ~60 días).
+          el tab Redes. El token se guarda y se renueva solo antes de vencer (dura ~60 días).
         </p>
         <EstadoInstagram />
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- ruta API que redirige a Instagram, no una página de Next */}
@@ -253,7 +253,7 @@ export default function ConfiguracionTab({ scraperConfig, seccionesUsadas: usada
       <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-3">
         <h3 className="font-bold text-ink">Facebook</h3>
         <p className="text-sm text-muted">
-          Conectá la Página de Facebook para publicar directo desde el tab Instagram (foto con la tarjeta o enlace a la
+          Conectá la Página de Facebook para publicar directo desde el tab Redes (foto con la tarjeta o enlace a la
           nota). Hay que iniciar sesión con una cuenta que administre la Página.
         </p>
         <EstadoFacebook />

@@ -19,7 +19,7 @@ const ITEMS: Array<{ href: string; label: string; badge?: "inbox" | "pendientes"
   { href: "/admin/publicadas", label: "📰 Publicadas" },
   { href: "/admin/obituarios", label: "🕯 Obituarios" },
   { href: "/admin/descartadas", label: "🗂 Descartadas" },
-  { href: "/admin/instagram", label: "📸 Instagram" },
+  { href: "/admin/redes", label: "📣 Redes" },
   { href: "/admin/redaccion", label: "✨ Redacción" },
   { href: "/admin/banners", label: "🖼️ Banners" },
   { href: "/admin/configuracion", label: "⚙️ Configuración" },

@@ -1,10 +1,6 @@
-import { requireAdmin } from "../_lib/guard";
-import { getInstagramKit } from "@/lib/noticias";
-import InstagramTab from "./InstagramTab";
-import type { InstagramKitItem } from "../_lib/types";
+import { redirect } from "next/navigation";
 
-export default async function InstagramPage() {
-  await requireAdmin();
-  const items = (await getInstagramKit(100)) as InstagramKitItem[];
-  return <InstagramTab initialItems={items} />;
+// La pestaña pasó a llamarse "Redes" (publica en Instagram y Facebook): se conserva la dirección vieja.
+export default function InstagramPage() {
+  redirect("/admin/redes");
 }
