@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "titulo y cuerpo_corto son requeridos" }, { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://neco-news.vercel.app";
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://necobeat.com.ar";
 
     const resultado = await enviarPushNotification({
       titulo: body.titulo,

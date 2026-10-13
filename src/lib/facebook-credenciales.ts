@@ -52,6 +52,6 @@ export async function guardarCredencialesFacebook(token: string, pageId: string,
 
 /** Origen del sitio, igual que el de Instagram: la redirect_uri tiene que ser idéntica al autorizar y al canjear. */
 export function redirectUriFacebook(): string {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://neco-news-seven.vercel.app";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://necobeat.com.ar";
   return `${origin}/api/facebook/conectar/callback`;
 }

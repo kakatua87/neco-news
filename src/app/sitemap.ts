@@ -5,7 +5,7 @@ import type { Noticia } from "@/types/noticia";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ??
-    "https://neco-news-seven.vercel.app";
+    "https://necobeat.com.ar";
   const supabase = createSupabasePublicClient();
   const { data } = await supabase
     .from("noticias")

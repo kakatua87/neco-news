@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const origen = process.env.NEXT_PUBLIC_SITE_URL || "https://neco-news-seven.vercel.app";
+    const origen = process.env.NEXT_PUBLIC_SITE_URL || "https://necobeat.com.ar";
     const link = `${origen}/${seccionSlug(noticia.seccion)}/${noticia.slug}`;
     const message = armarTextoFacebook(noticia, link);
 

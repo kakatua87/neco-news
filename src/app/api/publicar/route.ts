@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
     if (noticia) {
       const headersList = await headers();
-      const host = headersList.get("host") ?? "neco-news.vercel.app";
+      const host = headersList.get("host") ?? "necobeat.com.ar";
       const protocol = host.includes("localhost") ? "http" : "https";
       
       const seccionSlug = (noticia.seccion ?? "local")

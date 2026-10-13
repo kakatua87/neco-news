@@ -19,7 +19,7 @@ export async function GET() {
     );
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://neco-news-seven.vercel.app";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://necobeat.com.ar";
   const redirectUri = `${origin}/api/instagram/conectar/callback`;
   const scope = "instagram_business_basic,instagram_business_content_publish";
 

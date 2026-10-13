@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://neco-news-seven.vercel.app";
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://necobeat.com.ar";
   const redirectUri = `${origin}/api/instagram/conectar/callback`;
 
   try {

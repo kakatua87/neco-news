@@ -3,7 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { seccionSlug } from "@/lib/secciones";
 
-const ORIGEN_POR_DEFECTO = "https://neco-news.vercel.app";
+const ORIGEN_POR_DEFECTO = "https://necobeat.com.ar";
 const sinSuscripcion = () => () => {};
 
 /** Devuelve una función que arma el link público de una noticia (usa el origen real del navegador). */

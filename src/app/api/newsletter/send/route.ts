@@ -88,7 +88,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://neco-news.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://necobeat.com.ar";
 
   // 1. Fetch 5 notas más recientes de la semana
   const weekAgo = new Date();
