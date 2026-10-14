@@ -119,18 +119,12 @@ export default async function NoticiaPage({ params }: Props) {
           ))}
         </div>
 
-        {(noticia.instagram_text || noticia.twitter_text) && (
+        {noticia.instagram_text && (
           <div className="mt-14 bg-accent-light rounded-2xl p-8 border border-accent/10">
             <h3 className="text-accent text-[11px] font-extrabold uppercase tracking-[0.15em] mb-6 pb-3 border-b border-accent/20 flex items-center gap-2">
               <span className="w-2 h-2 bg-accent rounded-full" />
               Cobertura en Redes
             </h3>
-            {noticia.twitter_text && (
-              <div className="mb-6">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-2">Para X (Twitter)</p>
-                <p className="text-sm text-ink bg-white p-4 rounded-lg italic border border-border">&ldquo;{noticia.twitter_text}&rdquo;</p>
-              </div>
-            )}
             {noticia.instagram_text && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-2">Para Instagram</p>

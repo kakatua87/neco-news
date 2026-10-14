@@ -33,9 +33,6 @@ export const metadata: Metadata = {
         locale: "es_AR",
         type: "website",
     },
-    twitter: {
-        site: "@neconow",
-    },
     robots: {
         index: true,
         follow: true,
