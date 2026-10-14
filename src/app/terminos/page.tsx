@@ -97,8 +97,8 @@ export default function TerminosPage() {
           <h2 className="font-bold text-xl mt-8 mb-3 text-charcoal">8. Contacto</h2>
           <p>
             Para consultas sobre estos términos, escribinos a{" "}
-            <a href="mailto:neconow.ar@gmail.com" className="text-accent hover:underline">
-              neconow.ar@gmail.com
+            <a href="mailto:necobeat.ar@gmail.com" className="text-accent hover:underline">
+              necobeat.ar@gmail.com
             </a>.
           </p>
         </section>
