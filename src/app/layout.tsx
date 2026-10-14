@@ -72,8 +72,7 @@ export default function RootLayout({
                     prompts: [
                       {
                         type: "push",
-                        autoPrompt: true,
-                        delay: { pageViews: 1, timeDelay: 8 },
+                        autoPrompt: false,
                         text: {
                           actionMessage: "Recibí las últimas noticias de Necochea en tu navegador. Podés desactivarlas cuando quieras.",
                           acceptButton: "Suscribirme",
@@ -84,6 +83,13 @@ export default function RootLayout({
                   },
                 },
               });
+              // El cartel lo muestra el portal (no depende de "auto prompt" del panel de OneSignal).
+              // promptPush() respeta el "Más tarde" y no vuelve a molestar a quien ya decidió.
+              setTimeout(function () {
+                var yaDecidio = !!OneSignal.Notifications.permission ||
+                  (typeof Notification !== "undefined" && Notification.permission === "denied");
+                if (!yaDecidio) OneSignal.Slidedown.promptPush();
+              }, 8000);
             });
           `}
                         </Script>
