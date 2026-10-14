@@ -1,41 +1,30 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
-import {
-  FACEBOOK_GRAPH_HOST,
-  FACEBOOK_GRAPH_VERSION,
-  obtenerCredencialesFacebook,
-} from "@/lib/facebook-credenciales";
 import { normalizarFormato } from "../../instagram-card/render";
 import { urlPublicaDeTarjeta } from "@/lib/tarjeta-publica";
 import { armarTextoFacebook } from "@/lib/texto-facebook";
 import { seccionSlug } from "@/lib/secciones";
 
-// Subir la imagen y publicar puede tardar más que el timeout por defecto.
+// Subir la imagen y esperar a Make puede tardar más que el timeout por defecto.
 export const maxDuration = 30;
 
-type RespuestaGraph = { id?: string; post_id?: string; permalink_url?: string; error?: { message?: string; code?: number } };
+type RespuestaMake = { ok?: boolean; postId?: string | number; error?: string };
 
-async function graphPost(path: string, params: URLSearchParams): Promise<{ ok: boolean; data: RespuestaGraph }> {
-  const res = await fetch(`${FACEBOOK_GRAPH_HOST}/${FACEBOOK_GRAPH_VERSION}/${path}`, { method: "POST", body: params });
-  return { ok: res.ok, data: (await res.json().catch(() => ({}))) as RespuestaGraph };
-}
-
-function mensajeDeError(data: RespuestaGraph, porDefecto: string): string {
-  // 190 = token inválido o vencido: lo único que lo arregla es volver a conectar.
-  if (data.error?.code === 190) return "Facebook rechazó el token. Reconectá la Página desde Configuración → Facebook.";
-  return data.error?.message || porDefecto;
-}
-
+/**
+ * Facebook se publica a través de Make (escenario "Neco Beat - publicar nota en Facebook"),
+ * que usa su propia app de Meta ya aprobada: los posts hechos con la app Necopublish en modo
+ * desarrollo solo los ven las cuentas con rol. Make responde con el id de la publicación.
+ */
 export async function POST(request: Request) {
   if (!(await esAdmin())) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const credenciales = await obtenerCredencialesFacebook();
-  if (!credenciales) {
+  const webhookUrl = process.env.MAKE_FACEBOOK_WEBHOOK_URL;
+  if (!webhookUrl) {
     return NextResponse.json(
-      { ok: false, error: "Falta conectar Facebook: conectalo desde Configuración → Facebook." },
+      { ok: false, error: "Falta configurar MAKE_FACEBOOK_WEBHOOK_URL en el servidor." },
       { status: 500 }
     );
   }
@@ -73,52 +62,45 @@ export async function POST(request: Request) {
 
     const origen = process.env.NEXT_PUBLIC_SITE_URL || "https://necobeat.com.ar";
     const link = `${origen}/${seccionSlug(noticia.seccion)}/${noticia.slug}`;
-    const message = armarTextoFacebook(noticia, link);
+    const mensaje = armarTextoFacebook(noticia, link);
 
-    const params = new URLSearchParams({ message, access_token: credenciales.token });
-    let publicado: { ok: boolean; data: RespuestaGraph };
-    if (modo === "enlace") {
-      // Facebook arma la vista previa (imagen y título) desde la propia nota.
-      params.set("link", link);
-      publicado = await graphPost(`${credenciales.pageId}/feed`, params);
-    } else {
+    let imagenUrl = "";
+    if (modo === "foto") {
       const imagen = await urlPublicaDeTarjeta(supabase, noticia, noticiaId, formato, imagenUrlEditada);
       if (!imagen.ok) {
         return NextResponse.json({ ok: false, error: imagen.error }, { status: 500 });
       }
-      params.set("url", imagen.url);
-      params.set("published", "true");
-      publicado = await graphPost(`${credenciales.pageId}/photos`, params);
+      imagenUrl = imagen.url;
     }
 
-    // En /photos, `post_id` es la publicación del muro y `id` la foto; en /feed solo viene `id` (la publicación).
-    const postId = publicado.data.post_id || publicado.data.id;
-    if (!publicado.ok || !postId) {
-      console.error("facebook/publicar: Facebook rechazó la publicación", { modo, respuesta: publicado.data });
+    const respuesta = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modo, mensaje, link, imagenUrl }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    const texto = await respuesta.text();
+    let datos: RespuestaMake = {};
+    try {
+      datos = JSON.parse(texto) as RespuestaMake;
+    } catch {
+      // Make respondió algo que no es JSON (p. ej. "Accepted"): no hay id de publicación.
+    }
+
+    const postId = datos.postId ? String(datos.postId) : "";
+    if (!respuesta.ok || datos.ok === false || !postId) {
+      console.error("facebook/publicar: Make no confirmó la publicación", { status: respuesta.status, texto });
       return NextResponse.json(
-        { ok: false, error: mensajeDeError(publicado.data, "Error publicando en Facebook") },
+        { ok: false, error: datos.error || "Make no confirmó la publicación en Facebook. Revisá el escenario en Make." },
         { status: 502 }
       );
     }
 
-    let permalink: string | null = null;
-    try {
-      const permaUrl = new URL(`${FACEBOOK_GRAPH_HOST}/${FACEBOOK_GRAPH_VERSION}/${postId}`);
-      permaUrl.searchParams.set("fields", "permalink_url");
-      permaUrl.searchParams.set("access_token", credenciales.token);
-      const permaData = (await (await fetch(permaUrl.toString())).json()) as RespuestaGraph;
-      permalink = permaData.permalink_url || null;
-    } catch {
-      // el permalink es un extra
-    }
-    // permalink_url viene relativo ("/pagina/posts/123") en algunas versiones del Graph.
-    if (permalink && permalink.startsWith("/")) permalink = `https://www.facebook.com${permalink}`;
-    if (!permalink) permalink = `https://www.facebook.com/${postId}`;
-
+    const permalink = `https://www.facebook.com/${postId}`;
     const publicadoAt = new Date().toISOString();
     const { error: marcaError } = await supabase
       .from("noticias")
-      .update({ facebook_publicado_at: publicadoAt, facebook_post_id: String(postId), facebook_permalink: permalink })
+      .update({ facebook_publicado_at: publicadoAt, facebook_post_id: postId, facebook_permalink: permalink })
       .eq("id", noticiaId);
     if (marcaError) console.error("facebook/publicar: no se pudo guardar la marca de publicada:", marcaError.message);
 
