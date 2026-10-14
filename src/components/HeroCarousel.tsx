@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Noticia } from "@/types/noticia";
+import type { NoticiaPublica } from "@/types/noticia";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -28,7 +28,7 @@ function normalizeSeccion(s: string): string {
 
 const ROTATE_MS = 5000;
 
-export default function HeroCarousel({ items }: { items: Noticia[] }) {
+export default function HeroCarousel({ items }: { items: NoticiaPublica[] }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {

@@ -117,6 +117,11 @@ CREATE POLICY admin_full_access ON public.noticias FOR ALL TO authenticated
   USING (is_admin()) WITH CHECK (is_admin());
 CREATE POLICY anon_select_publicadas ON public.noticias FOR SELECT TO anon
   USING (estado = 'publicada');
+-- anon solo lee columnas de la lista blanca (migraciones/2026-10-14_ocultar_origen.sql);
+-- url_original, fuente, fuentes_urls, imagen_fuente, titulo_original, grupo_id quedan ocultos.
+REVOKE SELECT ON public.noticias FROM anon;
+GRANT SELECT (id, titulo, cuerpo, resumen_seo, seccion, slug, imagen_url, fecha_publicacion, created_at,
+  es_portada, orden_portada, estado, instagram_text, twitter_text) ON public.noticias TO anon;
 -- banners
 CREATE POLICY "Banners públicos visibles" ON public.banners FOR SELECT TO anon, authenticated
   USING (activo = true);

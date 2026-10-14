@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getNoticiasByFecha } from "@/lib/noticias";
 import type { Metadata } from "next";
-import type { Noticia } from "@/types/noticia";
+import type { NoticiaPublica } from "@/types/noticia";
 
 type Props = {
   params: Promise<{ anio: string; mes: string; dia: string }>;
@@ -61,7 +61,7 @@ export default async function ArchivoFechaPage({ params }: Props) {
           </div>
         ) : (
           <div className="space-y-6">
-            {noticias.map((nota: Noticia) => (
+            {noticias.map((nota: NoticiaPublica) => (
               <article
                 key={nota.id}
                 className="flex gap-4 p-4 rounded-xl border border-border hover:border-accent/30 hover:bg-accent/5 transition-all group"

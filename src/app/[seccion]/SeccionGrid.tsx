@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Noticia } from "@/types/noticia";
+import type { NoticiaPublica } from "@/types/noticia";
 import { cuerpoPlainText } from "@/lib/cuerpo";
 
 type Props = {
   seccion: string;
-  initialNoticias: Noticia[];
+  initialNoticias: NoticiaPublica[];
   initialHasMore: boolean;
 };
 

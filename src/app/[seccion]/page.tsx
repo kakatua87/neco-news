@@ -2,7 +2,7 @@ import { permanentRedirect } from "next/navigation";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { buscarRedireccionSeccion } from "@/lib/seccion-redirects";
 import { decodificarSeguro } from "@/lib/seccion-url";
-import type { Noticia } from "@/types/noticia";
+import { SELECT_PUBLICO, soloImagenPropia, type NoticiaPublica } from "@/types/noticia";
 import BannerZone from "@/components/BannerZone";
 import SeccionGrid from "./SeccionGrid";
 
@@ -18,13 +18,13 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
   const supabase = createSupabasePublicClient();
   const { data } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("estado", "publicada")
     .ilike("seccion", normalized.replaceAll("-", " "))
     .order("fecha_publicacion", { ascending: false })
     .range(0, PAGE_SIZE);
 
-  const traidas = (data as Noticia[]) ?? [];
+  const traidas = ((data as unknown as NoticiaPublica[]) ?? []).map(soloImagenPropia);
   // Sin notas: puede ser una sección que se renombró; si es así, 301 al nombre nuevo.
   if (traidas.length === 0) {
     const destino = await buscarRedireccionSeccion(normalized);

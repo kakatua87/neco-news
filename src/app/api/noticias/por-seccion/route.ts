@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
+import { SELECT_PUBLICO, soloImagenPropia, type NoticiaPublica } from "@/types/noticia";
 
 const PAGE_SIZE = 9;
 
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("estado", "publicada")
     .ilike("seccion", seccion.replaceAll("-", " "))
     .order("fecha_publicacion", { ascending: false })
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  const noticias = data ?? [];
+  const noticias = ((data ?? []) as unknown as NoticiaPublica[]).map(soloImagenPropia);
   const hasMore = noticias.length > PAGE_SIZE;
 
   return NextResponse.json({ ok: true, noticias: noticias.slice(0, PAGE_SIZE), hasMore });

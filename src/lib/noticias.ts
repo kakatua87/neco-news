@@ -1,14 +1,15 @@
 import { createSupabasePublicClient, createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Noticia } from "@/types/noticia";
+import type { Noticia, NoticiaPublica } from "@/types/noticia";
+import { SELECT_PUBLICO, soloImagenPropia } from "@/types/noticia";
 import { rangoDiaArgentina } from "@/lib/fechas";
 import { escaparLike } from "@/lib/validar";
 
 /** Noticias publicadas ordenadas por fecha, más recientes primero. Excluye Obituarios. */
-export async function getPublicadas(limit = 30): Promise<Noticia[]> {
+export async function getPublicadas(limit = 30): Promise<NoticiaPublica[]> {
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("estado", "publicada")
     .neq("seccion", "Obituarios")
     .order("fecha_publicacion", { ascending: false, nullsFirst: false })
@@ -19,7 +20,7 @@ export async function getPublicadas(limit = 30): Promise<Noticia[]> {
     console.error("Error al obtener publicadas:", error.message);
     return [];
   }
-  return data as Noticia[];
+  return (data as unknown as NoticiaPublica[]).map(soloImagenPropia);
 }
 
 /**
@@ -29,12 +30,12 @@ export async function getPublicadas(limit = 30): Promise<Noticia[]> {
  * publica una noticia. Acá además filtramos por "hoy" (huso horario Argentina)
  * como refuerzo, para no mostrar nunca una portada de un día anterior.
  */
-export async function getCarruselPortada(): Promise<Noticia[]> {
+export async function getCarruselPortada(): Promise<NoticiaPublica[]> {
   const supabase = createSupabasePublicClient();
   const { inicio, fin } = rangoDiaArgentina();
   const { data, error } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("estado", "publicada")
     .eq("es_portada", true)
     .neq("seccion", "Obituarios")
@@ -47,15 +48,15 @@ export async function getCarruselPortada(): Promise<Noticia[]> {
     console.error("Error al obtener carrusel de portada:", error?.message);
     return [];
   }
-  return data as Noticia[];
+  return (data as unknown as NoticiaPublica[]).map(soloImagenPropia);
 }
 
 /** Noticias publicadas de una sección específica, más recientes primero. */
-export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promise<Noticia[]> {
+export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promise<NoticiaPublica[]> {
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("estado", "publicada")
     .ilike("seccion", seccion)
     .order("fecha_publicacion", { ascending: false, nullsFirst: false })
@@ -66,16 +67,16 @@ export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promi
     console.error(`Error al obtener publicadas de ${seccion}:`, error.message);
     return [];
   }
-  return data as Noticia[];
+  return (data as unknown as NoticiaPublica[]).map(soloImagenPropia);
 }
 
 /** Devuelve la noticia marcada como portada del día actual, o null si no hay. */
-export async function getPortadaDelDia(): Promise<Noticia | null> {
+export async function getPortadaDelDia(): Promise<NoticiaPublica | null> {
   const supabase = createSupabasePublicClient();
   const { inicio, fin } = rangoDiaArgentina();
   const { data } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("estado", "publicada")
     .eq("es_portada", true)
     .gte("fecha_publicacion", inicio)
@@ -84,7 +85,7 @@ export async function getPortadaDelDia(): Promise<Noticia | null> {
     .limit(1)
     .maybeSingle();
 
-  return (data as Noticia) ?? null;
+  return data ? soloImagenPropia(data as unknown as NoticiaPublica) : null;
 }
 
 /** Noticias pendientes de revisión editorial. */
@@ -109,7 +110,7 @@ export async function getPendientes(limit = 50): Promise<Noticia[]> {
  * Son dos consultas `.ilike()` (el valor viaja como parámetro y no como sintaxis de filtro): con un
  * `.or()` armado a mano, una coma o un paréntesis del usuario rompía la consulta o inyectaba condiciones.
  */
-export async function getBusqueda(query: string, limit = 30): Promise<Noticia[]> {
+export async function getBusqueda(query: string, limit = 30): Promise<NoticiaPublica[]> {
   const supabase = createSupabasePublicClient();
   const term = query.trim().slice(0, 100);
   if (!term) return [];
@@ -118,7 +119,7 @@ export async function getBusqueda(query: string, limit = 30): Promise<Noticia[]>
   const buscarEn = (columna: "titulo" | "resumen_seo") =>
     supabase
       .from("noticias")
-      .select("*")
+      .select(SELECT_PUBLICO)
       .eq("estado", "publicada")
       .ilike(columna, patron)
       .order("fecha_publicacion", { ascending: false, nullsFirst: false })
@@ -130,19 +131,19 @@ export async function getBusqueda(query: string, limit = 30): Promise<Noticia[]>
     if (porTitulo.error && porResumen.error) return [];
   }
 
-  const unicas = new Map<string | number, Noticia>();
-  for (const n of [...(porTitulo.data ?? []), ...(porResumen.data ?? [])] as Noticia[]) unicas.set(n.id, n);
+  const unicas = new Map<string | number, NoticiaPublica>();
+  for (const n of [...(porTitulo.data ?? []), ...(porResumen.data ?? [])] as unknown as NoticiaPublica[]) unicas.set(n.id, soloImagenPropia(n));
   return Array.from(unicas.values())
     .sort((a, b) => (b.fecha_publicacion ?? "").localeCompare(a.fecha_publicacion ?? ""))
     .slice(0, limit);
 }
 
 /** Noticia individual por slug. */
-export async function getNoticiaBySlug(slug: string): Promise<Noticia | null> {
+export async function getNoticiaBySlug(slug: string): Promise<NoticiaPublica | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("slug", slug)
     .single();
 
@@ -150,7 +151,7 @@ export async function getNoticiaBySlug(slug: string): Promise<Noticia | null> {
     console.error("Error al obtener noticia por slug:", error?.message);
     return null;
   }
-  return data as Noticia;
+  return soloImagenPropia(data as unknown as NoticiaPublica);
 }
 
 /** Noticias publicadas de un día específico (para el archivo). */
@@ -158,12 +159,12 @@ export async function getNoticiasByFecha(
   anio: number,
   mes: number,
   dia: number
-): Promise<Noticia[]> {
+): Promise<NoticiaPublica[]> {
   const supabase = createSupabasePublicClient();
   const fecha = `${anio}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
   const { data, error } = await supabase
     .from("noticias")
-    .select("*")
+    .select(SELECT_PUBLICO)
     .eq("estado", "publicada")
     .gte("fecha_publicacion", `${fecha}T00:00:00Z`)
     .lte("fecha_publicacion", `${fecha}T23:59:59Z`)
@@ -173,7 +174,7 @@ export async function getNoticiasByFecha(
     console.error("Error al obtener noticias por fecha:", error.message);
     return [];
   }
-  return data as Noticia[];
+  return (data as unknown as NoticiaPublica[]).map(soloImagenPropia);
 }
 
 /** Conteo de noticias publicadas por día de un mes (para el calendario del archivo). */

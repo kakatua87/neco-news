@@ -37,3 +37,34 @@ export type Noticia = {
   fuentes_urls?: FuenteUrl[] | null;
   origen?: string;
 };
+
+/**
+ * Columnas de `noticias` que el público puede leer. Es la lista blanca que usan las consultas
+ * anónimas y a la vez el grant de columnas en la base (ver supabase/migraciones/2026-10-14_ocultar_origen.sql).
+ * Los datos de origen (url_original, fuente, fuentes_urls, imagen_fuente, titulo_original, grupo_id,
+ * ids de redes) quedan fuera a propósito: no deben viajar al navegador ni a la API pública.
+ */
+export const COLUMNAS_PUBLICAS = [
+  "id", "titulo", "cuerpo", "resumen_seo", "seccion", "slug", "imagen_url",
+  "fecha_publicacion", "created_at", "es_portada", "orden_portada", "estado",
+  "instagram_text", "twitter_text",
+] as const;
+
+export type NoticiaPublica = Pick<Noticia, (typeof COLUMNAS_PUBLICAS)[number]>;
+
+/** Para `.select()` de PostgREST. */
+export const SELECT_PUBLICO = COLUMNAS_PUBLICAS.join(", ");
+
+/**
+ * Red de seguridad: el público solo ve imágenes alojadas en nuestro Storage. Una `imagen_url`
+ * que apunte a otro dominio (p. ej. la foto original de una fuente si falló la subida) se
+ * descarta, así el navegador del lector nunca le pide nada al sitio original.
+ */
+export function soloImagenPropia<T extends { imagen_url: string | null }>(nota: T): T {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = nota.imagen_url;
+  if (!url) return nota;
+  if (base && url.startsWith(`${base}/storage/v1/object/public/`)) return nota;
+  if (url.startsWith("/")) return nota;
+  return { ...nota, imagen_url: null };
+}
