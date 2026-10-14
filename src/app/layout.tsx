@@ -66,7 +66,42 @@ export default function RootLayout({
               await OneSignal.init({
                 appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID}",
                 safari_web_id: "${process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_ID || ""}",
-                notifyButton: { enable: false },
+                notifyButton: {
+                  enable: true,
+                  position: "bottom-left",
+                  size: "medium",
+                  showCredit: false,
+                  prenotify: true,
+                  text: {
+                    "tip.state.unsubscribed": "Suscribite a las notificaciones",
+                    "tip.state.subscribed": "Estás suscripto a las notificaciones",
+                    "tip.state.blocked": "Bloqueaste las notificaciones",
+                    "message.prenotify": "Hacé clic para recibir las últimas noticias",
+                    "message.action.subscribed": "¡Gracias por suscribirte!",
+                    "message.action.resubscribed": "Volviste a suscribirte",
+                    "message.action.unsubscribed": "Ya no recibirás notificaciones",
+                    "dialog.main.title": "Notificaciones de Neco Beat",
+                    "dialog.main.button.subscribe": "SUSCRIBIRME",
+                    "dialog.main.button.unsubscribe": "DESUSCRIBIRME",
+                    "dialog.blocked.title": "Desbloquear notificaciones",
+                    "dialog.blocked.message": "Seguí estas instrucciones para permitir las notificaciones:",
+                  },
+                },
+                promptOptions: {
+                  slidedown: {
+                    prompts: [
+                      {
+                        type: "push",
+                        autoPrompt: false,
+                        text: {
+                          actionMessage: "Recibí las últimas noticias de Necochea en tu navegador. Podés desactivarlas cuando quieras.",
+                          acceptButton: "Suscribirme",
+                          cancelButton: "Más tarde",
+                        },
+                      },
+                    ],
+                  },
+                },
               });
             });
           `}
