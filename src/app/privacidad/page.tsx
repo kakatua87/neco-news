@@ -66,8 +66,8 @@ export default function PrivacidadPage() {
           <p>
             Podés solicitar en cualquier momento el acceso, la rectificación o la
             eliminación de tus datos personales escribiéndonos a{" "}
-            <a href="mailto:necobeat.ar@gmail.com" className="text-accent hover:underline">
-              necobeat.ar@gmail.com
+            <a href="mailto:contacto@necobeat.com.ar" className="text-accent hover:underline">
+              contacto@necobeat.com.ar
             </a>.
           </p>
         </section>
