@@ -67,23 +67,9 @@ export default function RootLayout({
                 appId: "${process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID}",
                 safari_web_id: "${process.env.NEXT_PUBLIC_ONESIGNAL_SAFARI_ID || ""}",
                 notifyButton: { enable: false },
-                promptOptions: {
-                  slidedown: {
-                    prompts: [
-                      {
-                        type: "push",
-                        autoPrompt: false,
-                        text: {
-                          actionMessage: "Recibí las últimas noticias de Necochea en tu navegador. Podés desactivarlas cuando quieras.",
-                          acceptButton: "Suscribirme",
-                          cancelButton: "Más tarde",
-                        },
-                      },
-                    ],
-                  },
-                },
               });
-              // El cartel lo muestra el portal (no depende de "auto prompt" del panel de OneSignal).
+              // Los textos del cartel salen del panel de OneSignal (Settings > Web > Push slide prompt).
+              // El cartel lo muestra el portal (no depende de "auto prompt" del panel).
               // promptPush() respeta el "Más tarde" y no vuelve a molestar a quien ya decidió.
               setTimeout(function () {
                 var yaDecidio = !!OneSignal.Notifications.permission ||
