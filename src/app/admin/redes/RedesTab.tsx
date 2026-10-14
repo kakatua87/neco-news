@@ -11,7 +11,7 @@ import type { InstagramKitItem } from "../_lib/types";
 import { agruparPorMesYDia } from "@/lib/fechas";
 
 type Filtro = "todas" | "sin_publicar" | "publicadas";
-type Red = "instagram" | "facebook";
+type Red = "instagram" | "facebook" | "x";
 
 /** "8 oct 22:18", en hora de Argentina. */
 function fechaCorta(iso: string): string {
@@ -43,16 +43,16 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
 
   const [filtro, setFiltro] = useState<Filtro>("todas");
 
-  const estaPublicada = (n: InstagramKitItem) => !!(n.instagram_publicado_at || n.facebook_publicado_at);
+  const estaPublicada = (n: InstagramKitItem) => !!(n.instagram_publicado_at || n.facebook_publicado_at || n.x_publicado_at);
   const conteo = useMemo(() => {
-    const publicadas = items.filter((n) => n.instagram_publicado_at || n.facebook_publicado_at).length;
+    const publicadas = items.filter((n) => n.instagram_publicado_at || n.facebook_publicado_at || n.x_publicado_at).length;
     return { todas: items.length, publicadas, sin_publicar: items.length - publicadas };
   }, [items]);
   const visibles = useMemo(
     () =>
       filtro === "todas"
         ? items
-        : items.filter((n) => !!(n.instagram_publicado_at || n.facebook_publicado_at) === (filtro === "publicadas")),
+        : items.filter((n) => !!(n.instagram_publicado_at || n.facebook_publicado_at || n.x_publicado_at) === (filtro === "publicadas")),
     [items, filtro]
   );
   const agrupadas = useMemo(() => agruparPorMesYDia(visibles), [visibles]);
@@ -81,7 +81,7 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
     navigator.clipboard.writeText(noticiaLink(item));
   };
 
-  const NOMBRE_RED = { instagram: "Instagram", facebook: "Facebook" } as const;
+  const NOMBRE_RED = { instagram: "Instagram", facebook: "Facebook", x: "X" } as const;
 
   /** Publica una nota en una red y refleja la marca en pantalla. No muestra avisos: devuelve el resultado. */
   const enviarARed = async (
@@ -94,8 +94,10 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
     const json =
       red === "instagram"
         ? { noticiaId: item.id, formato, destino: formato === "historia" ? "historia" : "feed", imagenUrlEditada, forzar }
-        : { noticiaId: item.id, formato, modo: modoFacebook[item.id] || "foto", imagenUrlEditada, forzar };
-    const campo = red === "instagram" ? "instagram" : "facebook";
+        : red === "facebook"
+          ? { noticiaId: item.id, formato, modo: modoFacebook[item.id] || "foto", imagenUrlEditada, forzar }
+          : { noticiaId: item.id, formato, imagenUrlEditada, forzar };
+    const campo = red;
 
     const r = await adminFetch<{ permalink?: string | null; publicadoAt?: string | null; avisoMarca?: string }>(
       `/api/${campo}/publicar`,
@@ -120,7 +122,7 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
   };
 
   const publicarEnRed = async (red: Red, item: InstagramKitItem) => {
-    const yaPublicada = !!(red === "instagram" ? item.instagram_publicado_at : item.facebook_publicado_at);
+    const yaPublicada = !!item[`${red}_publicado_at`];
     if (yaPublicada && !confirm(`Esta noticia ya se publicó en ${NOMBRE_RED[red]}. ¿Publicarla de nuevo? Va a quedar duplicada.`)) {
       return;
     }
@@ -133,9 +135,9 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
 
   /** Instagram primero y luego Facebook; salta la red donde ya está publicada y no revierte si una falla. */
   const publicarEnAmbas = async (item: InstagramKitItem) => {
-    const redes = (["instagram", "facebook"] as Red[]).filter((red) => !(red === "instagram" ? item.instagram_publicado_at : item.facebook_publicado_at));
+    const redes = (["instagram", "facebook", "x"] as Red[]).filter((red) => !item[`${red}_publicado_at`]);
     if (redes.length === 0) {
-      toast("Esta noticia ya está publicada en las dos redes.");
+      toast("Esta noticia ya está publicada en todas las redes.");
       return;
     }
     const clave = `ambas-${item.id}`;
@@ -251,7 +253,7 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                             const busy = busyIds.includes(item.id);
                             const selected = seleccionadas.has(item.id);
                             // Mientras se publica en una red (o en ambas) se bloquean los tres botones de esa nota.
-                            const ocupada = ["instagram", "facebook", "ambas"].some((p) => publicandoIds.includes(`${p}-${item.id}`));
+                            const ocupada = ["instagram", "facebook", "x", "ambas"].some((p) => publicandoIds.includes(`${p}-${item.id}`));
                             return (
                               <article key={item.id} className={`bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col relative ${selected ? "border-accent ring-2 ring-accent/30" : estaPublicada(item) ? "border-green-300 bg-green-50/40" : "border-border"}`}>
                                 <label className="absolute top-3 left-3 z-10 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
@@ -357,12 +359,24 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                     </div>
                                   )}
                                   {item.imagen_url && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <p className="flex-1 min-w-0 text-xs text-muted">X — Tuit con la tarjeta, el dato y el link</p>
+                                      <button
+                                        onClick={() => publicarEnRed("x", item)}
+                                        disabled={ocupada}
+                                        className="px-3 py-1.5 text-xs font-bold bg-black text-white rounded hover:bg-gray-800 transition-colors disabled:opacity-50 whitespace-nowrap shrink-0 w-28 text-center"
+                                      >
+                                        {publicandoIds.includes(`x-${item.id}`) ? "Publicando..." : item.x_publicado_at ? "↻ X" : "𝕏 X"}
+                                      </button>
+                                    </div>
+                                  )}
+                                  {item.imagen_url && (
                                     <button
                                       onClick={() => publicarEnAmbas(item)}
                                       disabled={ocupada}
                                       className="mt-2 w-full px-3 py-1.5 text-xs font-bold border border-accent text-accent rounded hover:bg-accent/10 transition-colors disabled:opacity-50"
                                     >
-                                      {publicandoIds.includes(`ambas-${item.id}`) ? "Publicando en las dos..." : "🚀 Publicar en ambas"}
+                                      {publicandoIds.includes(`ambas-${item.id}`) ? "Publicando en todas..." : "🚀 Publicar en todas"}
                                     </button>
                                   )}
                                 </div>
@@ -391,6 +405,19 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                           <>
                                             {" "}
                                             <a href={item.facebook_permalink} target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                                              ver
+                                            </a>
+                                          </>
+                                        )}
+                                      </span>
+                                    )}
+                                    {item.x_publicado_at && (
+                                      <span className="text-xs font-bold text-gray-800 bg-gray-200 px-2 py-1 rounded">
+                                        ✓ X · {fechaCorta(item.x_publicado_at)}
+                                        {item.x_permalink && (
+                                          <>
+                                            {" "}
+                                            <a href={item.x_permalink} target="_blank" rel="noopener noreferrer" className="underline font-medium">
                                               ver
                                             </a>
                                           </>

@@ -34,6 +34,9 @@ export type Noticia = {
   facebook_publicado_at?: string | null;
   facebook_post_id?: string | null;
   facebook_permalink?: string | null;
+  x_publicado_at?: string | null;
+  x_post_id?: string | null;
+  x_permalink?: string | null;
   fuentes_urls?: FuenteUrl[] | null;
   origen?: string;
 };

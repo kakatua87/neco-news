@@ -24,4 +24,6 @@ export type InstagramKitItem = Pick<
     | "instagram_permalink"
     | "facebook_publicado_at"
     | "facebook_permalink"
+    | "x_publicado_at"
+    | "x_permalink"
   >;
