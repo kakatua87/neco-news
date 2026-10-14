@@ -182,3 +182,8 @@ body {
 .marquee-item {
     flex-shrink: 0;
 }
+/* Cartel de notificaciones push (OneSignal): abajo y no sobre el encabezado. */
+#onesignal-slidedown-container {
+  top: auto !important;
+  bottom: 0 !important;
+}
