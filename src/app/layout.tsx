@@ -27,6 +27,7 @@ export const metadata: Metadata = {
     description:
         "El portal de noticias de Necochea y Quequén. Información local, rápida y verificada.",
     metadataBase: new URL("https://necobeat.com.ar"),
+    alternates: { canonical: "./" },
     openGraph: {
         siteName: "Neco Beat",
         locale: "es_AR",

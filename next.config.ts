@@ -2,6 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // El mismo sitio responde en el dominio de Vercel y en necobeat.com.ar: se redirige (301) para que Google
+  // indexe solo el dominio propio.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "neco-news-seven.vercel.app" }],
+        destination: "https://necobeat.com.ar/:path*",
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       // Supabase Storage
