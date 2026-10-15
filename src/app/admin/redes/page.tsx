@@ -4,7 +4,6 @@ import RedesTab from "./RedesTab";
 import type { InstagramKitItem } from "../_lib/types";
 
 export default async function RedesPage() {
-  await requireAdmin();
-  const items = (await getInstagramKit(100)) as InstagramKitItem[];
-  return <RedesTab initialItems={items} />;
+  const [, items] = await Promise.all([requireAdmin(), getInstagramKit(100)]);
+  return <RedesTab initialItems={items as InstagramKitItem[]} />;
 }

@@ -91,9 +91,10 @@ export async function getPortadaDelDia(): Promise<NoticiaPublica | null> {
 /** Noticias pendientes de revisión editorial. */
 export async function getPendientes(limit = 50): Promise<Noticia[]> {
   const supabase = await createSupabaseServerClient();
+  // Solo las columnas que usa el panel: `select *` traía también guion de video, textos de redes, etc.
   const { data, error } = await supabase
     .from("noticias")
-    .select("*")
+    .select("id, titulo, cuerpo, seccion, estado, imagen_url, created_at, url_original, fuentes_urls, origen, auto_motivo")
     .eq("estado", "pendiente")
     .order("created_at", { ascending: false })
     .limit(limit);

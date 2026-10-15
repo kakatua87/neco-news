@@ -1,4 +1,5 @@
 {
+  "regions": ["gru1"],
   "crons": [
     { "path": "/api/noticias/portada/auto-select", "schedule": "0 11 * * *" },
     { "path": "/api/instagram/renovar", "schedule": "0 12 * * *" }

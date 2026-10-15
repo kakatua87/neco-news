@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SECCIONES, unirSecciones } from "@/lib/secciones";
 import type { Editable } from "./types";
@@ -32,11 +33,24 @@ export const getInboxCount = cache(async (): Promise<number> => {
   return new Set((data ?? []).map((n) => n.grupo_id || `sin-grupo-${n.id}`)).size;
 });
 
+/**
+ * Secciones en uso: recorre la columna `seccion` de toda la tabla, así que es la consulta más
+ * pesada del panel y la pedían casi todas las pestañas en cada navegación. Cambia muy de vez en
+ * cuando, por eso se cachea entre requests (2 minutos). Usa el cliente admin porque dentro de un
+ * caché no se puede leer la sesión (cookies); la lista de secciones no es información sensible.
+ */
+const leerSeccionesUsadas = unstable_cache(
+  async (): Promise<string[]> => {
+    const { data } = await createSupabaseAdminClient().from("noticias").select("seccion");
+    return Array.from(new Set((data ?? []).map((n) => n.seccion).filter(Boolean))) as string[];
+  },
+  ["admin-secciones-usadas"],
+  { revalidate: 120, tags: ["secciones"] },
+);
+
 /** Secciones base + las que ya están en uso en la base. */
 export const getSecciones = cache(async (): Promise<{ disponibles: string[]; usadas: string[] }> => {
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.from("noticias").select("seccion");
-  const usadas = Array.from(new Set((data ?? []).map((n) => n.seccion).filter(Boolean))) as string[];
+  const usadas = await leerSeccionesUsadas();
   return { disponibles: unirSecciones(SECCIONES, usadas), usadas };
 });
 

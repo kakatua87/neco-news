@@ -3,6 +3,6 @@ import { getObituariosAdmin } from "../_lib/data";
 import ObituariosTab from "./ObituariosTab";
 
 export default async function ObituariosPage() {
-  await requireAdmin();
-  return <ObituariosTab initialItems={await getObituariosAdmin()} />;
+  const [, items] = await Promise.all([requireAdmin(), getObituariosAdmin()]);
+  return <ObituariosTab initialItems={items} />;
 }

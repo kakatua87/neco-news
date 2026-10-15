@@ -4,8 +4,14 @@ import { getPendientes } from "@/lib/noticias";
 import PendientesTab from "./PendientesTab";
 
 export default async function PendientesPage() {
-  await requireAdmin();
-  const [pendientes, { disponibles }, stats] = await Promise.all([getPendientes(80), getSecciones(), getStats()]);
+  // La verificación de admin corre en paralelo con las consultas: si falla redirige y el resultado
+  // de las consultas se descarta (todas pasan por RLS o por el cliente admin del lado servidor).
+  const [, pendientes, { disponibles }, stats] = await Promise.all([
+    requireAdmin(),
+    getPendientes(80),
+    getSecciones(),
+    getStats(),
+  ]);
 
   const items = pendientes.map((n) => ({
     id: n.id,

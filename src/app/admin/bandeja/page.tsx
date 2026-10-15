@@ -8,17 +8,20 @@ export default async function BandejaPage({
 }: {
   searchParams: Promise<{ origen?: string }>;
 }) {
-  await requireAdmin();
-  const { origen } = await searchParams;
-  const origenInicial = origen === "scraper" || origen === "ciudadano" ? origen : "todos";
-
-  const [rawGrupos, scraperConfig, { disponibles }, rawTotal, envios] = await Promise.all([
+  // Verificación de admin en paralelo con las consultas que van por RLS. Las que usan el cliente
+  // con service role esperan a que la verificación termine (no corren para quien no es admin).
+  const guard = requireAdmin();
+  const [, { origen }, rawGrupos, scraperConfig, { disponibles }, rawTotal, envios] = await Promise.all([
+    guard,
+    searchParams,
     getRawGrupos(150),
-    getScraperConfig(),
+    guard.then(() => getScraperConfig()),
     getSecciones(),
     getRawCount(),
-    getEnviosAdmin(),
+    guard.then(() => getEnviosAdmin()),
   ]);
+  const origenInicial = origen === "scraper" || origen === "ciudadano" ? origen : "todos";
+
   const rawMostradas = Object.values(rawGrupos).reduce((n, notas) => n + notas.length, 0);
   return (
     <BandejaTab
