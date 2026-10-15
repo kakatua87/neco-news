@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: "/:path*",
+        // Se excluye el archivo de verificación de Search Console de la propiedad de Vercel.
+        source: "/:path((?!googlee0c3dbe116f64874\\.html$).*)",
         has: [{ type: "host", value: "neco-news-seven.vercel.app" }],
         destination: "https://necobeat.com.ar/:path*",
         permanent: true,
