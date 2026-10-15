@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
-import { esAdmin } from "@/lib/auth";
+import { esAdmin, tieneSecretoInterno } from "@/lib/auth";
 import { enviarPushNotification } from "@/lib/push";
 import { generarInstagramKit } from "@/lib/instagram-kit";
 
@@ -13,7 +13,8 @@ type Body = {
 };
 
 export async function POST(request: Request) {
-  if (!(await esAdmin())) {
+  // Admin con sesión, o el scraper (edición matutina automática) con el secreto interno.
+  if (!tieneSecretoInterno(request) && !(await esAdmin())) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
