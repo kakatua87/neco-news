@@ -8,6 +8,7 @@ import { adminFetch } from "../_lib/adminFetch";
 import { useToast } from "../_lib/toast";
 import type { Editable } from "../_lib/types";
 import AvisoLimite from "../_lib/AvisoLimite";
+import MotivoRevision from "../_lib/MotivoRevision";
 
 type Props = {
   initialItems: Editable[];
@@ -178,6 +179,9 @@ export default function PendientesTab({ initialItems, secciones, total }: Props)
               </a>
             </div>
           ) : null}
+
+          {/* Motivo por el que la edición automática la dejó para revisión (solo panel admin) */}
+          <MotivoRevision autoMotivo={item.auto_motivo} />
 
           {/* Acciones */}
           <div className="mt-auto pt-4 flex gap-2 justify-end">

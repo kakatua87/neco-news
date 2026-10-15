@@ -39,6 +39,8 @@ export type Noticia = {
   x_permalink?: string | null;
   fuentes_urls?: FuenteUrl[] | null;
   origen?: string;
+  /** Veredicto de la edición matutina automática; no es público (fuera de COLUMNAS_PUBLICAS). */
+  auto_motivo?: string | null;
 };
 
 /**

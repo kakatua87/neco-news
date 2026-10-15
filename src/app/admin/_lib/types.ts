@@ -12,6 +12,8 @@ export type Editable = Pick<
   fecha_publicacion?: string;
   url_original?: string | null;
   fuentes_urls?: FuenteUrl[] | null;
+  /** Veredicto de la edición automática (solo panel admin). */
+  auto_motivo?: string | null;
 };
 
 export type InstagramKitItem = Pick<

@@ -17,6 +17,7 @@ export default async function PendientesPage() {
     url_original: n.url_original,
     fuentes_urls: n.fuentes_urls,
     origen: n.origen,
+    auto_motivo: n.auto_motivo,
   }));
 
   return <PendientesTab initialItems={items} secciones={disponibles} total={stats.pendientes} />;
