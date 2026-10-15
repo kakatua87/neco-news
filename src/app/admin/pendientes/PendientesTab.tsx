@@ -9,6 +9,7 @@ import { useToast } from "../_lib/toast";
 import type { Editable } from "../_lib/types";
 import AvisoLimite from "../_lib/AvisoLimite";
 import MotivoRevision from "../_lib/MotivoRevision";
+import { useToggleSet } from "../_lib/useToggleSet";
 
 type Props = {
   initialItems: Editable[];
@@ -23,6 +24,7 @@ export default function PendientesTab({ initialItems, secciones, total }: Props)
   const [savingIds, setSavingIds] = useState<Array<string | number>>([]);
   const [editingId, setEditingId] = useState<string | number | null>(null);
   const [customSecciones, setCustomSecciones] = useState(secciones);
+  const [seleccionadas, toggleSeleccion, setSeleccionadas] = useToggleSet<string | number>();
 
   // La sección con la que llegó cada nota (la que sugirió la IA), para mostrarla como sugerencia.
   const [sugeridas] = useState(() => new Map(initialItems.map((n) => [n.id, n.seccion || "Local"])));
@@ -69,6 +71,37 @@ export default function PendientesTab({ initialItems, secciones, total }: Props)
       quitarDeLista(item.id);
     });
 
+  /** Descarta varias a la vez (van a "Descartadas"); si falla, vuelven a la lista. */
+  const descartarVarias = async (ids: Array<string | number>) => {
+    if (ids.length === 0) return;
+    const respaldo = items.filter((n) => ids.includes(n.id));
+    setItems((prev) => prev.filter((n) => !ids.includes(n.id)));
+    setSeleccionadas(new Set());
+    const r = await adminFetch("/api/noticias/eliminar-multiple", { method: "POST", json: { ids, descartar: true } });
+    if (!r.ok) {
+      setItems((prev) => [...prev, ...respaldo]);
+      toast(`No se pudo descartar: ${r.error}`);
+      return;
+    }
+    router.refresh();
+  };
+
+  const descartarSeleccionadas = () => {
+    const n = seleccionadas.size;
+    if (n === 0) return;
+    if (!confirm(`¿Descartar ${n} noticia${n !== 1 ? "s" : ""}? Van a la pestaña Descartadas.`)) return;
+    descartarVarias(Array.from(seleccionadas));
+  };
+
+  const descartarTodas = () => {
+    if (items.length === 0) return;
+    if (!confirm(`¿Descartar TODAS las pendientes mostradas (${items.length})? Van a la pestaña Descartadas.`)) return;
+    descartarVarias(items.map((n) => n.id));
+  };
+
+  const todasSeleccionadas = items.length > 0 && items.every((n) => seleccionadas.has(n.id));
+  const seleccionarTodas = () => setSeleccionadas(todasSeleccionadas ? new Set() : new Set(items.map((n) => n.id)));
+
   /** Guarda la edición en el servidor (antes solo vivía en memoria hasta publicar y se perdía al recargar). */
   const guardarEdicion = (item: Editable, titulo: string, cuerpo: string, imagenUrl: string | null) => {
     const anterior = { titulo: item.titulo, cuerpo: item.cuerpo, imagen_url: item.imagen_url };
@@ -108,12 +141,20 @@ export default function PendientesTab({ initialItems, secciones, total }: Props)
     return (
       <article key={item.id} className="bg-white rounded-xl border border-border shadow-sm overflow-hidden flex flex-col md:flex-row">
         {/* Imagen Preview */}
-        <div className="md:w-48 h-32 md:h-auto bg-gray-100 flex-shrink-0">
+        <div className="md:w-48 h-32 md:h-auto bg-gray-100 flex-shrink-0 relative">
           {item.imagen_url ? (
             <img src={item.imagen_url} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-400">Sin foto</div>
           )}
+          <label className="absolute top-2 left-2 bg-white/90 rounded-md p-1 cursor-pointer shadow-sm">
+            <input
+              type="checkbox"
+              checked={seleccionadas.has(item.id)}
+              onChange={() => toggleSeleccion(item.id)}
+              className="w-4 h-4 accent-accent"
+            />
+          </label>
         </div>
 
         {/* Contenido */}
@@ -237,6 +278,32 @@ export default function PendientesTab({ initialItems, secciones, total }: Props)
     <div className="space-y-6 fade-in">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-ink">Revisión Editorial</h2>
+        {items.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={todasSeleccionadas}
+                onChange={seleccionarTodas}
+                className="w-4 h-4 accent-accent"
+              />
+              Seleccionar todas
+            </label>
+            <button
+              onClick={descartarSeleccionadas}
+              disabled={seleccionadas.size === 0}
+              className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors disabled:opacity-40"
+            >
+              🗑 Descartar seleccionadas ({seleccionadas.size})
+            </button>
+            <button
+              onClick={descartarTodas}
+              className="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-lg transition-colors"
+            >
+              🗑 Descartar todas ({items.length})
+            </button>
+          </div>
+        )}
       </div>
 
       <AvisoLimite mostrados={initialItems.length} total={total} cosa="pendientes" />

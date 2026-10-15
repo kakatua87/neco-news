@@ -5,6 +5,7 @@ import { esListaIds } from "@/lib/validar";
 
 type Body = {
   ids?: Array<string | number>;
+  descartar?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -19,7 +20,13 @@ export async function POST(request: Request) {
     }
 
     const supabase = createSupabaseAdminClient();
-    const { error } = await supabase.from("noticias").delete().in("id", body.ids);
+    // descartar: no borra, las manda a "Descartadas" (recuperables y conservan el registro anti-duplicados).
+    const { error } = body.descartar
+      ? await supabase
+          .from("noticias")
+          .update({ estado: "descartada", es_portada: false, orden_portada: null })
+          .in("id", body.ids)
+      : await supabase.from("noticias").delete().in("id", body.ids);
 
     if (error) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
