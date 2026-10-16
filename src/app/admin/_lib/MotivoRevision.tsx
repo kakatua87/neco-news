@@ -1,9 +1,11 @@
 /**
- * Cartel rojo con el motivo exacto por el que la edición matutina automática NO publicó una nota.
- * El motivo lo escribe el scraper en `noticias.auto_motivo` con la forma:
- *   "pendiente de revision | hechos: <resultado> | imagen: <resultado>"
- * Solo se muestran los tramos que fallaron; "verificados" / "limpia" son resultados correctos.
- * Es solo para el panel admin: no forma parte de la nota ni viaja al público.
+ * Veredicto de la edición matutina automática sobre una nota pendiente (solo panel admin).
+ * El scraper lo escribe en `noticias.auto_motivo` con la forma:
+ *   "pendiente de revision | hechos: <resultado> | imagen: <resultado> [| APROBADA (modo sombra...)]"
+ *
+ * - Cartel rojo: la nota NO se publicó sola; lista los tramos que fallaron, con el texto exacto.
+ * - Cartel verde: en modo sombra la nota pasó todos los controles y se habría publicado sola.
+ * No forma parte de la nota ni viaja al público.
  */
 const PREFIJO = "pendiente de revision";
 const TRAMOS_OK = new Set([
@@ -12,16 +14,37 @@ const TRAMOS_OK = new Set([
   "imagen: reemplazada por alternativa limpia",
 ]);
 
-export function motivosDeRevision(autoMotivo: string | null | undefined): string[] {
+function tramos(autoMotivo: string | null | undefined): string[] {
   if (!autoMotivo || !autoMotivo.startsWith(PREFIJO)) return [];
   return autoMotivo
     .split(" | ")
     .slice(1)
     .map((t) => t.trim())
-    .filter((t) => t && !TRAMOS_OK.has(t));
+    .filter(Boolean);
+}
+
+export function motivosDeRevision(autoMotivo: string | null | undefined): string[] {
+  return tramos(autoMotivo).filter((t) => !TRAMOS_OK.has(t) && !t.startsWith("APROBADA"));
+}
+
+export function aprobadaEnSombra(autoMotivo: string | null | undefined): boolean {
+  return tramos(autoMotivo).some((t) => t.startsWith("APROBADA"));
 }
 
 export default function MotivoRevision({ autoMotivo }: { autoMotivo?: string | null }) {
+  if (aprobadaEnSombra(autoMotivo)) {
+    return (
+      <div
+        role="status"
+        className="mt-3 rounded-lg border-2 border-green-600 bg-green-50 px-3 py-2 text-sm text-green-800"
+      >
+        <p className="font-bold uppercase tracking-wide text-xs text-green-700">
+          ✓ Pasó todos los controles: en modo automático se habría publicado sola
+        </p>
+      </div>
+    );
+  }
+
   const motivos = motivosDeRevision(autoMotivo);
   if (motivos.length === 0) return null;
 
