@@ -46,19 +46,19 @@ async function listar(supabase: SupabaseAdmin, bucket: string, prefijo: string):
  */
 async function textoDeReferencias(supabase: SupabaseAdmin): Promise<string> {
   const partes: string[] = [];
-  const leer = async (tabla: string, columnas: string) => {
+  const leer = async (tabla: string, columnas: string, soloEstado?: string) => {
     for (let desde = 0; ; desde += POR_PAGINA) {
-      const { data, error } = await supabase
-        .from(tabla)
-        .select(columnas)
-        .order("id")
-        .range(desde, desde + POR_PAGINA - 1);
+      let consulta = supabase.from(tabla).select(columnas);
+      if (soloEstado) consulta = consulta.eq("estado", soloEstado);
+      const { data, error } = await consulta.order("id").range(desde, desde + POR_PAGINA - 1);
       if (error) throw new Error(`No se pudieron leer las referencias de ${tabla}: ${error.message}`);
       partes.push(JSON.stringify(data));
       if (!data || data.length < POR_PAGINA) break;
     }
   };
   await leer("noticias", "imagen_url, cuerpo");
+  // Las fotos de cada fuente solo importan mientras la nota espera en Pendientes (después queda la elegida).
+  await leer("noticias", "imagenes_fuentes", "pendiente");
   await leer("borradores_redaccion", "imagen_portada_url, contenido_html");
   await leer("banners", "imagen_url, codigo_html");
   await leer("envios_ciudadanos", "archivos");
