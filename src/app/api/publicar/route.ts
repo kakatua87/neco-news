@@ -7,6 +7,8 @@ import { generarInstagramKit } from "@/lib/instagram-kit";
 
 type Body = {
   id?: number;
+  /** Solo se respeta con el secreto interno: la edición automática manda un único push resumen al final. */
+  sinPush?: boolean;
   titulo?: string;
   cuerpo?: string;
   imagen_url?: string | null;
@@ -36,6 +38,12 @@ export async function POST(request: Request) {
   const { error } = await supabase.from("noticias").update(payload).eq("id", body.id);
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+
+  // Edición automática: sin push individual (lo reemplaza /api/push/resumen) ni kit de Instagram de
+  // respaldo (el scraper ya lo generó al redactar).
+  if (body.sinPush === true && tieneSecretoInterno(request)) {
+    return NextResponse.json({ ok: true, sinPush: true });
   }
 
   // Fetch noticia completa para el push
