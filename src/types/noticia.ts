@@ -5,6 +5,9 @@ export type FuenteUrl = {
   url: string;
 };
 
+/** Foto de una de las fuentes de la nota, ya copiada al bucket propio (solo panel admin). */
+export type FotoFuente = { fuente: string; url: string; con_logo?: boolean };
+
 export type Noticia = {
   id: string | number;
   titulo: string;
@@ -41,6 +44,8 @@ export type Noticia = {
   origen?: string;
   /** Veredicto de la edición matutina automática; no es público (fuera de COLUMNAS_PUBLICAS). */
   auto_motivo?: string | null;
+  /** Fotos de cada fuente para elegir desde Pendientes; no es público (fuera de COLUMNAS_PUBLICAS). */
+  imagenes_fuentes?: FotoFuente[] | null;
 };
 
 /**

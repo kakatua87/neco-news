@@ -1,4 +1,4 @@
-import type { Noticia, FuenteUrl } from "@/types/noticia";
+import type { Noticia, FuenteUrl, FotoFuente } from "@/types/noticia";
 
 /** Noticia tal como la edita el panel (pendientes y publicadas). */
 export type Editable = Pick<
@@ -14,6 +14,8 @@ export type Editable = Pick<
   fuentes_urls?: FuenteUrl[] | null;
   /** Veredicto de la edición automática (solo panel admin). */
   auto_motivo?: string | null;
+  /** Foto de cada fuente de la nota (para elegir con cuál sale). */
+  imagenes_fuentes?: FotoFuente[] | null;
 };
 
 export type InstagramKitItem = Pick<

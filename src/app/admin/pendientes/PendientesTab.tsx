@@ -9,6 +9,7 @@ import { useToast } from "../_lib/toast";
 import type { Editable } from "../_lib/types";
 import AvisoLimite from "../_lib/AvisoLimite";
 import MotivoRevision from "../_lib/MotivoRevision";
+import SelectorFotoFuente from "../_lib/SelectorFotoFuente";
 import { useToggleSet } from "../_lib/useToggleSet";
 
 type Props = {
@@ -118,6 +119,19 @@ export default function PendientesTab({ initialItems, secciones, total }: Props)
     });
   };
 
+  /** Cambia la foto de la nota por la de otra de sus fuentes (ya está en el bucket propio). */
+  const elegirFoto = (item: Editable, url: string) => {
+    const anterior = item.imagen_url;
+    updateItemFields(item.id, { imagen_url: url });
+    withSaving(item.id, async () => {
+      const r = await adminFetch(`/api/noticias/${item.id}`, { method: "PATCH", json: { imagen_url: url } });
+      if (!r.ok) {
+        updateItemFields(item.id, { imagen_url: anterior });
+        toast(`No se pudo cambiar la foto: ${r.error}`);
+      }
+    });
+  };
+
   const cambiarSeccion = (item: Editable, nuevaSeccion: string) => {
     const anterior = item.seccion;
     updateItemFields(item.id, { seccion: nuevaSeccion });
@@ -220,6 +234,14 @@ export default function PendientesTab({ initialItems, secciones, total }: Props)
               </a>
             </div>
           ) : null}
+
+          {/* Con más de una fuente: la foto de cada una para elegir */}
+          <SelectorFotoFuente
+            fotos={item.imagenes_fuentes}
+            actual={item.imagen_url}
+            onElegir={(url) => elegirFoto(item, url)}
+            disabled={saving}
+          />
 
           {/* Motivo por el que la edición automática la dejó para revisión (solo panel admin) */}
           <MotivoRevision autoMotivo={item.auto_motivo} />

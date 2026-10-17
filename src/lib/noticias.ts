@@ -94,7 +94,7 @@ export async function getPendientes(limit = 50): Promise<Noticia[]> {
   // Solo las columnas que usa el panel: `select *` traía también guion de video, textos de redes, etc.
   const { data, error } = await supabase
     .from("noticias")
-    .select("id, titulo, cuerpo, seccion, estado, imagen_url, created_at, url_original, fuentes_urls, origen, auto_motivo")
+    .select("id, titulo, cuerpo, seccion, estado, imagen_url, created_at, url_original, fuentes_urls, origen, auto_motivo, imagenes_fuentes")
     .eq("estado", "pendiente")
     .order("created_at", { ascending: false })
     .limit(limit);
