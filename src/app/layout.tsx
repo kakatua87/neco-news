@@ -19,13 +19,60 @@ const merriweather = Merriweather({
     display: "swap",
 });
 
+const SITE_URL = "https://necobeat.com.ar";
+
+// Datos estructurados: le dicen a Google (y a sus resúmenes de IA) que Neco Beat es un medio de noticias
+// local, y no un homónimo (música, motos, etc.).
+const siteJsonLd = [
+    {
+        "@context": "https://schema.org",
+        "@type": "NewsMediaOrganization",
+        "@id": `${SITE_URL}/#organization`,
+        name: "Neco Beat",
+        alternateName: ["NecoBeat", "Neco Beat Noticias", "Neco Beat Necochea"],
+        description:
+            "Portal de noticias digitales de Necochea, Quequén y la región: política, sociedad, policiales, deportes y cultura.",
+        url: SITE_URL,
+        logo: {
+            "@type": "ImageObject",
+            url: `${SITE_URL}/icon.png`,
+            width: 512,
+            height: 512,
+        },
+        areaServed: ["Necochea", "Quequén", "Partido de Necochea"],
+        email: "contacto@necobeat.com.ar",
+        sameAs: [
+            "https://www.instagram.com/neco.beat/",
+            "https://www.facebook.com/profile.php?id=1264073046795517",
+            "https://x.com/2262necobeat",
+        ],
+    },
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        name: "Neco Beat",
+        alternateName: "Neco Beat — Noticias de Necochea",
+        url: SITE_URL,
+        inLanguage: "es-AR",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        potentialAction: {
+            "@type": "SearchAction",
+            target: `${SITE_URL}/buscar?q={search_term_string}`,
+            "query-input": "required name=search_term_string",
+        },
+    },
+];
+
 export const metadata: Metadata = {
     title: {
         default: "Neco Beat — Noticias de Necochea",
         template: "%s | Neco Beat",
     },
     description:
-        "El portal de noticias de Necochea y Quequén. Información local, rápida y verificada.",
+        "Neco Beat es el portal de noticias de Necochea y Quequén. Información local, rápida y verificada.",
+    applicationName: "Neco Beat",
+    keywords: ["Neco Beat", "noticias de Necochea", "Quequén", "diario digital", "portal de noticias"],
     metadataBase: new URL("https://necobeat.com.ar"),
     alternates: { canonical: "./" },
     openGraph: {
@@ -50,6 +97,10 @@ export default function RootLayout({
             className={`${inter.variable} ${merriweather.variable} h-full antialiased`}
         >
             <head>
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+                />
                 {process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID && (
                     <>
                         <Script
