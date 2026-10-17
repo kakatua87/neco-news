@@ -18,12 +18,19 @@ type Banner = {
   created_at: string;
 };
 
+type FilaStats = { banner_id: string; dia: string; impresiones: number; clics: number };
+
+const RANGOS = [7, 30, 90];
+const num = (n: number) => n.toLocaleString("es-AR");
+
 const ZONA_CUSTOM_DEFAULT = { ancho: 1200, alto: 100 };
 
 export default function BannersPanel({ secciones = [] as string[] }) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [verTodos, setVerTodos] = useState(false);
+  const [filas, setFilas] = useState<FilaStats[]>([]);
+  const [rango, setRango] = useState(30);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [zonaActiva, setZonaActiva] = useState("");
@@ -46,6 +53,40 @@ export default function BannersPanel({ secciones = [] as string[] }) {
   useEffect(() => {
     fetchBanners();
   }, []);
+
+  useEffect(() => {
+    let cancelado = false;
+    fetch(`/api/banners/stats?dias=${rango}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelado && d.ok) setFilas(d.filas || []);
+      })
+      .catch((e) => console.error(e));
+    return () => {
+      cancelado = true;
+    };
+  }, [rango]);
+
+  const totalesDe = (id: string) => {
+    const propias = filas.filter((f) => f.banner_id === id);
+    const impresiones = propias.reduce((a, f) => a + f.impresiones, 0);
+    const clics = propias.reduce((a, f) => a + f.clics, 0);
+    return { impresiones, clics, ctr: impresiones > 0 ? (clics / impresiones) * 100 : 0 };
+  };
+
+  /** Descarga el detalle diario del banner (para mandárselo al anunciante). */
+  const descargarReporte = (b: Banner) => {
+    const lineas = filas
+      .filter((f) => f.banner_id === b.id)
+      .map((f) => `${f.dia},${f.impresiones},${f.clics},${f.impresiones > 0 ? ((f.clics / f.impresiones) * 100).toFixed(2) : "0.00"}`);
+    const csv = ["fecha,impresiones,clics,ctr_%", ...lineas].join("\n");
+    const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte-${(b.nombre || b.zona).replace(/[^\w-]+/g, "_")}-${rango}d.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const abrirZona = (zona: string) => {
     setZonaActiva(zona);
@@ -101,6 +142,20 @@ export default function BannersPanel({ secciones = [] as string[] }) {
         </button>
         {verTodos && (
           <div className="px-6 pb-6 space-y-2">
+            <div className="flex items-center justify-end gap-1 pb-1">
+              <span className="text-xs text-muted mr-1">Estadísticas de los últimos</span>
+              {RANGOS.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setRango(d)}
+                  className={`px-2.5 py-1 text-xs font-bold rounded-full ${
+                    rango === d ? "bg-ink text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  }`}
+                >
+                  {d} días
+                </button>
+              ))}
+            </div>
             {loading ? (
               <p className="text-sm text-muted">Cargando...</p>
             ) : banners.length === 0 ? (
@@ -122,6 +177,32 @@ export default function BannersPanel({ secciones = [] as string[] }) {
                       <code className="bg-gray-100 px-1 rounded">{b.zona}</code>
                     </p>
                   </div>
+                  {(() => {
+                    const t = totalesDe(b.id);
+                    return (
+                      <div className="hidden sm:flex gap-4 text-center shrink-0" title={`Últimos ${rango} días`}>
+                        <div>
+                          <p className="text-sm font-bold text-ink">{num(t.impresiones)}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted">Impresiones</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-ink">{b.codigo_html ? "—" : num(t.clics)}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted">Clics</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-ink">{b.codigo_html ? "—" : `${t.ctr.toFixed(2)}%`}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-muted">CTR</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <button
+                    onClick={() => descargarReporte(b)}
+                    title="Descargar detalle diario (CSV)"
+                    className="px-2.5 py-1.5 text-sm font-medium text-ink bg-gray-100 hover:bg-gray-200 rounded transition-colors shrink-0"
+                  >
+                    ⬇ CSV
+                  </button>
                   <button
                     onClick={() => toggleActivo(b)}
                     className={`px-2.5 py-1 text-xs font-bold rounded-full shrink-0 ${

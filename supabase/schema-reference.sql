@@ -29,6 +29,8 @@
 --                     noticia_id -> noticias, estado ('borrador'|'procesado'), created_at, updated_at
 -- banners             zona, nombre, imagen_url, url_destino, codigo_html, activo,
 --                     fecha_inicio, fecha_fin, created_at
+-- banner_stats        banner_id -> banners, dia, impresiones, clics (contadores diarios; se suman solo vía
+--                     RPC banner_registrar desde /api/banners/evento y /api/banners/click/[id])
 -- suscriptores        email (unique), activo, created_at
 -- seccion_redirects   anterior (PK, minúsculas), nueva, created_at: al renombrar una sección el listado viejo
 --                     redirige (301) al nuevo (las notas se redirigen solas por su página)

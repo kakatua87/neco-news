@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { urlHttpSegura } from "@/lib/html";
 
@@ -19,6 +19,50 @@ function estaVigente(b: BannerData, ahora = new Date()): boolean {
   if (b.fecha_inicio && new Date(b.fecha_inicio) > ahora) return false;
   if (b.fecha_fin && new Date(b.fecha_fin) < ahora) return false;
   return true;
+}
+
+/**
+ * Cuenta una impresión por banner y por carga de página cuando el espacio estuvo al menos 50% visible
+ * durante 1 segundo (criterio estándar de "visible"). Los robots se descartan en el servidor.
+ */
+function useImpresiones(ids: string[]) {
+  const ref = useRef<HTMLDivElement>(null);
+  const clave = ids.join(",");
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !clave || typeof IntersectionObserver === "undefined") return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let enviado = false;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (enviado) return;
+        if (entry.isIntersecting) {
+          timer = setTimeout(() => {
+            enviado = true;
+            observer.disconnect();
+            fetch("/api/banners/evento", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ids: clave.split(",") }),
+              keepalive: true,
+            }).catch(() => {});
+          }, 1000);
+        } else if (timer) {
+          clearTimeout(timer);
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (timer) clearTimeout(timer);
+    };
+  }, [clave]);
+
+  return ref;
 }
 
 function BannerItem({ banner, zone }: { banner: BannerData; zone: string }) {
@@ -43,7 +87,7 @@ function BannerItem({ banner, zone }: { banner: BannerData; zone: string }) {
     const destino = urlHttpSegura(banner.url_destino);
     if (destino) {
       return (
-        <a href={destino} target="_blank" rel="noopener noreferrer" className="block h-full">
+        <a href={`/api/banners/click/${banner.id}`} target="_blank" rel="noopener noreferrer sponsored" className="block h-full">
           {imgContent}
         </a>
       );
@@ -85,6 +129,8 @@ export default function BannerZone({
     fetchBanners();
   }, [zone]);
 
+  const medida = useImpresiones(banners.map((b) => b.id));
+
   if (loading) {
     return <div className={`animate-pulse bg-gray-200 rounded-lg ${className}`} />;
   }
@@ -118,7 +164,7 @@ export default function BannerZone({
   // Fijo: se muestra el primer aviso activo, sin desplazamiento.
   if (fixed) {
     return (
-      <div className={`flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 ${className}`}>
+      <div ref={medida} className={`flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 ${className}`}>
         <BannerItem banner={banners[0]} zone={zone} />
       </div>
     );
@@ -128,7 +174,7 @@ export default function BannerZone({
   const looped = [...banners, ...banners];
 
   return (
-    <div className={`overflow-hidden rounded-lg bg-gray-50 ${className}`}>
+    <div ref={medida} className={`overflow-hidden rounded-lg bg-gray-50 ${className}`}>
       <div className="marquee-track h-full items-center py-2">
         {looped.map((banner, i) => (
           <div key={`${banner.id}-${i}`} className="marquee-item h-full px-4">
