@@ -7,7 +7,6 @@ import type { SugerenciaFusion } from "./agrupar";
 export type GrupoEditState = {
   seleccionadas: Set<string | number>; // IDs de fuentes seleccionadas
   imagenId: string | number | null; // ID de la nota cuya imagen se usará
-  seccion: string;
 };
 
 export type AiProvider = {
@@ -22,7 +21,6 @@ type Props = {
   grupoId: string;
   notas: Noticia[];
   estado: GrupoEditState;
-  secciones: string[];
   sugerencia?: SugerenciaFusion;
   procesando: boolean;
   aiProviders: AiProvider[];
@@ -32,7 +30,6 @@ type Props = {
   onToggleSeleccion: () => void;
   onToggleFuente: (notaId: string | number) => void;
   onElegirImagen: (notaId: string | number) => void;
-  onCambiarSeccion: (seccion: string) => void;
   onFusionar: (grupoIdOrigen: string) => void;
   onDescartar: () => void;
   onProcesar: (provider?: string) => void;
@@ -43,7 +40,6 @@ export default function GrupoCard({
   grupoId,
   notas,
   estado: gs,
-  secciones,
   sugerencia,
   procesando,
   aiProviders,
@@ -52,7 +48,6 @@ export default function GrupoCard({
   onToggleSeleccion,
   onToggleFuente,
   onElegirImagen,
-  onCambiarSeccion,
   onFusionar,
   onDescartar,
   onProcesar,
@@ -93,21 +88,10 @@ export default function GrupoCard({
           )}
         </div>
 
-        {/* Sección selector */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs text-muted">Sección:</span>
-          <select
-            value={gs.seccion}
-            onChange={(e) => onCambiarSeccion(e.target.value)}
-            className="text-sm border border-border rounded-lg px-3 py-1.5 outline-none focus:border-accent bg-white font-medium"
-          >
-            {secciones.map((sec) => (
-              <option key={sec} value={sec}>
-                {sec}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* La sección ya no se elige a mano: la decide la IA entre las secciones del portal al procesar. */}
+        <span className="text-[11px] text-muted flex-shrink-0" title="La IA elige la sección según el tema, entre las del portal">
+          Sección: la elige la IA
+        </span>
       </div>
 
       {/* ── Fuentes (cada nota del grupo) ── */}

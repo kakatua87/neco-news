@@ -19,7 +19,6 @@ import { agruparDiasPorMes, agruparPorFecha, agruparPorSitio, calcularSugerencia
 type Props = {
   initialRawGrupos: Record<string, Noticia[]>;
   scraperConfig: ScraperConfig;
-  secciones: string[];
   notasMostradas: number;
   notasTotal: number;
   initialEnvios: Envio[];
@@ -35,7 +34,6 @@ function estadoInicial(rawGrupos: Record<string, Noticia[]>): Record<string, Gru
     estados[gid] = {
       seleccionadas: new Set(notas.map((n) => n.id)),
       imagenId: conImagen?.id ?? null,
-      seccion: notas[0]?.seccion || "Local",
     };
   }
   return estados;
@@ -44,7 +42,6 @@ function estadoInicial(rawGrupos: Record<string, Noticia[]>): Record<string, Gru
 export default function BandejaTab({
   initialRawGrupos,
   scraperConfig,
-  secciones,
   notasMostradas,
   notasTotal,
   initialEnvios,
@@ -102,7 +99,6 @@ export default function BandejaTab({
     idsSeleccionIA.map((id) => ({
       grupo_id: id,
       fuentes_ids: Array.from(grupoStates[id]?.seleccionadas ?? rawGrupos[id].map((n) => n.id)),
-      seccion: grupoStates[id]?.seccion ?? rawGrupos[id][0]?.seccion ?? "Local",
     }));
   const terminoEdicionManual = () => {
     // La corrida pudo procesar, fusionar o descartar grupos: se vuelve a leer la bandeja del servidor.
@@ -189,7 +185,6 @@ export default function BandejaTab({
           grupo_id: grupoId,
           fuentes_ids: selectedIds,
           imagen_url: imagenUrl,
-          seccion: gs.seccion,
           provider: provider || undefined,
         },
       });
@@ -446,7 +441,6 @@ export default function BandejaTab({
                                               grupoId={grupoId}
                                               notas={notas}
                                               estado={gs}
-                                              secciones={secciones}
                                               sugerencia={sugerenciasFusion[grupoId]}
                                               procesando={ocupados.includes(grupoId)}
                                               aiProviders={aiProviders}
@@ -455,7 +449,6 @@ export default function BandejaTab({
                                               onToggleSeleccion={() => toggleSeleccionIA(grupoId)}
                                               onToggleFuente={(notaId) => toggleFuente(grupoId, notaId)}
                                               onElegirImagen={(notaId) => actualizarGrupo(grupoId, (s) => ({ ...s, imagenId: notaId }))}
-                                              onCambiarSeccion={(seccion) => actualizarGrupo(grupoId, (s) => ({ ...s, seccion }))}
                                               onFusionar={(origen) => fusionarGrupos(grupoId, origen)}
                                               onDescartar={() => descartarGrupo(grupoId)}
                                               onProcesar={(provider) => procesarGrupo(grupoId, provider)}

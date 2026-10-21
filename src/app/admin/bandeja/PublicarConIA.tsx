@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { adminFetch } from "../_lib/adminFetch";
 import { useToast } from "../_lib/toast";
 
-export type ItemManual = { grupo_id: string; fuentes_ids: (string | number)[]; seccion: string };
+export type ItemManual = { grupo_id: string; fuentes_ids: (string | number)[] };
 
 export type ResumenManual = {
   ok?: boolean;
