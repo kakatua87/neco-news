@@ -81,6 +81,16 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
     navigator.clipboard.writeText(noticiaLink(item));
   };
 
+  /**
+   * Facebook no deja que una app publique en un perfil personal (solo en Páginas): se abre su ventana oficial
+   * de "Compartir" con el link de la nota y el editor confirma con un click. Facebook arma la tarjeta con la
+   * foto, el título y la descripción de la nota; no admite pasar texto ni imagen propios.
+   */
+  const compartirEnPerfil = (item: InstagramKitItem) => {
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(noticiaLink(item))}`;
+    window.open(url, "_blank", "noopener,noreferrer,width=640,height=640");
+  };
+
   const NOMBRE_RED = { instagram: "Instagram", facebook: "Facebook" } as const;
 
   /** Publica una nota en una red y refleja la marca en pantalla. No muestra avisos: devuelve el resultado. */
@@ -365,6 +375,13 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                       {publicandoIds.includes(`ambas-${item.id}`) ? "Publicando en las dos..." : "🚀 Publicar en ambas"}
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() => compartirEnPerfil(item)}
+                                    className="mt-2 w-full px-3 py-1.5 text-xs font-bold border border-[#1877F2] text-[#1877F2] rounded hover:bg-[#1877F2]/10 transition-colors"
+                                    title="Abre la ventana de Facebook para compartir el link de la nota en tu perfil (con un click)"
+                                  >
+                                    👤 Compartir en mi perfil
+                                  </button>
                                 </div>
                                 <div className="p-4 flex-1 flex flex-col gap-3">
                                   <div className="flex flex-wrap items-center gap-2">
