@@ -27,6 +27,9 @@ type Props = {
   procesando: boolean;
   aiProviders: AiProvider[];
   menuProveedorAbierto: boolean;
+  /** Tildado con "Incluir" para publicarlo con IA desde la barra de la Bandeja. */
+  seleccionado: boolean;
+  onToggleSeleccion: () => void;
   onToggleFuente: (notaId: string | number) => void;
   onElegirImagen: (notaId: string | number) => void;
   onCambiarSeccion: (seccion: string) => void;
@@ -45,6 +48,8 @@ export default function GrupoCard({
   procesando,
   aiProviders,
   menuProveedorAbierto,
+  seleccionado,
+  onToggleSeleccion,
   onToggleFuente,
   onElegirImagen,
   onCambiarSeccion,
@@ -68,6 +73,13 @@ export default function GrupoCard({
             <span className="text-[10px] text-muted">
               {new Date(notas[0].created_at).toLocaleString("es-AR", { hour: "2-digit", minute: "2-digit" })} hs
             </span>
+            <label
+              className="ml-2 flex cursor-pointer items-center gap-1 text-[11px] font-bold text-ink"
+              title="Incluir en «Publicar seleccionados» (publicación automática con IA)"
+            >
+              <input type="checkbox" checked={seleccionado} onChange={onToggleSeleccion} className="h-3.5 w-3.5" />
+              Incluir
+            </label>
           </div>
           <h3 className="text-lg font-bold text-ink leading-tight">{notas[0].titulo_original || notas[0].titulo}</h3>
           {sugerencia && (

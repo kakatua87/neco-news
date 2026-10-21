@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Noticia } from "@/types/noticia";
 import { adminFetch } from "../_lib/adminFetch";
@@ -10,6 +10,7 @@ import { useScraperConfig } from "../_lib/useScraperConfig";
 import type { ScraperConfig } from "../_lib/scraperConfig";
 import GrupoCard, { type AiProvider, type GrupoEditState } from "./GrupoCard";
 import ScraperControl from "./ScraperControl";
+import PublicarConIA, { type ItemManual } from "./PublicarConIA";
 import AvisoLimite from "../_lib/AvisoLimite";
 import EnviosBandeja from "./EnviosBandeja";
 import { ESTADOS_ACTIVOS, type Envio } from "../_lib/envios";
@@ -75,6 +76,46 @@ export default function BandejaTab({
   }, []);
 
   const inboxCount = Object.keys(rawGrupos).length;
+
+  // ─── Publicar con IA (edición manual del scraper) ──────────────
+  const [seleccionIA, setSeleccionIA] = useState<Set<string>>(new Set());
+  const sincronizarTrasEdicion = useRef(false);
+  const toggleSeleccionIA = (grupoId: string) =>
+    setSeleccionIA((prev) => {
+      const next = new Set(prev);
+      if (next.has(grupoId)) next.delete(grupoId);
+      else next.add(grupoId);
+      return next;
+    });
+  const hoyAR = new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+  const gruposHoy = useMemo(
+    () =>
+      Object.values(rawGrupos).filter(
+        (notas) =>
+          notas[0] &&
+          new Date(notas[0].created_at).toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }) === hoyAR
+      ).length,
+    [rawGrupos, hoyAR]
+  );
+  const idsSeleccionIA = Array.from(seleccionIA).filter((id) => rawGrupos[id]);
+  const armarItemsIA = (): ItemManual[] =>
+    idsSeleccionIA.map((id) => ({
+      grupo_id: id,
+      fuentes_ids: Array.from(grupoStates[id]?.seleccionadas ?? rawGrupos[id].map((n) => n.id)),
+      seccion: grupoStates[id]?.seccion ?? rawGrupos[id][0]?.seccion ?? "Local",
+    }));
+  const terminoEdicionManual = () => {
+    // La corrida pudo procesar, fusionar o descartar grupos: se vuelve a leer la bandeja del servidor.
+    sincronizarTrasEdicion.current = true;
+    setSeleccionIA(new Set());
+    router.refresh();
+  };
+  useEffect(() => {
+    if (!sincronizarTrasEdicion.current) return;
+    sincronizarTrasEdicion.current = false;
+    setRawGrupos(initialRawGrupos);
+    setGrupoStates(estadoInicial(initialRawGrupos));
+  }, [initialRawGrupos]);
 
   // ─── Derivados ─────────────────────────────────────────────────
   const seccionesEnInbox = useMemo(
@@ -283,6 +324,13 @@ export default function BandejaTab({
             </div>
           </div>
 
+      <PublicarConIA
+        gruposHoy={gruposHoy}
+        seleccionados={idsSeleccionIA}
+        armarItems={armarItemsIA}
+        onTerminado={terminoEdicionManual}
+      />
+
       <AvisoLimite mostrados={notasMostradas} total={notasTotal} cosa="noticias crudas" />
 
       {mostrarScraper && (
@@ -403,6 +451,8 @@ export default function BandejaTab({
                                               procesando={ocupados.includes(grupoId)}
                                               aiProviders={aiProviders}
                                               menuProveedorAbierto={menuProveedorGrupoId === grupoId}
+                                              seleccionado={seleccionIA.has(grupoId)}
+                                              onToggleSeleccion={() => toggleSeleccionIA(grupoId)}
                                               onToggleFuente={(notaId) => toggleFuente(grupoId, notaId)}
                                               onElegirImagen={(notaId) => actualizarGrupo(grupoId, (s) => ({ ...s, imagenId: notaId }))}
                                               onCambiarSeccion={(seccion) => actualizarGrupo(grupoId, (s) => ({ ...s, seccion }))}
