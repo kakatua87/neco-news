@@ -35,6 +35,10 @@ const DEMO_STORIES = [
 
 /* ═══ Page ═══ */
 
+// Sin esto la portada se prerenderiza una vez y queda congelada hasta el próximo deploy: la consulta usa el
+// cliente público sin cookies, así que Next la trata como estática. Se regenera como máximo cada 60 s.
+export const revalidate = 60;
+
 export default async function Home() {
   const [noticias, carruselPortada, seccionNoticias] = await Promise.all([
     getPublicadas(60),

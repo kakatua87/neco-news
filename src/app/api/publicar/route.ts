@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { headers } from "next/headers";
 import { esAdmin, tieneSecretoInterno } from "@/lib/auth";
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
   const { error } = await supabase.from("noticias").update(payload).eq("id", body.id);
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  }
+
+  // La portada y las secciones son páginas cacheadas: se invalidan al publicar para que la nota aparezca ya.
+  try {
+    revalidatePath("/", "layout");
+  } catch (e) {
+    console.error("No se pudo revalidar el caché:", e);
   }
 
   // Edición automática: sin push individual (lo reemplaza /api/push/resumen) ni kit de Instagram de

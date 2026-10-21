@@ -8,6 +8,10 @@ import SeccionGrid from "./SeccionGrid";
 
 const PAGE_SIZE = 9;
 
+// La consulta usa el cliente público sin cookies: sin esto la sección queda cacheada indefinidamente y
+// sigue mostrando notas ya eliminadas. Se regenera como máximo cada 60 s.
+export const revalidate = 60;
+
 type SeccionPageProps = {
   params: Promise<{ seccion: string }>;
 };
