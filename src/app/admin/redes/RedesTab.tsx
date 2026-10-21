@@ -366,15 +366,37 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                       </button>
                                     </div>
                                   )}
-                                  {item.imagen_url && (
-                                    <button
-                                      onClick={() => publicarEnAmbas(item)}
-                                      disabled={ocupada}
-                                      className="mt-2 w-full px-3 py-1.5 text-xs font-bold border border-accent text-accent rounded hover:bg-accent/10 transition-colors disabled:opacity-50"
-                                    >
-                                      {publicandoIds.includes(`ambas-${item.id}`) ? "Publicando en las dos..." : "🚀 Publicar en ambas"}
-                                    </button>
-                                  )}
+                                  {item.imagen_url && (() => {
+                                    // El botón refleja qué falta: ninguna red, solo una o las dos ya publicadas.
+                                    const enIg = !!item.instagram_publicado_at;
+                                    const enFb = !!item.facebook_publicado_at;
+                                    const publicando = publicandoIds.includes(`ambas-${item.id}`);
+                                    const completa = enIg && enFb;
+                                    const texto = publicando
+                                      ? "Publicando..."
+                                      : completa
+                                        ? "✓ Publicada en Instagram y Facebook"
+                                        : enIg
+                                          ? "🚀 Falta Facebook · publicar"
+                                          : enFb
+                                            ? "🚀 Falta Instagram · publicar"
+                                            : "🚀 Publicar en ambas";
+                                    const estilo = completa
+                                      ? "border-green-300 bg-green-50 text-green-700 cursor-default"
+                                      : enIg || enFb
+                                        ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                                        : "border-accent text-accent hover:bg-accent/10";
+                                    return (
+                                      <button
+                                        onClick={() => publicarEnAmbas(item)}
+                                        disabled={ocupada || completa}
+                                        title={completa ? "Ya está en las dos redes. Para volver a publicar en una, usá su botón ↻." : undefined}
+                                        className={`mt-2 w-full px-3 py-1.5 text-xs font-bold border rounded transition-colors disabled:opacity-100 ${estilo}`}
+                                      >
+                                        {texto}
+                                      </button>
+                                    );
+                                  })()}
                                   <button
                                     onClick={() => compartirEnPerfil(item)}
                                     className="mt-2 w-full px-3 py-1.5 text-xs font-bold border border-[#1877F2] text-[#1877F2] rounded hover:bg-[#1877F2]/10 transition-colors"
