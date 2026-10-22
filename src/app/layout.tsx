@@ -43,7 +43,7 @@ const siteJsonLd = [
         email: "contacto@necobeat.com.ar",
         sameAs: [
             "https://www.instagram.com/neco.beat/",
-            "https://www.facebook.com/profile.php?id=1264073046795517",
+            "https://www.facebook.com/profile.php?id=61594134696251",
             "https://x.com/2262necobeat",
         ],
     },
