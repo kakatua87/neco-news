@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import HeaderDate from "./HeaderDate";
+import { SECCIONES_MENU } from "@/lib/secciones";
 
-const MAIN_NAV = ["Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura", "Tendencias"];
+const MAIN_NAV = SECCIONES_MENU;
 const EXTRA_NAV = ["Obituarios", "Farmacias"];
 
 function SubtitleSegment() {

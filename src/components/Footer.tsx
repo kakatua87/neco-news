@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { REDES } from "@/lib/social";
+import { SECCIONES_MENU } from "@/lib/secciones";
 
-const NAV = ["Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura", "Tendencias", "Obituarios", "Farmacias"];
+const NAV = [...SECCIONES_MENU, "Obituarios", "Farmacias"];
 
 export default function Footer() {
   return (

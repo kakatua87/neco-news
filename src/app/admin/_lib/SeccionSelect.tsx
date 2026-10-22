@@ -4,7 +4,7 @@ type Props = {
   value: string;
   secciones: string[];
   onChange: (seccion: string) => void;
-  /** Se llama cuando el usuario escribe una sección nueva (Enter) antes de `onChange`. */
+  /** Ya no se usa: las secciones son las oficiales del portal y no se crean desde acá. */
   onCrear?: (seccion: string) => void;
   /** Tamaño reducido (tarjetas de publicadas). */
   compacto?: boolean;
@@ -13,44 +13,29 @@ type Props = {
   children?: React.ReactNode;
 };
 
-/** Selector de sección con alta rápida de una nueva (única versión; antes estaba copiado 3 veces). */
+/** Selector de sección. Solo ofrece las oficiales del portal: no se pueden crear secciones nuevas desde acá. */
 export default function SeccionSelect({
   value,
   secciones,
   onChange,
-  onCrear,
   compacto = false,
-  placeholderNueva,
   children,
 }: Props) {
+  // Una nota vieja puede tener una sección que ya no existe: se muestra marcada para poder corregirla.
+  const opciones = value && !secciones.includes(value) ? [...secciones, value] : secciones;
   const selectCls = compacto
     ? "text-[10px] border border-border rounded px-1.5 py-1 outline-none focus:border-accent bg-gray-50"
     : "text-xs border border-border rounded px-2 py-1.5 outline-none focus:border-accent bg-gray-50";
-  const inputCls = compacto
-    ? "text-[10px] border border-border rounded px-1.5 py-1 w-20 outline-none focus:border-accent"
-    : "text-xs border border-border rounded px-2 py-1.5 w-32 outline-none focus:border-accent";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <select value={value || ""} onChange={(e) => onChange(e.target.value)} className={selectCls}>
-        {secciones.map((sec) => (
+        {opciones.map((sec) => (
           <option key={sec} value={sec}>
-            {sec}
+            {secciones.includes(sec) ? sec : `${sec} (ya no existe)`}
           </option>
         ))}
       </select>
-      <input
-        type="text"
-        placeholder={placeholderNueva ?? (compacto ? "Nueva..." : "Nueva sección...")}
-        className={inputCls}
-        onKeyDown={(e) => {
-          if (e.key !== "Enter" || !e.currentTarget.value.trim()) return;
-          const val = e.currentTarget.value.trim();
-          if (!secciones.includes(val)) onCrear?.(val);
-          onChange(val);
-          e.currentTarget.value = "";
-        }}
-      />
       {children}
     </div>
   );

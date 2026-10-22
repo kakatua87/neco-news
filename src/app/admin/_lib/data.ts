@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { SECCIONES, unirSecciones } from "@/lib/secciones";
+import { SECCIONES } from "@/lib/secciones";
 import type { Editable } from "./types";
 import { ESTADOS_ACTIVOS, type Envio } from "./envios";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -48,10 +48,13 @@ const leerSeccionesUsadas = unstable_cache(
   { revalidate: 120, tags: ["secciones"] },
 );
 
-/** Secciones base + las que ya están en uso en la base. */
+/**
+ * `disponibles`: las secciones oficiales del portal (las del menú), únicas que ofrecen los selectores del admin.
+ * `usadas`: las que hay en la base (incluye restos de secciones viejas); solo para revisar y renombrar en Configuración.
+ */
 export const getSecciones = cache(async (): Promise<{ disponibles: string[]; usadas: string[] }> => {
   const usadas = await leerSeccionesUsadas();
-  return { disponibles: unirSecciones(SECCIONES, usadas), usadas };
+  return { disponibles: [...SECCIONES], usadas };
 });
 
 const COLUMNAS_PUBLICADAS = "id, titulo, cuerpo, seccion, imagen_url, fecha_publicacion, slug, es_portada, orden_portada";
