@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { logoutAction } from "./actions";
 import { ToastProvider } from "./_lib/toast";
+import Avisos from "./Avisos";
 
 type Props = {
   children: ReactNode;
@@ -40,7 +41,9 @@ export default function AdminShell({ children, inboxCount, pendientesCount }: Pr
             <div className="mt-2 text-xs text-cream/50 uppercase tracking-widest">Panel Editorial</div>
           </div>
 
-          <nav className="mt-6 px-4 space-y-2">
+          <Avisos />
+
+          <nav className="mt-2 px-4 space-y-2">
             {ITEMS.map(({ href, label, badge }) => {
               const activo = pathname === href || pathname.startsWith(`${href}/`);
               const cantidad = badge === "inbox" ? inboxCount : badge === "pendientes" ? pendientesCount : 0;
