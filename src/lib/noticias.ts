@@ -24,11 +24,11 @@ export async function getPublicadas(limit = 30): Promise<NoticiaPublica[]> {
 }
 
 /**
- * Noticias incluidas en el carrusel de portada, ordenadas por orden_portada.
- * Un trigger en la base de datos mantiene es_portada/orden_portada actualizados
- * automáticamente (hasta 3, una por sección, del día en curso) cada vez que se
- * publica una noticia. Acá además filtramos por "hoy" (huso horario Argentina)
- * como refuerzo, para no mostrar nunca una portada de un día anterior.
+ * Noticias incluidas en el carrusel de portada, ordenadas por orden_portada (hasta 9).
+ * Cada lote de notas publicadas (edición automática, botón "Publicar con IA", rutina de revisión) suma sus 3
+ * más relevantes con la función SQL `agregar_a_carrusel`; las de lotes anteriores del día se corren hacia atrás.
+ * Si hoy todavía no hubo ningún lote, un trigger arma un respaldo con lo más reciente de cada sección.
+ * Acá además filtramos por "hoy" (huso horario Argentina) para no mostrar nunca una portada de un día anterior.
  */
 export async function getCarruselPortada(): Promise<NoticiaPublica[]> {
   const supabase = createSupabasePublicClient();
@@ -42,7 +42,7 @@ export async function getCarruselPortada(): Promise<NoticiaPublica[]> {
     .gte("fecha_publicacion", inicio)
     .lte("fecha_publicacion", fin)
     .order("orden_portada", { ascending: true, nullsFirst: false })
-    .limit(8);
+    .limit(9);
 
   if (error || !data) {
     console.error("Error al obtener carrusel de portada:", error?.message);

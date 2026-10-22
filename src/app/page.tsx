@@ -22,7 +22,7 @@ function normalizeSeccion(s: string): string {
 
 /* Secciones principales mostradas en la portada, en el mismo orden que la barra de navegación
    (Header.tsx / Footer.tsx). Las que no tienen notas no se muestran. */
-const HOME_SECTIONS = ["Local", "Policiales", "Política", "Deportes", "Zona"];
+const HOME_SECTIONS = ["Local", "Policiales", "Política", "Economía", "Deportes", "Zona"];
 
 const DEMO_STORIES = [
   { title: "El municipio presentó el plan de obras 2026", desc: "Se anunciaron mejoras en infraestructura vial y nuevos espacios verdes...", img: "/placeholder-1.png", section: "Economía" },

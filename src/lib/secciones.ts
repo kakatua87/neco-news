@@ -4,7 +4,7 @@
  * Si se agrega o quita una, hay que cambiarla también en el scraper.
  */
 export const SECCIONES_MENU = [
-  "Local", "Policiales", "Política", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura", "Tendencias",
+  "Local", "Policiales", "Política", "Economía", "Deportes", "Zona", "Sociedad", "Opinión", "Cultura", "Tendencias",
 ];
 
 /** Secciones que la IA puede elegir (Opinión es de autor: solo se carga a mano). */
