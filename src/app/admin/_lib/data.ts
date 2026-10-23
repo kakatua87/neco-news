@@ -26,11 +26,14 @@ export const getInboxCount = cache(async (): Promise<number> => {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("noticias")
-    .select("id, grupo_id")
+    .select("id, grupo_id, prioridad")
     .eq("estado", "raw")
     .order("created_at", { ascending: false })
     .limit(150);
-  return new Set((data ?? []).map((n) => n.grupo_id || `sin-grupo-${n.id}`)).size;
+  // Los grupos descartables (farándula, archivo, notas comerciales) quedan ocultos en la Bandeja y no cuentan.
+  const clave = (n: { id: unknown; grupo_id: string | null }) => n.grupo_id || `sin-grupo-${n.id}`;
+  const visibles = new Set((data ?? []).filter((n) => n.prioridad !== 3).map(clave));
+  return visibles.size;
 });
 
 /**
@@ -91,6 +94,51 @@ export const getScraperConfig = cache(async (): Promise<ScraperConfig> => {
   const supabase = createSupabaseAdminClient();
   const { data } = await supabase.from("scraper_config").select("*").eq("id", 1).single();
   return normalizarScraperConfig(data);
+});
+
+export type SaludFuente = {
+  fuente: string;
+  ultimaCorrida: string;
+  tarjetas: number;
+  nuevas: number;
+  bloqueadas: number;
+  guardadas7d: number;
+  ultimaNota: string | null;
+  error: string | null;
+  estado: "ok" | "atencion" | "caida";
+};
+
+/** Estado de cada fuente según las corridas del scraper (tabla `fuentes_salud`, solo service role). */
+export const getSaludFuentes = cache(async (): Promise<SaludFuente[]> => {
+  const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const { data } = await createSupabaseAdminClient()
+    .from("fuentes_salud")
+    .select("fuente, ts, tarjetas, nuevas, guardadas, bloqueadas, error")
+    .gte("ts", desde)
+    .order("ts", { ascending: false })
+    .limit(1500);
+  const porFuente = new Map<string, NonNullable<typeof data>>();
+  for (const f of data ?? []) porFuente.set(f.fuente, [...(porFuente.get(f.fuente) ?? []), f]);
+  const hace30h = Date.now() - 30 * 3600 * 1000;
+  return Array.from(porFuente.entries()).map(([fuente, filas]) => {
+    const ultima = filas[0];
+    const real = filas.find((f) => !f.error) ?? ultima; // las filas con error son pausas o fallos de la corrida
+    const conNotas = filas.find((f) => (f.guardadas ?? 0) > 0);
+    const sinNotas30h = !conNotas || new Date(conNotas.ts).getTime() < hace30h;
+    const bloqueada = (real.bloqueadas ?? 0) >= 2 && (real.guardadas ?? 0) === 0;
+    const estado = bloqueada || sinNotas30h ? "caida" : ultima.error || (real.tarjetas ?? 0) === 0 ? "atencion" : "ok";
+    return {
+      fuente,
+      ultimaCorrida: ultima.ts,
+      tarjetas: real.tarjetas ?? 0,
+      nuevas: real.nuevas ?? 0,
+      bloqueadas: real.bloqueadas ?? 0,
+      guardadas7d: filas.reduce((s, f) => s + (f.guardadas ?? 0), 0),
+      ultimaNota: conNotas?.ts ?? null,
+      error: ultima.error,
+      estado,
+    } satisfies SaludFuente;
+  });
 });
 
 export type Descartada = {

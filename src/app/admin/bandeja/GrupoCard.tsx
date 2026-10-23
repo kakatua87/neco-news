@@ -1,7 +1,7 @@
 "use client";
 
 import type { Noticia } from "@/types/noticia";
-import type { SugerenciaFusion } from "./agrupar";
+import { SIN_CLASIFICAR, prioridadGrupo, seccionPrevistaGrupo, type SugerenciaFusion } from "./agrupar";
 
 /** Estado interactivo de cada grupo de la bandeja. */
 export type GrupoEditState = {
@@ -35,6 +35,24 @@ type Props = {
   onProcesar: (provider?: string) => void;
   onToggleMenuProveedor: () => void;
 };
+
+/** «Iría a: Zona», coloreada por prioridad; «Descartable · motivo» para farándula, archivo y notas comerciales. */
+function InsigniaPrevista({ notas }: { notas: Noticia[] }) {
+  const prioridad = prioridadGrupo(notas);
+  const prevista = seccionPrevistaGrupo(notas);
+  const motivo = notas.find((n) => n.motivo_descarte)?.motivo_descarte;
+  const sinClasificar = prevista === SIN_CLASIFICAR;
+  const color = prioridad === 3 ? "bg-amber-100 text-amber-800" : sinClasificar ? "bg-gray-100 text-muted" : prioridad === 1 ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800";
+  const texto = prioridad === 3 ? `Descartable${motivo ? ` · ${motivo}` : ""}` : sinClasificar ? SIN_CLASIFICAR : `Iría a: ${prevista}`;
+  return (
+    <span
+      className={`text-[11px] font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${color}`}
+      title="Sección prevista por el scraper antes de procesar la nota; la IA puede ajustarla"
+    >
+      {texto}
+    </span>
+  );
+}
 
 export default function GrupoCard({
   grupoId,
@@ -88,10 +106,8 @@ export default function GrupoCard({
           )}
         </div>
 
-        {/* La sección ya no se elige a mano: la decide la IA entre las secciones del portal al procesar. */}
-        <span className="text-[11px] text-muted flex-shrink-0" title="La IA elige la sección según el tema, entre las del portal">
-          Sección: la elige la IA
-        </span>
+        {/* La sección no se elige a mano: es la que el scraper prevé (la IA puede ajustarla al procesar). */}
+        <InsigniaPrevista notas={notas} />
       </div>
 
       {/* ── Fuentes (cada nota del grupo) ── */}

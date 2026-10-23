@@ -46,6 +46,11 @@ export type Noticia = {
   auto_motivo?: string | null;
   /** Fotos de cada fuente para elegir desde Pendientes; no es público (fuera de COLUMNAS_PUBLICAS). */
   imagenes_fuentes?: FotoFuente[] | null;
+  /** Sección a la que iría la nota según el scraper (antes de procesarla); solo panel admin. */
+  seccion_prevista?: string | null;
+  /** 1 alta · 2 media · 3 descartable (farándula, archivo, nota comercial); solo panel admin. */
+  prioridad?: number | null;
+  motivo_descarte?: string | null;
 };
 
 /**

@@ -1,5 +1,5 @@
 import { requireAdmin } from "../_lib/guard";
-import { getEnviosAdmin, getRawCount, getScraperConfig } from "../_lib/data";
+import { getEnviosAdmin, getRawCount, getSaludFuentes, getScraperConfig } from "../_lib/data";
 import { getRawGrupos } from "@/lib/noticias";
 import BandejaTab from "./BandejaTab";
 
@@ -11,13 +11,14 @@ export default async function BandejaPage({
   // Verificación de admin en paralelo con las consultas que van por RLS. Las que usan el cliente
   // con service role esperan a que la verificación termine (no corren para quien no es admin).
   const guard = requireAdmin();
-  const [, { origen }, rawGrupos, scraperConfig, rawTotal, envios] = await Promise.all([
+  const [, { origen }, rawGrupos, scraperConfig, rawTotal, envios, salud] = await Promise.all([
     guard,
     searchParams,
     getRawGrupos(150),
     guard.then(() => getScraperConfig()),
     getRawCount(),
     guard.then(() => getEnviosAdmin()),
+    guard.then(() => getSaludFuentes()),
   ]);
   const origenInicial = origen === "scraper" || origen === "ciudadano" ? origen : "todos";
 
@@ -29,6 +30,7 @@ export default async function BandejaPage({
       notasMostradas={rawMostradas}
       notasTotal={rawTotal}
       initialEnvios={envios}
+      saludFuentes={salud}
       origenInicial={origenInicial}
     />
   );

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Noticia } from "@/types/noticia";
+import type { SaludFuente } from "../_lib/data";
 import { adminFetch } from "../_lib/adminFetch";
 import { useToast } from "../_lib/toast";
 import { useToggleSet } from "../_lib/useToggleSet";
@@ -14,7 +15,20 @@ import PublicarConIA, { type ItemManual } from "./PublicarConIA";
 import AvisoLimite from "../_lib/AvisoLimite";
 import EnviosBandeja from "./EnviosBandeja";
 import { ESTADOS_ACTIVOS, type Envio } from "../_lib/envios";
-import { agruparDiasPorMes, agruparPorFecha, agruparPorSitio, calcularSugerenciasFusion } from "./agrupar";
+import {
+  FILTROS_INICIALES,
+  agruparDiasPorMes,
+  agruparPorFecha,
+  agruparPorSitio,
+  calcularSugerenciasFusion,
+  contarPor,
+  filtrarGrupos,
+  prioridadGrupo,
+  seccionPrevistaGrupo,
+  sitiosGrupo,
+  type FiltroPrioridad,
+  type FiltrosBandeja,
+} from "./agrupar";
 
 type Props = {
   initialRawGrupos: Record<string, Noticia[]>;
@@ -22,6 +36,7 @@ type Props = {
   notasMostradas: number;
   notasTotal: number;
   initialEnvios: Envio[];
+  saludFuentes?: SaludFuente[];
   origenInicial?: Origen;
 };
 
@@ -39,12 +54,30 @@ function estadoInicial(rawGrupos: Record<string, Noticia[]>): Record<string, Gru
   return estados;
 }
 
+const PRIORIDADES: [FiltroPrioridad, string][] = [
+  ["visibles", "Sin descartables"],
+  ["prioritarias", "Prioritarias"],
+  ["otras", "Otras"],
+  ["descartables", "Descartables"],
+  ["todas", "Todas"],
+];
+
+function FilaFiltro({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="w-16 text-[11px] font-bold uppercase tracking-wide text-muted">{titulo}</span>
+      {children}
+    </div>
+  );
+}
+
 export default function BandejaTab({
   initialRawGrupos,
   scraperConfig,
   notasMostradas,
   notasTotal,
   initialEnvios,
+  saludFuentes = [],
   origenInicial = "todos",
 }: Props) {
   const router = useRouter();
@@ -53,7 +86,7 @@ export default function BandejaTab({
   const [rawGrupos, setRawGrupos] = useState(initialRawGrupos);
   const [grupoStates, setGrupoStates] = useState(() => estadoInicial(initialRawGrupos));
   const [ocupados, setOcupados] = useState<string[]>([]); // grupos con una acción en curso
-  const [seccionFiltro, setSeccionFiltro] = useState("Todas");
+  const [filtros, setFiltros] = useState<FiltrosBandeja>(FILTROS_INICIALES);
   const [origen, setOrigen] = useState<Origen>(origenInicial);
   const [envios, setEnvios] = useState(initialEnvios);
   const enviosActivos = envios.filter((e) => ESTADOS_ACTIVOS.includes(e.estado)).length;
@@ -73,6 +106,8 @@ export default function BandejaTab({
   }, []);
 
   const inboxCount = Object.keys(rawGrupos).length;
+  const descartables = Object.values(rawGrupos).filter((n) => prioridadGrupo(n) === 3).length;
+  const inboxVisibles = inboxCount - descartables; // los descartables quedan ocultos hasta pedirlos
 
   // ─── Publicar con IA (edición manual del scraper) ──────────────
   const [seleccionIA, setSeleccionIA] = useState<Set<string>>(new Set());
@@ -90,6 +125,7 @@ export default function BandejaTab({
       Object.values(rawGrupos).filter(
         (notas) =>
           notas[0] &&
+          prioridadGrupo(notas) !== 3 &&
           new Date(notas[0].created_at).toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }) === hoyAR
       ).length,
     [rawGrupos, hoyAR]
@@ -114,14 +150,31 @@ export default function BandejaTab({
   }, [initialRawGrupos]);
 
   // ─── Derivados ─────────────────────────────────────────────────
-  const seccionesEnInbox = useMemo(
-    () => Array.from(new Set(Object.values(rawGrupos).map((notas) => notas[0]?.seccion || "Local"))).sort(),
-    [rawGrupos]
+  // Cada filtro cuenta sus opciones aplicando los otros dos, así el número es lo que se vería al elegirla.
+  const conteoSitios = useMemo(
+    () => contarPor(filtrarGrupos(rawGrupos, filtros, "sitio"), sitiosGrupo),
+    [rawGrupos, filtros]
   );
-  const { gruposPorFecha, fechasOrdenadas } = useMemo(
-    () => agruparPorFecha(rawGrupos, seccionFiltro),
-    [rawGrupos, seccionFiltro]
+  const conteoSecciones = useMemo(
+    () => contarPor(filtrarGrupos(rawGrupos, filtros, "seccion"), (n) => [seccionPrevistaGrupo(n)]),
+    [rawGrupos, filtros]
   );
+  const conteoPrioridad = useMemo(() => {
+    const base = filtrarGrupos(rawGrupos, filtros, "prioridad");
+    const c = { visibles: 0, prioritarias: 0, otras: 0, descartables: 0, todas: 0 };
+    for (const notas of Object.values(base)) {
+      const p = prioridadGrupo(notas);
+      c.todas++;
+      if (p === 1) c.prioritarias++;
+      else if (p === 2) c.otras++;
+      else c.descartables++;
+      if (p !== 3) c.visibles++;
+    }
+    return c;
+  }, [rawGrupos, filtros]);
+  const gruposFiltrados = useMemo(() => filtrarGrupos(rawGrupos, filtros), [rawGrupos, filtros]);
+  const hayFiltros = JSON.stringify(filtros) !== JSON.stringify(FILTROS_INICIALES);
+  const { gruposPorFecha, fechasOrdenadas } = useMemo(() => agruparPorFecha(gruposFiltrados), [gruposFiltrados]);
   const meses = useMemo(() => agruparDiasPorMes(fechasOrdenadas), [fechasOrdenadas]);
   const sugerenciasFusion = useMemo(() => calcularSugerenciasFusion(rawGrupos), [rawGrupos]);
 
@@ -282,10 +335,10 @@ export default function BandejaTab({
 
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setOrigen("todos")} className={chipCls(origen === "todos")}>
-          Todos · {inboxCount + enviosActivos}
+          Todos · {inboxVisibles + enviosActivos}
         </button>
         <button onClick={() => setOrigen("scraper")} className={chipCls(origen === "scraper")}>
-          Scraper · {inboxCount}
+          Scraper · {inboxVisibles}
         </button>
         <button onClick={() => setOrigen("ciudadano")} className={chipCls(origen === "ciudadano")}>
           Ciudadanos · {enviosActivos}
@@ -300,7 +353,7 @@ export default function BandejaTab({
             {origen === "todos" && <h3 className="text-lg font-bold text-ink">Noticias del scraper</h3>}
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
-                {inboxCount} grupo{inboxCount !== 1 ? "s" : ""} nuevos
+                {inboxVisibles} grupo{inboxVisibles !== 1 ? "s" : ""} nuevos{descartables > 0 ? ` · ${descartables} descartables ocultos` : ""}
               </span>
               <button
                 onClick={() => setMostrarScraper((v) => !v)}
@@ -334,19 +387,48 @@ export default function BandejaTab({
           guardando={scraper.guardando}
           onGuardar={scraper.guardar}
           onToggleFuente={scraper.toggleFuente}
+          salud={saludFuentes}
         />
       )}
 
-      {inboxCount > 0 && seccionesEnInbox.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setSeccionFiltro("Todas")} className={chipCls(seccionFiltro === "Todas")}>
-            Todas
-          </button>
-          {seccionesEnInbox.map((sec) => (
-            <button key={sec} onClick={() => setSeccionFiltro(sec)} className={chipCls(seccionFiltro === sec)}>
-              {sec}
+      {inboxCount > 0 && (
+        <div className="space-y-2 rounded-xl border border-border bg-white p-3">
+          <FilaFiltro titulo="Prioridad">
+            {PRIORIDADES.map(([valor, etiqueta]) => (
+              <button
+                key={valor}
+                onClick={() => setFiltros((f) => ({ ...f, prioridad: valor }))}
+                className={chipCls(filtros.prioridad === valor)}
+              >
+                {etiqueta} · {conteoPrioridad[valor]}
+              </button>
+            ))}
+          </FilaFiltro>
+          <FilaFiltro titulo="Sitio">
+            <button onClick={() => setFiltros((f) => ({ ...f, sitio: "Todos" }))} className={chipCls(filtros.sitio === "Todos")}>
+              Todos
             </button>
-          ))}
+            {Object.keys(conteoSitios).sort((a, b) => conteoSitios[b] - conteoSitios[a]).map((s) => (
+              <button key={s} onClick={() => setFiltros((f) => ({ ...f, sitio: s }))} className={chipCls(filtros.sitio === s)}>
+                {s} · {conteoSitios[s]}
+              </button>
+            ))}
+          </FilaFiltro>
+          <FilaFiltro titulo="Iría a">
+            <button onClick={() => setFiltros((f) => ({ ...f, seccion: "Todas" }))} className={chipCls(filtros.seccion === "Todas")}>
+              Todas
+            </button>
+            {Object.keys(conteoSecciones).sort((a, b) => conteoSecciones[b] - conteoSecciones[a]).map((s) => (
+              <button key={s} onClick={() => setFiltros((f) => ({ ...f, seccion: s }))} className={chipCls(filtros.seccion === s)}>
+                {s} · {conteoSecciones[s]}
+              </button>
+            ))}
+          </FilaFiltro>
+          {hayFiltros && (
+            <button onClick={() => setFiltros(FILTROS_INICIALES)} className="text-xs font-bold text-blue-600 hover:underline">
+              Limpiar filtros
+            </button>
+          )}
         </div>
       )}
 
@@ -359,8 +441,8 @@ export default function BandejaTab({
       ) : fechasOrdenadas.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-xl border border-border border-dashed">
           <span className="text-4xl">🔎</span>
-          <h3 className="text-lg font-bold mt-4">Nada en &quot;{seccionFiltro}&quot;</h3>
-          <p className="text-muted mt-1">No hay grupos nuevos de esta sección por ahora.</p>
+          <h3 className="text-lg font-bold mt-4">Nada con estos filtros</h3>
+          <p className="text-muted mt-1">Probá con otro sitio, otra sección o «Limpiar filtros».</p>
         </div>
       ) : (
         <div className="space-y-6">
