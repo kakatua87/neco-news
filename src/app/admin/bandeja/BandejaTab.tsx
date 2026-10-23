@@ -62,12 +62,37 @@ const PRIORIDADES: [FiltroPrioridad, string][] = [
   ["todas", "Todas"],
 ];
 
-function FilaFiltro({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+function SelectorFiltro({
+  titulo, valor, onChange, todas, valorTodas, conteo,
+}: {
+  titulo: string;
+  valor: string;
+  onChange: (v: string) => void;
+  todas: string;
+  valorTodas: string;
+  conteo: Record<string, number>;
+}) {
+  const opciones = Object.keys(conteo).sort((x, y) => conteo[y] - conteo[x]);
+  // Si el valor elegido ya no tiene resultados con los otros filtros, se lo sigue mostrando (con 0).
+  if (valor !== valorTodas && !opciones.includes(valor)) opciones.unshift(valor);
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="w-16 text-[11px] font-bold uppercase tracking-wide text-muted">{titulo}</span>
-      {children}
-    </div>
+    <label className="block min-w-[190px]">
+      <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted">{titulo}</span>
+      <select
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full rounded-lg border px-3 py-2 text-sm font-medium outline-none focus:border-accent ${
+          valor !== valorTodas ? "border-ink bg-ink/5 text-ink" : "border-border bg-white text-muted"
+        }`}
+      >
+        <option value={valorTodas}>{todas}</option>
+        {opciones.map((o) => (
+          <option key={o} value={o}>
+            {o} ({conteo[o] ?? 0})
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -120,16 +145,23 @@ export default function BandejaTab({
       return next;
     });
   const hoyAR = new Date().toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
-  const gruposHoy = useMemo(
+  // «Publicar las de hoy» respeta los filtros: solo cuenta (y publica) los grupos de hoy que se están viendo.
+  const idsHoyFiltrados = useMemo(
     () =>
-      Object.values(rawGrupos).filter(
-        (notas) =>
-          notas[0] &&
-          prioridadGrupo(notas) !== 3 &&
-          new Date(notas[0].created_at).toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }) === hoyAR
-      ).length,
-    [rawGrupos, hoyAR]
+      Object.entries(filtrarGrupos(rawGrupos, filtros))
+        .filter(
+          ([, notas]) =>
+            prioridadGrupo(notas) !== 3 &&
+            new Date(notas[0].created_at).toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" }) === hoyAR
+        )
+        .map(([id]) => id),
+    [rawGrupos, filtros, hoyAR]
   );
+  const descripcionFiltro = [
+    filtros.sitio !== "Todos" ? filtros.sitio : null,
+    filtros.seccion !== "Todas" ? filtros.seccion : null,
+    filtros.prioridad === "prioritarias" ? "prioritarias" : filtros.prioridad === "otras" ? "otras" : null,
+  ].filter(Boolean).join(" · ");
   const idsSeleccionIA = Array.from(seleccionIA).filter((id) => rawGrupos[id]);
   const armarItemsIA = (): ItemManual[] =>
     idsSeleccionIA.map((id) => ({
@@ -373,7 +405,8 @@ export default function BandejaTab({
           </div>
 
       <PublicarConIA
-        gruposHoy={gruposHoy}
+        idsHoy={idsHoyFiltrados}
+        filtro={hayFiltros ? descripcionFiltro || "filtro aplicado" : null}
         seleccionados={idsSeleccionIA}
         armarItems={armarItemsIA}
         onTerminado={terminoEdicionManual}
@@ -392,43 +425,51 @@ export default function BandejaTab({
       )}
 
       {inboxCount > 0 && (
-        <div className="space-y-2 rounded-xl border border-border bg-white p-3">
-          <FilaFiltro titulo="Prioridad">
-            {PRIORIDADES.map(([valor, etiqueta]) => (
-              <button
-                key={valor}
-                onClick={() => setFiltros((f) => ({ ...f, prioridad: valor }))}
-                className={chipCls(filtros.prioridad === valor)}
-              >
-                {etiqueta} · {conteoPrioridad[valor]}
-              </button>
-            ))}
-          </FilaFiltro>
-          <FilaFiltro titulo="Sitio">
-            <button onClick={() => setFiltros((f) => ({ ...f, sitio: "Todos" }))} className={chipCls(filtros.sitio === "Todos")}>
-              Todos
-            </button>
-            {Object.keys(conteoSitios).sort((a, b) => conteoSitios[b] - conteoSitios[a]).map((s) => (
-              <button key={s} onClick={() => setFiltros((f) => ({ ...f, sitio: s }))} className={chipCls(filtros.sitio === s)}>
-                {s} · {conteoSitios[s]}
-              </button>
-            ))}
-          </FilaFiltro>
-          <FilaFiltro titulo="Iría a">
-            <button onClick={() => setFiltros((f) => ({ ...f, seccion: "Todas" }))} className={chipCls(filtros.seccion === "Todas")}>
-              Todas
-            </button>
-            {Object.keys(conteoSecciones).sort((a, b) => conteoSecciones[b] - conteoSecciones[a]).map((s) => (
-              <button key={s} onClick={() => setFiltros((f) => ({ ...f, seccion: s }))} className={chipCls(filtros.seccion === s)}>
-                {s} · {conteoSecciones[s]}
-              </button>
-            ))}
-          </FilaFiltro>
-          {hayFiltros && (
-            <button onClick={() => setFiltros(FILTROS_INICIALES)} className="text-xs font-bold text-blue-600 hover:underline">
-              Limpiar filtros
-            </button>
-          )}
+        <div className="rounded-xl border border-border bg-white p-4">
+          <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+            <div>
+              <span className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-muted">Prioridad</span>
+              <div className="inline-flex flex-wrap rounded-lg border border-border bg-gray-50 p-0.5">
+                {PRIORIDADES.map(([valor, etiqueta]) => (
+                  <button
+                    key={valor}
+                    onClick={() => setFiltros((f) => ({ ...f, prioridad: valor }))}
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
+                      filtros.prioridad === valor ? "bg-ink text-white shadow-sm" : "text-muted hover:bg-white hover:text-ink"
+                    }`}
+                  >
+                    {etiqueta} <span className="font-medium opacity-70">{conteoPrioridad[valor]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <SelectorFiltro
+              titulo="Sitio"
+              valor={filtros.sitio}
+              onChange={(v) => setFiltros((f) => ({ ...f, sitio: v }))}
+              todas="Todos los sitios"
+              valorTodas="Todos"
+              conteo={conteoSitios}
+            />
+            <SelectorFiltro
+              titulo="Iría a la sección"
+              valor={filtros.seccion}
+              onChange={(v) => setFiltros((f) => ({ ...f, seccion: v }))}
+              todas="Todas las secciones"
+              valorTodas="Todas"
+              conteo={conteoSecciones}
+            />
+            <div className="ml-auto flex items-center gap-3 pb-1.5 text-xs text-muted">
+              <span>
+                <b className="text-ink">{Object.keys(gruposFiltrados).length}</b> grupo{Object.keys(gruposFiltrados).length !== 1 ? "s" : ""}
+              </span>
+              {hayFiltros && (
+                <button onClick={() => setFiltros(FILTROS_INICIALES)} className="font-bold text-blue-600 hover:underline">
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

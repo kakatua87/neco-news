@@ -13,9 +13,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as { items?: Item[]; solo_hoy?: boolean; tope?: number };
+    const body = (await request.json()) as { items?: Item[]; solo_hoy?: boolean; tope?: number; grupo_ids?: string[] };
     const items = Array.isArray(body.items) ? body.items.filter((i) => i && typeof i.grupo_id === "string") : [];
     const soloHoy = body.solo_hoy === true;
+    const grupoIds = Array.isArray(body.grupo_ids) ? body.grupo_ids.filter((g) => typeof g === "string").slice(0, 150) : [];
     if (items.length === 0 && !soloHoy) {
       return NextResponse.json({ ok: false, error: "Elegí grupos o usá 'hoy'" }, { status: 400 });
     }
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers,
       cache: "no-store",
-      body: JSON.stringify({ items, solo_hoy: soloHoy, tope }),
+      body: JSON.stringify({ items, solo_hoy: soloHoy, tope, grupo_ids: grupoIds }),
       signal: AbortSignal.timeout(25_000),
     });
     const data = await res.json();

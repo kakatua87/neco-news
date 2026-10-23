@@ -24,8 +24,10 @@ type EstadoEdicion = {
 };
 
 type Props = {
-  /** Cantidad de grupos de la bandeja creados hoy (día argentino). */
-  gruposHoy: number;
+  /** Grupos de hoy (día argentino) que se ven con los filtros actuales; sin descartables. */
+  idsHoy: string[];
+  /** Descripción del filtro aplicado (null si no hay filtros): el botón publica solo esos grupos. */
+  filtro: string | null;
   /** Ids de los grupos tildados con "Incluir". */
   seleccionados: string[];
   /** Arma los items (fuentes y sección elegidas en cada tarjeta) de los grupos tildados. */
@@ -50,7 +52,7 @@ function textoResumen(r: ResumenManual | null): string {
 }
 
 /** Botones "Publicar con IA" de la Bandeja: dispara el publicador automático del scraper a pedido. */
-export default function PublicarConIA({ gruposHoy, seleccionados, armarItems, onTerminado }: Props) {
+export default function PublicarConIA({ idsHoy, filtro, seleccionados, armarItems, onTerminado }: Props) {
   const toast = useToast();
   const [procesando, setProcesando] = useState(false);
   const [tope, setTope] = useState("4");
@@ -113,6 +115,7 @@ export default function PublicarConIA({ gruposHoy, seleccionados, armarItems, on
     toast("Edición manual iniciada. Puede tardar varios minutos; podés seguir trabajando.", "ok");
   };
 
+  const gruposHoy = idsHoy.length;
   const topeNum = Math.max(1, Math.min(20, Math.floor(Number(tope)) || 4));
 
   return (
@@ -135,10 +138,17 @@ export default function PublicarConIA({ gruposHoy, seleccionados, armarItems, on
       <button
         type="button"
         disabled={procesando || gruposHoy === 0}
-        onClick={() => disparar({ solo_hoy: true, tope: topeNum }, topeNum, `hasta ${topeNum} de las notas de hoy`)}
+        onClick={() =>
+          disparar(
+            // Con filtros se mandan los grupos visibles; sin filtros el servidor toma todas las de hoy.
+            filtro ? { solo_hoy: true, tope: topeNum, grupo_ids: idsHoy.slice(0, 150) } : { solo_hoy: true, tope: topeNum },
+            topeNum,
+            `hasta ${topeNum} de las notas de hoy${filtro ? ` (${filtro})` : ""}`
+          )
+        }
         className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {procesando ? "Procesando…" : `Publicar las de hoy (${gruposHoy})`}
+        {procesando ? "Procesando…" : `Publicar las de hoy${filtro ? ` · ${filtro}` : ""} (${gruposHoy})`}
       </button>
 
       {seleccionados.length > 0 && (
