@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Eliminación de datos | Neco Beat",
+  title: "Eliminación de datos",
   description:
     "Cómo solicitar la eliminación de tus datos personales en Neco Beat y en las integraciones con Facebook e Instagram.",
 };

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { corregirNombres } from "@/lib/correccion-nombres";
 
 interface NoticiaParaKit {
   titulo: string;
@@ -60,7 +61,10 @@ export async function generarInstagramKit(noticiaId: string | number, noticia: N
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase
     .from("noticias")
-    .update({ instagram_titulo: parsed.instagram_titulo, instagram_text: parsed.instagram_text })
+    .update({
+      instagram_titulo: corregirNombres(parsed.instagram_titulo),
+      instagram_text: corregirNombres(parsed.instagram_text),
+    })
     .eq("id", noticiaId);
 
   if (error) {

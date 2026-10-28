@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Políticas de Privacidad | Neco Beat",
+  title: "Políticas de Privacidad",
   description: "Políticas de privacidad y tratamiento de datos personales de Neco Beat.",
 };
 

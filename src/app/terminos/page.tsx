@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Términos y Condiciones | Neco Beat",
+  title: "Términos y Condiciones",
   description: "Términos y condiciones de uso del sitio web de Neco Beat.",
 };
 

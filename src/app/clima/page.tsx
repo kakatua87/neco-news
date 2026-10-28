@@ -2,7 +2,7 @@ import React from 'react';
 import WindguruWidget from '@/components/WindguruWidget';
 
 export const metadata = {
-  title: 'El Clima en Necochea | Neco Beat',
+  title: 'El Clima en Necochea',
   description: 'Pronóstico extendido del tiempo para Necochea y Quequén. Datos actualizados en tiempo real.',
 };
 

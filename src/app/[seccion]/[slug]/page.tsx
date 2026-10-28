@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props) {
   const noticia = await getNoticiaBySlug(slug);
   if (!noticia) return { title: "Noticia no encontrada" };
   return {
-    title: `${noticia.titulo} | Neco Beat`,
+    title: noticia.titulo, // el layout agrega " | Neco Beat"
     description: noticia.resumen_seo || cuerpoPlainText(noticia.cuerpo).slice(0, 160),
     openGraph: {
       title: noticia.titulo,

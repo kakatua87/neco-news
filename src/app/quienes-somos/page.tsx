@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Quiénes Somos | Neco Beat",
+  title: "Quiénes Somos",
   description: "Quiénes somos: el pulso de Necochea y Quequén, contado por quienes lo viven.",
 };
 

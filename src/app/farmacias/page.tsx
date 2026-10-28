@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import * as cheerio from "cheerio";
 
 export const metadata: Metadata = {
-  title: "Farmacias de Turno | Neco Beat",
+  title: "Farmacias de Turno",
   description: "Consultá las farmacias de turno del día en Necochea, Quequén y la zona.",
 };
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 export const metadata: Metadata = {
-  title: "Obituarios | Neco Beat",
+  title: "Obituarios",
   description: "Avisos fúnebres de Necochea y Quequén, agrupados por mes.",
 };
 

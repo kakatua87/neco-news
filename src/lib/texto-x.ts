@@ -1,3 +1,4 @@
+import { corregirNombres } from "@/lib/correccion-nombres";
 type NoticiaParaX = {
   titulo: string;
   twitter_text: string | null;
@@ -20,7 +21,7 @@ export function linkConUtmX(link: string): string {
  * Siempre entra en 280 contando el link como 23: se recorta el cuerpo, nunca el link ni el CTA.
  */
 export function armarTextoX(noticia: NoticiaParaX, link: string): string {
-  const base = (noticia.twitter_text || noticia.instagram_titulo || noticia.titulo || "").trim();
+  const base = corregirNombres((noticia.twitter_text || noticia.instagram_titulo || noticia.titulo || "").trim());
   const hashtags = (base.match(HASHTAG) || []).slice(0, 2);
   let cuerpo = base.replace(HASHTAG, "").replace(/\s+/g, " ").trim();
   const cola = hashtags.length ? `\n\n${hashtags.join(" ")}` : "";

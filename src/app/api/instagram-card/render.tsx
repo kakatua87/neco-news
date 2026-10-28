@@ -1,3 +1,4 @@
+import { corregirNombres } from "@/lib/correccion-nombres";
 import { ImageResponse } from "next/og";
 import fs from "fs";
 import path from "path";
@@ -60,7 +61,7 @@ export async function renderInstagramCard(noticia: NoticiaParaTarjeta, formatoPa
   const formato = normalizarFormato(formatoParam);
   const { width, height } = FORMATOS[formato];
 
-  const titulo = (noticia.instagram_titulo || noticia.titulo || "").slice(0, 110);
+  const titulo = corregirNombres((noticia.instagram_titulo || noticia.titulo || "").slice(0, 110));
   const logoDataUri = leerArchivoBase64("public/logo-oficial.png");
   const fotoDataUri = noticia.imagen_url ? await obtenerFotoDataUri(noticia.imagen_url) : null;
   const headerAlto = Math.round(height * 0.09);

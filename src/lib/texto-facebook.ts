@@ -1,4 +1,5 @@
 import { textoEnNegrita } from "@/lib/texto";
+import { corregirNombres } from "@/lib/correccion-nombres";
 
 type NoticiaParaFacebook = {
   titulo: string;
@@ -12,8 +13,8 @@ type NoticiaParaFacebook = {
  * link de la nota antes de los hashtags.
  */
 export function armarTextoFacebook(noticia: NoticiaParaFacebook, link: string): string {
-  const titulo = textoEnNegrita((noticia.instagram_titulo || noticia.titulo).toUpperCase());
-  const lineas = (noticia.instagram_text || "").split("\n");
+  const titulo = textoEnNegrita(corregirNombres((noticia.instagram_titulo || noticia.titulo).toUpperCase()));
+  const lineas = corregirNombres(noticia.instagram_text || "").split("\n");
   const cuerpo: string[] = [];
   const hashtags: string[] = [];
   for (const linea of lineas) {

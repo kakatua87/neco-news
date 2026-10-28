@@ -1,4 +1,5 @@
-import { permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { SECCIONES_MENU, seccionSlug } from "@/lib/secciones";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { buscarRedireccionSeccion } from "@/lib/seccion-redirects";
 import { decodificarSeguro } from "@/lib/seccion-url";
@@ -33,6 +34,10 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
   if (traidas.length === 0) {
     const destino = await buscarRedireccionSeccion(normalized);
     if (destino) permanentRedirect(destino);
+    // Sin notas, sin redirección y fuera de las secciones del menú (p. ej. /opinión mal escrita o una ruta
+    // inventada): 404 real, no una página vacía con 200 que Google marca como "rastreada, sin indexar".
+    const slugPedido = seccionSlug(normalized);
+    if (!SECCIONES_MENU.some((s) => seccionSlug(s) === slugPedido)) notFound();
   }
   const hasMore = traidas.length > PAGE_SIZE;
   const noticias = traidas.slice(0, PAGE_SIZE);

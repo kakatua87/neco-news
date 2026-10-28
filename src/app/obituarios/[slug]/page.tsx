@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${title} | Neco Beat`,
+    title: `${title}`,
     description: "Detalles de los avisos fúnebres publicados en Neco Beat.",
   };
 }

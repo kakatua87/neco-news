@@ -41,6 +41,36 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
   const [editadas, setEditadas] = useState<Record<string, string>>({});
   const [formatoElegido, setFormatoElegido] = useState<Record<string | number, FormatoKey>>({});
 
+  // Texto de redes en edición (una nota a la vez).
+  const [textoEditado, setTextoEditado] = useState<{ id: string | number; titulo: string; texto: string } | null>(null);
+  const [guardandoTexto, setGuardandoTexto] = useState(false);
+
+  const guardarTexto = async () => {
+    if (!textoEditado) return;
+    setGuardandoTexto(true);
+    const r = await adminFetch<{ instagram_titulo: string; instagram_text: string }>(`/api/noticias/${textoEditado.id}/instagram-kit`, {
+      method: "PATCH",
+      json: { instagram_titulo: textoEditado.titulo, instagram_text: textoEditado.texto },
+    });
+    setGuardandoTexto(false);
+    if (!r.ok || !r.data) {
+      toast(`No se pudo guardar el texto: ${r.error}`);
+      return;
+    }
+    const { instagram_titulo, instagram_text } = r.data;
+    setItems((prev) => prev.map((n) => (n.id === textoEditado.id ? { ...n, instagram_titulo, instagram_text } : n)));
+    // La tarjeta lleva el título: se fuerza a recargarla y se descarta la versión editada a mano, que quedó vieja.
+    setEditadas((prev) => {
+      const next = { ...prev };
+      for (const f of FORMATOS) delete next[`${textoEditado.id}-${f.key}`];
+      return next;
+    });
+    setVersionTarjeta((prev) => ({ ...prev, [textoEditado.id]: Date.now() }));
+    setTextoEditado(null);
+    toast("Texto guardado", "ok");
+  };
+  const [versionTarjeta, setVersionTarjeta] = useState<Record<string | number, number>>({});
+
   const [filtro, setFiltro] = useState<Filtro>("todas");
 
   const estaPublicada = (n: InstagramKitItem) => !!(n.instagram_publicado_at || n.facebook_publicado_at);
@@ -278,7 +308,7 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                       {FORMATOS.map((f) => {
                                         const key = `${item.id}-${f.key}`;
                                         const editadaUrl = editadas[key];
-                                        const src = editadaUrl || `/api/instagram-card/${item.id}?formato=${f.key}`;
+                                        const src = editadaUrl || `/api/instagram-card/${item.id}?formato=${f.key}${versionTarjeta[item.id] ? `&v=${versionTarjeta[item.id]}` : ""}`;
                                         return (
                                           <div key={f.key} className="flex flex-col gap-1">
                                             <div className="rounded overflow-hidden border border-gray-300" style={{ aspectRatio: `${f.ancho} / ${f.alto}` }}>
@@ -438,14 +468,68 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                                     )}
                                   </div>
 
-                                  {item.instagram_titulo ? (
-                                    <h3 className="font-editorial text-lg font-bold text-ink leading-tight">{item.instagram_titulo}</h3>
+                                  {textoEditado?.id === item.id ? (
+                                    <div className="flex flex-col gap-2">
+                                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted">
+                                        Título (va en la tarjeta)
+                                        <input
+                                          value={textoEditado.titulo}
+                                          onChange={(e) => setTextoEditado({ ...textoEditado, titulo: e.target.value })}
+                                          maxLength={200}
+                                          spellCheck
+                                          lang="es"
+                                          className="mt-1 w-full text-sm font-bold text-ink border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent normal-case tracking-normal"
+                                        />
+                                      </label>
+                                      <label className="text-[11px] font-bold uppercase tracking-wider text-muted">
+                                        Texto de la publicación
+                                        <textarea
+                                          value={textoEditado.texto}
+                                          onChange={(e) => setTextoEditado({ ...textoEditado, texto: e.target.value })}
+                                          rows={12}
+                                          maxLength={3000}
+                                          spellCheck
+                                          lang="es"
+                                          className="mt-1 w-full text-sm text-ink border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-accent normal-case tracking-normal font-normal leading-relaxed"
+                                        />
+                                      </label>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={guardarTexto}
+                                          disabled={guardandoTexto || !textoEditado.titulo.trim()}
+                                          className="px-3 py-1.5 text-xs font-bold bg-accent text-white rounded hover:bg-accent-dark disabled:opacity-50"
+                                        >
+                                          {guardandoTexto ? "Guardando..." : "💾 Guardar"}
+                                        </button>
+                                        <button
+                                          onClick={() => setTextoEditado(null)}
+                                          disabled={guardandoTexto}
+                                          className="px-3 py-1.5 text-xs font-medium bg-gray-100 text-ink rounded hover:bg-gray-200"
+                                        >
+                                          Cancelar
+                                        </button>
+                                      </div>
+                                    </div>
                                   ) : (
-                                    <p className="text-sm text-muted italic">Generando copy con IA…</p>
-                                  )}
+                                    <>
+                                      {item.instagram_titulo ? (
+                                        <h3 className="font-editorial text-lg font-bold text-ink leading-tight">{item.instagram_titulo}</h3>
+                                      ) : (
+                                        <p className="text-sm text-muted italic">Generando copy con IA…</p>
+                                      )}
 
-                                  {item.instagram_text && (
-                                    <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap">{item.instagram_text}</p>
+                                      {item.instagram_text && (
+                                        <p className="text-sm text-muted leading-relaxed whitespace-pre-wrap">{item.instagram_text}</p>
+                                      )}
+
+                                      <button
+                                        onClick={() => setTextoEditado({ id: item.id, titulo: item.instagram_titulo || item.titulo, texto: item.instagram_text || "" })}
+                                        className="self-start px-3 py-1.5 text-xs font-bold border border-accent text-accent rounded hover:bg-accent/10 transition-colors"
+                                        title="Corregir el título y el texto antes de publicar. Lo que guardes es lo que sale en Instagram, Facebook y X."
+                                      >
+                                        ✏️ Editar texto
+                                      </button>
+                                    </>
                                   )}
 
                                   <a

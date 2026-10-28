@@ -4,6 +4,7 @@ import { esAdmin } from "@/lib/auth";
 import { obtenerCredencialesInstagram } from "@/lib/instagram-credenciales";
 import { normalizarFormato } from "../../instagram-card/render";
 import { urlPublicaDeTarjeta } from "@/lib/tarjeta-publica";
+import { corregirNombres } from "@/lib/correccion-nombres";
 import { textoEnNegrita } from "@/lib/texto";
 
 const GRAPH_VERSION = "v21.0";
@@ -72,8 +73,8 @@ export async function POST(request: Request) {
     // El titulo va en "negrita" (Unicode) como copete, tipo portada de diario.
     // El resto (parrafos + CTA "link en bio" + hashtags) ya viene armado asi
     // desde la generacion con IA en /api/noticias/[id]/instagram-kit.
-    const titulo = textoEnNegrita((noticia.instagram_titulo || noticia.titulo).toUpperCase());
-    const caption = `${titulo}\n\n${noticia.instagram_text || ""}`;
+    const titulo = textoEnNegrita(corregirNombres((noticia.instagram_titulo || noticia.titulo).toUpperCase()));
+    const caption = `${titulo}\n\n${corregirNombres(noticia.instagram_text || "")}`;
 
     // Paso 1: crear el contenedor de medio.
     const mediaParams = new URLSearchParams({
