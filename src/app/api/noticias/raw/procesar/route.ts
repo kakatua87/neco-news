@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { esAdmin } from "@/lib/auth";
 
+// El scraper espera a Gemini (reintentos, rotacion de keys y modelos) y puede tardar minutos; sin esto Vercel corta antes con 504.
+export const maxDuration = 300;
+
 export async function POST(request: Request) {
   if (!(await esAdmin())) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });

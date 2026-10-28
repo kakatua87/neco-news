@@ -5,6 +5,9 @@ import { htmlToCuerpo } from "@/lib/cuerpo";
 import { insertarNoticiaPendiente } from "@/lib/crear-noticia";
 import { esTextoHasta } from "@/lib/validar";
 
+// El scraper espera a Gemini (reintentos, rotacion de keys y modelos) y puede tardar minutos; sin esto Vercel corta antes con 504.
+export const maxDuration = 300;
+
 // Admin: convierte el HTML del borrador a texto plano, lo manda al scraper
 // para que la IA lo pula y genere los campos adicionales, y crea la noticia
 // resultante en "noticias" con estado 'pendiente' y origen 'redaccion' (para

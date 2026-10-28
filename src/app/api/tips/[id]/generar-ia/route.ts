@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
 
+// El scraper espera a Gemini (reintentos, rotacion de keys y modelos) y puede tardar minutos; sin esto Vercel corta antes con 504.
+export const maxDuration = 300;
+
 // Admin: pide al scraper que redacte una nota a partir del envío ciudadano
 // (mismo patrón que /api/noticias/raw/procesar, que proxea a /procesar-grupo).
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
