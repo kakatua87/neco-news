@@ -36,6 +36,8 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
   const [modoFacebook, setModoFacebook] = useState<Record<string | number, "foto" | "enlace">>({});
   const [seleccionadas, toggleSeleccion, setSeleccionadas] = useToggleSet<string | number>();
   const [mesesExpandidos, toggleMes] = useToggleSet<string>();
+  // Días contraídos (por defecto todos desplegados). Clave: la del día, p. ej. "2026-10-28".
+  const [diasContraidos, toggleDia, setDiasContraidos] = useToggleSet<string>();
   const [editando, setEditando] = useState<{ item: InstagramKitItem; formato: FormatoKey } | null>(null);
   // URL de la tarjeta editada a mano, por `${id}-${formato}`.
   const [editadas, setEditadas] = useState<Record<string, string>>({});
@@ -261,6 +263,20 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                 {label} ({conteo[key]})
               </button>
             ))}
+            <span className="flex items-center gap-2 md:ml-auto">
+              <button
+                onClick={() => setDiasContraidos(new Set(agrupadas.flatMap((m) => m.dias.map((d) => d.key))))}
+                className="px-3 py-1.5 text-sm rounded-full border bg-white text-muted border-border hover:bg-gray-50"
+              >
+                Contraer días
+              </button>
+              <button
+                onClick={() => setDiasContraidos(new Set())}
+                className="px-3 py-1.5 text-sm rounded-full border bg-white text-muted border-border hover:bg-gray-50"
+              >
+                Desplegar días
+              </button>
+            </span>
           </div>
         )}
 
@@ -285,7 +301,18 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                   <div className="p-5 space-y-8">
                     {mes.dias.map((dia) => (
                       <div key={dia.key}>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted mb-3">{dia.label}</h4>
+                        <button
+                          onClick={() => toggleDia(dia.key)}
+                          aria-expanded={!diasContraidos.has(dia.key)}
+                          className="w-full flex items-center justify-between gap-3 text-xs font-bold uppercase tracking-wider text-muted mb-3 pb-2 border-b border-border/60 hover:text-ink transition-colors"
+                        >
+                          <span>{dia.label}</span>
+                          <span className="flex items-center gap-2 font-medium normal-case tracking-normal">
+                            {dia.items.length} noticia{dia.items.length !== 1 ? "s" : ""}
+                            <span className={`inline-block transition-transform ${diasContraidos.has(dia.key) ? "" : "rotate-180"}`}>▾</span>
+                          </span>
+                        </button>
+                        {!diasContraidos.has(dia.key) && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                           {dia.items.map((item) => {
                             const busy = busyIds.includes(item.id);
@@ -561,6 +588,7 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
                             );
                           })}
                         </div>
+                        )}
                       </div>
                     ))}
                   </div>
