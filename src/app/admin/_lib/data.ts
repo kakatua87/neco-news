@@ -108,6 +108,21 @@ export type SaludFuente = {
   estado: "ok" | "atencion" | "caida";
 };
 
+type FilaSalud = { ts: string; tarjetas: number | null; guardadas: number | null; bloqueadas: number | null; error: string | null };
+
+/** Estado de una fuente a partir de sus corridas (la más nueva primero). Lo usan la Bandeja y el Monitor. */
+export function estadoDeFuente<T extends FilaSalud>(filas: T[]) {
+  const ultima = filas[0];
+  const real = filas.find((f) => !f.error) ?? ultima; // las filas con error son pausas o fallos de la corrida
+  const conNotas = filas.find((f) => (f.guardadas ?? 0) > 0);
+  const hace30h = Date.now() - 30 * 3600 * 1000;
+  const sinNotas30h = !conNotas || new Date(conNotas.ts).getTime() < hace30h;
+  const bloqueada = (real.bloqueadas ?? 0) >= 2 && (real.guardadas ?? 0) === 0;
+  const estado: SaludFuente["estado"] =
+    bloqueada || sinNotas30h ? "caida" : ultima.error || (real.tarjetas ?? 0) === 0 ? "atencion" : "ok";
+  return { ultima, real, conNotas, estado };
+}
+
 /** Estado de cada fuente según las corridas del scraper (tabla `fuentes_salud`, solo service role). */
 export const getSaludFuentes = cache(async (): Promise<SaludFuente[]> => {
   const desde = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
@@ -119,14 +134,8 @@ export const getSaludFuentes = cache(async (): Promise<SaludFuente[]> => {
     .limit(1500);
   const porFuente = new Map<string, NonNullable<typeof data>>();
   for (const f of data ?? []) porFuente.set(f.fuente, [...(porFuente.get(f.fuente) ?? []), f]);
-  const hace30h = Date.now() - 30 * 3600 * 1000;
   return Array.from(porFuente.entries()).map(([fuente, filas]) => {
-    const ultima = filas[0];
-    const real = filas.find((f) => !f.error) ?? ultima; // las filas con error son pausas o fallos de la corrida
-    const conNotas = filas.find((f) => (f.guardadas ?? 0) > 0);
-    const sinNotas30h = !conNotas || new Date(conNotas.ts).getTime() < hace30h;
-    const bloqueada = (real.bloqueadas ?? 0) >= 2 && (real.guardadas ?? 0) === 0;
-    const estado = bloqueada || sinNotas30h ? "caida" : ultima.error || (real.tarjetas ?? 0) === 0 ? "atencion" : "ok";
+    const { ultima, real, conNotas, estado } = estadoDeFuente(filas);
     return {
       fuente,
       ultimaCorrida: ultima.ts,

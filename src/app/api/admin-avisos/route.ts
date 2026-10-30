@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { esAdmin } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { vigilarScraping } from "@/lib/vigilante-scraping";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET() {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
   const admin = createSupabaseAdminClient();
+  await vigilarScraping(admin); // si el scraping se frenó, el aviso entra en esta misma respuesta
   const [lista, noLeidas] = await Promise.all([
     admin.from("admin_notificaciones").select("id, ts, tipo, titulo, detalle, leida").order("id", { ascending: false }).limit(20),
     admin.from("admin_notificaciones").select("id", { count: "exact", head: true }).eq("leida", false),

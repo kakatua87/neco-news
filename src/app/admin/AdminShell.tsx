@@ -23,6 +23,7 @@ const ITEMS: Array<{ href: string; label: string; badge?: "inbox" | "pendientes"
   { href: "/admin/redes", label: "📣 Redes" },
   { href: "/admin/redaccion", label: "✨ Redacción" },
   { href: "/admin/banners", label: "🖼️ Banners" },
+  { href: "/admin/monitor", label: "📡 Monitor" },
   { href: "/admin/ia", label: "🔋 Uso de IA" },
   { href: "/admin/configuracion", label: "⚙️ Configuración" },
 ];
