@@ -154,6 +154,8 @@ export default function InstagramCardEditor({ isOpen, formato, seccion, imagenUr
       ctx.translate(outW / 2, headerAlto + (outH - headerAlto) / 2);
       ctx.translate(pan.x * exportRes, pan.y * exportRes);
       ctx.scale(scale * exportRes, scale * exportRes);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, -naturalSize.w / 2, -naturalSize.h / 2, naturalSize.w, naturalSize.h);
       ctx.restore();
 
@@ -201,7 +203,7 @@ export default function InstagramCardEditor({ isOpen, formato, seccion, imagenUr
         ctx.fillText(line, 40, blockY + 60 + i * lineHeight);
       });
 
-      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92));
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95));
       if (!blob) throw new Error("No se pudo procesar la imagen.");
 
       const formData = new FormData();

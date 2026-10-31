@@ -24,7 +24,7 @@ export async function urlPublicaDeTarjeta(
   const formato = normalizarFormato(formatoParam);
   const cardResponse = await renderInstagramCard(noticia, formato);
   const pngBytes = Buffer.from(await cardResponse.arrayBuffer());
-  const jpegBytes = await sharp(pngBytes).jpeg({ quality: 92 }).toBuffer();
+  const jpegBytes = await sharp(pngBytes).jpeg({ quality: 95, chromaSubsampling: "4:4:4", mozjpeg: true }).toBuffer();
   const path = `instagram-cards/${noticiaId}-${formato}-${Date.now()}.jpg`;
   const { error: uploadError } = await supabase.storage
     .from("noticias-imagenes")

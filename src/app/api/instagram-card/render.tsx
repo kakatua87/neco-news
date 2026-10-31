@@ -1,6 +1,7 @@
 import { corregirNombres } from "@/lib/correccion-nombres";
 import { ImageResponse } from "next/og";
 import fs from "fs";
+import sharp from "sharp";
 import path from "path";
 
 export const ACCENT = "#1B8B7A";
@@ -32,12 +33,10 @@ const FETCH_TIMEOUT_MS = 6000;
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
-// Descarga la foto nosotros mismos (con timeout y UA de navegador) y la
-// convertimos a data URI, en vez de dejar que sea satori quien intente el
-// fetch remoto: para fotos que siguen viviendo en el portal original
-// (no en nuestro Storage) ese fetch server-side de satori suele fallar o
-// tardar de más, y satori lo resuelve en silencio como un hueco vacío.
-async function obtenerFotoDataUri(url: string): Promise<string | null> {
+// Descarga la foto nosotros mismos (con timeout y UA de navegador): para fotos que siguen viviendo en el portal
+// original (no en nuestro Storage) el fetch server-side de satori suele fallar o tardar de más, y satori lo
+// resuelve en silencio como un hueco vacío.
+async function obtenerFotoBytes(url: string): Promise<Buffer | null> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -46,8 +45,51 @@ async function obtenerFotoDataUri(url: string): Promise<string | null> {
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") || "";
     if (!contentType.startsWith("image/")) return null;
-    const bytes = Buffer.from(await res.arrayBuffer());
-    return `data:${contentType};base64,${bytes.toString("base64")}`;
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Arma la foto de la tarjeta a tamaño exacto (ancho × alto) con sharp, así satori la coloca sin reescalarla: su
+ * escalado es el que dejaba las fotos blandas y pixeladas.
+ * - Si la foto es más ancha que el hueco (las de los medios son 780×448): foto COMPLETA, ampliada solo hasta el ancho,
+ *   sobre la misma foto desenfocada de fondo. No se corta casi nada ni se agranda 4 veces como con "cubrir".
+ * - Si encaja con poco recorte (cuadrado sobre foto cuadrada o vertical): se cubre el hueco, recortando hacia lo
+ *   más "interesante" de la imagen (attention) en vez de siempre al centro.
+ */
+async function prepararFoto(bytes: Buffer, ancho: number, alto: number, completa: boolean): Promise<string | null> {
+  try {
+    const origen = sharp(bytes).rotate(); // respeta la orientación EXIF
+    const { width = 0, height = 0 } = await sharp(await origen.clone().toBuffer()).metadata();
+    if (!width || !height) return null;
+
+    if (completa && width / height > ancho / alto) {
+      const fondo = await origen
+        .clone()
+        .resize(ancho, alto, { fit: "cover", position: sharp.strategy.attention })
+        .blur(30)
+        .modulate({ brightness: 0.55 })
+        .toBuffer();
+      const frente = await origen.clone().resize({ width: ancho, kernel: "lanczos3" }).sharpen({ sigma: 0.6 }).toBuffer();
+      const altoFrente = (await sharp(frente).metadata()).height ?? alto;
+      // Un poco por encima del centro: abajo queda el título.
+      const top = Math.max(0, Math.round((alto - altoFrente) * 0.4));
+      const jpeg = await sharp(fondo)
+        .composite([{ input: frente, top, left: 0 }])
+        .jpeg({ quality: 95, chromaSubsampling: "4:4:4" })
+        .toBuffer();
+      return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+    }
+
+    const jpeg = await origen
+      .clone()
+      .resize(ancho, alto, { fit: "cover", position: sharp.strategy.attention, kernel: "lanczos3" })
+      .sharpen({ sigma: 0.6 })
+      .jpeg({ quality: 95, chromaSubsampling: "4:4:4" })
+      .toBuffer();
+    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
   } catch {
     return null;
   }
@@ -63,9 +105,11 @@ export async function renderInstagramCard(noticia: NoticiaParaTarjeta, formatoPa
 
   const titulo = corregirNombres((noticia.instagram_titulo || noticia.titulo || "").slice(0, 110));
   const logoDataUri = leerArchivoBase64("public/logo-oficial.png");
-  const fotoDataUri = noticia.imagen_url ? await obtenerFotoDataUri(noticia.imagen_url) : null;
   const headerAlto = Math.round(height * 0.09);
   const fotoAlto = height - headerAlto;
+  const fotoBytes = noticia.imagen_url ? await obtenerFotoBytes(noticia.imagen_url) : null;
+  // En vertical e historia la foto entra completa sobre fondo desenfocado; en cuadrado se cubre el hueco.
+  const fotoDataUri = fotoBytes ? await prepararFoto(fotoBytes, width, fotoAlto, formato !== "cuadrado") : null;
   const tituloFontSize = formato === "historia" ? 56 : 48;
   const badgeFontSize = formato === "historia" ? 26 : 22;
   const paddingInferior = formato === "historia" ? 220 : 60;

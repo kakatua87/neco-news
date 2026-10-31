@@ -131,7 +131,9 @@ export default function RedesTab({ initialItems }: { initialItems: InstagramKitI
     item: InstagramKitItem,
     forzar: boolean
   ): Promise<{ ok: boolean; mensaje: string }> => {
-    const formato = formatoElegido[item.id] || "cuadrado";
+    const formatoElegidoItem = formatoElegido[item.id] || "cuadrado";
+    // Facebook no tiene historias: con "Historia" elegida publica la tarjeta cuadrada (y su versión editada, no la de 9:16).
+    const formato = red === "facebook" && formatoElegidoItem === "historia" ? "cuadrado" : formatoElegidoItem;
     const imagenUrlEditada = editadas[`${item.id}-${formato}`];
     const json =
       red === "instagram"
