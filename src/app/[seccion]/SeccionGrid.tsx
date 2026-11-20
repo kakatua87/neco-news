@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { NoticiaPublica } from "@/types/noticia";
+import type { NoticiaLista } from "@/types/noticia";
 import { cuerpoPlainText } from "@/lib/cuerpo";
 
 type Props = {
   seccion: string;
-  initialNoticias: NoticiaPublica[];
+  initialNoticias: NoticiaLista[];
   initialHasMore: boolean;
 };
 
@@ -51,7 +51,7 @@ export default function SeccionGrid({ seccion, initialNoticias, initialHasMore }
                   {nota.titulo}
                 </h2>
                 <p className="text-sm text-muted line-clamp-3 mt-auto">
-                  {nota.resumen_seo ?? cuerpoPlainText(nota.cuerpo).slice(0, 150) + "..."}
+                  {nota.resumen_seo ?? (nota.cuerpo ? cuerpoPlainText(nota.cuerpo).slice(0, 150) + "..." : "")}
                 </p>
               </div>
             </Link>

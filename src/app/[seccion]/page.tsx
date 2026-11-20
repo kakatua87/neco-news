@@ -3,7 +3,8 @@ import { SECCIONES_MENU, seccionSlug } from "@/lib/secciones";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { buscarRedireccionSeccion } from "@/lib/seccion-redirects";
 import { decodificarSeguro } from "@/lib/seccion-url";
-import { SELECT_PUBLICO, soloImagenPropia, type NoticiaPublica } from "@/types/noticia";
+import { SELECT_LISTA, soloImagenPropia, type NoticiaLista } from "@/types/noticia";
+import { getCuerposPorId } from "@/lib/noticias";
 import BannerZone from "@/components/BannerZone";
 import SeccionGrid from "./SeccionGrid";
 
@@ -23,13 +24,13 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
   const supabase = createSupabasePublicClient();
   const { data } = await supabase
     .from("noticias")
-    .select(SELECT_PUBLICO)
+    .select(SELECT_LISTA)
     .eq("estado", "publicada")
     .ilike("seccion", normalized.replaceAll("-", " "))
     .order("fecha_publicacion", { ascending: false })
     .range(0, PAGE_SIZE);
 
-  const traidas = ((data as unknown as NoticiaPublica[]) ?? []).map(soloImagenPropia);
+  const traidas = ((data as unknown as NoticiaLista[]) ?? []).map(soloImagenPropia);
   // Sin notas: puede ser una sección que se renombró; si es así, 301 al nombre nuevo.
   if (traidas.length === 0) {
     const destino = await buscarRedireccionSeccion(normalized);
@@ -40,7 +41,10 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
     if (!SECCIONES_MENU.some((s) => seccionSlug(s) === slugPedido)) notFound();
   }
   const hasMore = traidas.length > PAGE_SIZE;
-  const noticias = traidas.slice(0, PAGE_SIZE);
+  const visibles = traidas.slice(0, PAGE_SIZE);
+  // Las listas no traen `cuerpo` (pesa mucho); solo se pide, de respaldo, para las notas sin `resumen_seo`.
+  const cuerpos = await getCuerposPorId(visibles.filter((n) => n.resumen_seo == null).map((n) => String(n.id)));
+  const noticias = visibles.map((n) => (cuerpos.has(String(n.id)) ? { ...n, cuerpo: cuerpos.get(String(n.id)) } : n));
 
   return (
     <>

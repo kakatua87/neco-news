@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabasePublicClient } from "@/lib/supabase/server";
-import { SELECT_PUBLICO, soloImagenPropia, type NoticiaPublica } from "@/types/noticia";
+import { SELECT_LISTA, soloImagenPropia, type NoticiaLista } from "@/types/noticia";
+import { getCuerposPorId } from "@/lib/noticias";
 
 const PAGE_SIZE = 9;
 
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select(SELECT_PUBLICO)
+    .select(SELECT_LISTA)
     .eq("estado", "publicada")
     .ilike("seccion", seccion.replaceAll("-", " "))
     .order("fecha_publicacion", { ascending: false })
@@ -29,8 +30,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  const noticias = ((data ?? []) as unknown as NoticiaPublica[]).map(soloImagenPropia);
-  const hasMore = noticias.length > PAGE_SIZE;
+  const traidas = ((data ?? []) as unknown as NoticiaLista[]).map(soloImagenPropia);
+  const hasMore = traidas.length > PAGE_SIZE;
+  const visibles = traidas.slice(0, PAGE_SIZE);
+  // Sin `cuerpo` en la lista; solo se pide, de respaldo, para las notas sin `resumen_seo`.
+  const cuerpos = await getCuerposPorId(visibles.filter((n) => n.resumen_seo == null).map((n) => String(n.id)));
+  const noticias = visibles.map((n) => (cuerpos.has(String(n.id)) ? { ...n, cuerpo: cuerpos.get(String(n.id)) } : n));
 
-  return NextResponse.json({ ok: true, noticias: noticias.slice(0, PAGE_SIZE), hasMore });
+  return NextResponse.json({ ok: true, noticias, hasMore });
 }
