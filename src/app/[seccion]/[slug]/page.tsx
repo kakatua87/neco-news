@@ -1,4 +1,5 @@
 import { getNoticiaBySlug } from "@/lib/noticias";
+import { jsonLdSeguro } from "@/lib/json-ld";
 import { notFound, permanentRedirect } from "next/navigation";
 import { seccionSlug } from "@/lib/secciones";
 import { rutaNotaCanonica } from "@/lib/seccion-url";
@@ -59,7 +60,7 @@ export default async function NoticiaPage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSeguro(jsonLd) }} />
 
       <main className="w-full mx-auto max-w-[880px] px-4 md:px-8 py-10 md:py-16 flex-1">
         {/* Breadcrumb */}

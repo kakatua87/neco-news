@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { timingSafeEqual } from "node:crypto";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
@@ -36,6 +37,9 @@ export async function esAdmin(): Promise<boolean> {
 export function tieneSecretoInterno(request: Request, envVar = "INTERNAL_API_SECRET"): boolean {
   const secreto = process.env[envVar];
   if (!secreto) return false;
-  const authHeader = request.headers.get("authorization");
-  return authHeader === `Bearer ${secreto}`;
+  const authHeader = request.headers.get("authorization") ?? "";
+  // Comparación en tiempo constante: con === el tiempo de respuesta delata cuántos caracteres iniciales coinciden.
+  const recibido = Buffer.from(authHeader);
+  const esperado = Buffer.from(`Bearer ${secreto}`);
+  return recibido.length === esperado.length && timingSafeEqual(recibido, esperado);
 }

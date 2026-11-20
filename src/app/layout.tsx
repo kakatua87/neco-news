@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { jsonLdSeguro } from "@/lib/json-ld";
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -99,7 +100,7 @@ export default function RootLayout({
             <head>
                 <script
                     type="application/ld+json"
-                    dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+                    dangerouslySetInnerHTML={{ __html: jsonLdSeguro(siteJsonLd) }}
                 />
                 {process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID && (
                     <>

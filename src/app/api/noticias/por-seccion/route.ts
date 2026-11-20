@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error("Error paginando noticias por sección:", error);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "No se pudieron cargar más noticias. Probá de nuevo." }, { status: 500 });
   }
 
   const traidas = ((data ?? []) as unknown as NoticiaLista[]).map(soloImagenPropia);

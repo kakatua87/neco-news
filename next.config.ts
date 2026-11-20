@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  // No avisar con qué framework está hecho el sitio (cabecera x-powered-by).
+  poweredByHeader: false,
   // El mismo sitio responde en el dominio de Vercel y en necobeat.com.ar: se redirige (301) para que Google
   // indexe solo el dominio propio.
   async redirects() {
@@ -15,52 +17,35 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Cabeceras de seguridad para todas las rutas. No se define una CSP de scripts completa (el sitio carga OneSignal y
+  // código en línea de Next): solo las directivas que no pueden romper nada y cierran lo más riesgoso.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          // Nadie puede incrustar el sitio ni el panel en otra página (clickjacking).
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'",
+          },
+        ],
+      },
+    ];
+  },
+  // El sitio muestra las fotos con <img> directo; next/image solo se usa para el logo propio. Con un comodín
+  // ("**") el optimizador /_next/image bajaba y reprocesaba imágenes de CUALQUIER sitio (proxy abierto que además gasta
+  // la cuota gratis de Vercel). Solo se permite el Storage de Supabase de este proyecto.
   images: {
     remotePatterns: [
-      // Supabase Storage
       {
         protocol: "https",
         hostname: "gjqspmhrnqwavristrpv.supabase.co",
         pathname: "/storage/v1/object/public/**",
-      },
-      // Fuentes de noticias
-      {
-        protocol: "https",
-        hostname: "nden.com.ar",
-      },
-      {
-        protocol: "https",
-        hostname: "**.nden.com.ar",
-      },
-      {
-        protocol: "https",
-        hostname: "diarionecochea.com",
-      },
-      {
-        protocol: "https",
-        hostname: "**.diarionecochea.com",
-      },
-      // CDNs comunes de WordPress
-      {
-        protocol: "https",
-        hostname: "**.wp.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i0.wp.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i1.wp.com",
-      },
-      {
-        protocol: "https",
-        hostname: "i2.wp.com",
-      },
-      // Comodín para cualquier https (producción más flexible)
-      {
-        protocol: "https",
-        hostname: "**",
       },
     ],
   },
