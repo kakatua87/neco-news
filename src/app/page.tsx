@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getPublicadas, getCarruselPortada, getPublicadasPorSeccion } from "@/lib/noticias";
+import { getPublicadas, getCarruselPortada, getPublicadasPorSeccion, getCuerposPorId } from "@/lib/noticias";
 import type { Noticia } from "@/types/noticia";
 import BannerZone from "@/components/BannerZone";
 import HeroCarousel from "@/components/HeroCarousel";
@@ -49,7 +49,12 @@ export default async function Home() {
   const heroItems = carruselPortada.length > 0 ? carruselPortada : hasNews ? [noticias[0]] : [];
   const heroIds = new Set(heroItems.map((n) => n.id));
   const restNotes = hasNews ? noticias.filter((n) => !heroIds.has(n.id)) : [];
-  const sideNotes = restNotes.slice(0, 5);
+  const sideNotesBase = restNotes.slice(0, 5);
+  // Las listas no traen `cuerpo` (pesa mucho); el sidebar lo usa solo de respaldo cuando falta `resumen_seo`.
+  // Normalmente todas lo tienen y no se hace ninguna consulta extra.
+  const sinResumen = sideNotesBase.filter((n) => n.resumen_seo == null).map((n) => String(n.id));
+  const cuerpos = await getCuerposPorId(sinResumen);
+  const sideNotes = sideNotesBase.map((n) => (cuerpos.has(String(n.id)) ? { ...n, cuerpo: cuerpos.get(String(n.id)) } : n));
 
   const seccionesConNoticias = HOME_SECTIONS.map((seccion, i) => ({
     seccion,

@@ -71,6 +71,18 @@ export type NoticiaPublica = Pick<Noticia, (typeof COLUMNAS_PUBLICAS)[number]>;
 export const SELECT_PUBLICO = COLUMNAS_PUBLICAS.join(", ");
 
 /**
+ * Columnas para las listas de la portada: sin `cuerpo` ni los textos de redes, que pesan miles de bytes por
+ * nota y las tarjetas no usan (el resumen sale de `resumen_seo`). Evita ordenar y transferir texto completo.
+ */
+export const SELECT_LISTA = COLUMNAS_PUBLICAS.filter(
+  (c) => c !== "cuerpo" && c !== "instagram_text" && c !== "twitter_text",
+).join(", ");
+
+/** Nota de una lista de la portada: igual que `NoticiaPublica` pero sin el texto completo (`cuerpo` es opcional). */
+export type NoticiaLista = Omit<NoticiaPublica, "cuerpo" | "instagram_text" | "twitter_text"> &
+  Partial<Pick<NoticiaPublica, "cuerpo" | "instagram_text" | "twitter_text">>;
+
+/**
  * Red de seguridad: el público solo ve imágenes alojadas en nuestro Storage. Una `imagen_url`
  * que apunte a otro dominio (p. ej. la foto original de una fuente si falló la subida) se
  * descarta, así el navegador del lector nunca le pide nada al sitio original.

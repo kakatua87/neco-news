@@ -1,15 +1,16 @@
 import { createSupabasePublicClient, createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Noticia, NoticiaPublica } from "@/types/noticia";
-import { SELECT_PUBLICO, soloImagenPropia } from "@/types/noticia";
+import { cache } from "react";
+import type { Noticia, NoticiaLista, NoticiaPublica } from "@/types/noticia";
+import { SELECT_LISTA, SELECT_PUBLICO, soloImagenPropia } from "@/types/noticia";
 import { rangoDiaArgentina } from "@/lib/fechas";
 import { escaparLike } from "@/lib/validar";
 
 /** Noticias publicadas ordenadas por fecha, más recientes primero. Excluye Obituarios. */
-export async function getPublicadas(limit = 30): Promise<NoticiaPublica[]> {
+export async function getPublicadas(limit = 30): Promise<NoticiaLista[]> {
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select(SELECT_PUBLICO)
+    .select(SELECT_LISTA)
     .eq("estado", "publicada")
     .neq("seccion", "Obituarios")
     .order("fecha_publicacion", { ascending: false, nullsFirst: false })
@@ -20,7 +21,24 @@ export async function getPublicadas(limit = 30): Promise<NoticiaPublica[]> {
     console.error("Error al obtener publicadas:", error.message);
     return [];
   }
-  return (data as unknown as NoticiaPublica[]).map(soloImagenPropia);
+  return (data as unknown as NoticiaLista[]).map(soloImagenPropia);
+}
+
+/**
+ * Texto completo (`cuerpo`) de unas pocas notas, por id. La portada lo usa solo como respaldo del resumen
+ * de las notas del sidebar que no tienen `resumen_seo`; si todas lo tienen, no se llama.
+ */
+export async function getCuerposPorId(ids: string[]): Promise<Map<string, string>> {
+  const cuerpos = new Map<string, string>();
+  if (ids.length === 0) return cuerpos;
+  const supabase = createSupabasePublicClient();
+  const { data, error } = await supabase.from("noticias").select("id, cuerpo").in("id", ids);
+  if (error) {
+    console.error("Error al obtener cuerpos:", error.message);
+    return cuerpos;
+  }
+  for (const fila of data ?? []) cuerpos.set(fila.id as string, fila.cuerpo as string);
+  return cuerpos;
 }
 
 /**
@@ -30,12 +48,12 @@ export async function getPublicadas(limit = 30): Promise<NoticiaPublica[]> {
  * Si hoy todavía no hubo ningún lote, un trigger arma un respaldo con lo más reciente de cada sección.
  * Acá además filtramos por "hoy" (huso horario Argentina) para no mostrar nunca una portada de un día anterior.
  */
-export async function getCarruselPortada(): Promise<NoticiaPublica[]> {
+export async function getCarruselPortada(): Promise<NoticiaLista[]> {
   const supabase = createSupabasePublicClient();
   const { inicio, fin } = rangoDiaArgentina();
   const { data, error } = await supabase
     .from("noticias")
-    .select(SELECT_PUBLICO)
+    .select(SELECT_LISTA)
     .eq("estado", "publicada")
     .eq("es_portada", true)
     .neq("seccion", "Obituarios")
@@ -48,15 +66,15 @@ export async function getCarruselPortada(): Promise<NoticiaPublica[]> {
     console.error("Error al obtener carrusel de portada:", error?.message);
     return [];
   }
-  return (data as unknown as NoticiaPublica[]).map(soloImagenPropia);
+  return (data as unknown as NoticiaLista[]).map(soloImagenPropia);
 }
 
 /** Noticias publicadas de una sección específica, más recientes primero. */
-export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promise<NoticiaPublica[]> {
+export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promise<NoticiaLista[]> {
   const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
-    .select(SELECT_PUBLICO)
+    .select(SELECT_LISTA)
     .eq("estado", "publicada")
     .ilike("seccion", seccion)
     .order("fecha_publicacion", { ascending: false, nullsFirst: false })
@@ -67,7 +85,7 @@ export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promi
     console.error(`Error al obtener publicadas de ${seccion}:`, error.message);
     return [];
   }
-  return (data as unknown as NoticiaPublica[]).map(soloImagenPropia);
+  return (data as unknown as NoticiaLista[]).map(soloImagenPropia);
 }
 
 /** Devuelve la noticia marcada como portada del día actual, o null si no hay. */
@@ -139,21 +157,26 @@ export async function getBusqueda(query: string, limit = 30): Promise<NoticiaPub
     .slice(0, limit);
 }
 
-/** Noticia individual por slug. */
-export async function getNoticiaBySlug(slug: string): Promise<NoticiaPublica | null> {
-  const supabase = await createSupabaseServerClient();
+/**
+ * Noticia individual por slug. Usa el cliente público sin cookies (la política RLS de `anon` solo expone las
+ * publicadas), así la página puede cachearse y no consulta el auth en cada visita. `cache()` evita repetir la
+ * consulta entre `generateMetadata` y la página dentro del mismo render. Un slug inexistente es un caso
+ * normal (404), no un error: `maybeSingle()` devuelve null sin loguear.
+ */
+export const getNoticiaBySlug = cache(async (slug: string): Promise<NoticiaPublica | null> => {
+  const supabase = createSupabasePublicClient();
   const { data, error } = await supabase
     .from("noticias")
     .select(SELECT_PUBLICO)
     .eq("slug", slug)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) {
-    console.error("Error al obtener noticia por slug:", error?.message);
+  if (error) {
+    console.error("Error al obtener noticia por slug:", error.message);
     return null;
   }
-  return soloImagenPropia(data as unknown as NoticiaPublica);
-}
+  return data ? soloImagenPropia(data as unknown as NoticiaPublica) : null;
+});
 
 /** Noticias publicadas de un día específico (para el archivo). */
 export async function getNoticiasByFecha(

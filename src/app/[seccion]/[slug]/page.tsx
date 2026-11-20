@@ -9,6 +9,10 @@ import { parseCuerpo, cuerpoPlainText } from "@/lib/cuerpo";
 
 type Props = { params: Promise<{ seccion: string; slug: string }> };
 
+// La nota se lee con el cliente público sin cookies: sin esto Next la dejaría cacheada indefinidamente. Se
+// regenera como máximo cada 60 s (igual que la portada y las secciones), así una edición se ve en un minuto.
+export const revalidate = 60;
+
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const noticia = await getNoticiaBySlug(slug);
