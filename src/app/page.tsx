@@ -35,8 +35,10 @@ const DEMO_STORIES = [
 /* ═══ Page ═══ */
 
 // Sin esto la portada se prerenderiza una vez y queda congelada hasta el próximo deploy: la consulta usa el
-// cliente público sin cookies, así que Next la trata como estática. Se regenera como máximo cada 60 s.
-export const revalidate = 60;
+// cliente público sin cookies, así que Next la trata como estática. Se regenera como máximo cada 5 minutos; los cambios
+// del panel (publicar, editar, eliminar) la invalidan al instante con revalidarPortal(). Menos regeneraciones = menos
+// invocaciones y menos transferencia en el plan gratis de Vercel.
+export const revalidate = 300;
 
 export default async function Home() {
   const [noticias, carruselPortada, seccionNoticias] = await Promise.all([

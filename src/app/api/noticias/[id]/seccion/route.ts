@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { esAdmin } from "@/lib/auth";
+import { revalidarPortal } from "@/lib/revalidar";
 
 export async function PATCH(
   request: Request,
@@ -34,6 +35,7 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
+    revalidarPortal();
     return NextResponse.json({ ok: true, seccion: seccion.trim() });
   } catch (err: any) {
     console.error("Catch error in PATCH seccion:", err);

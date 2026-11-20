@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { esAdmin } from "@/lib/auth";
+import { revalidarPortal } from "@/lib/revalidar";
 import { esTextoHasta } from "@/lib/validar";
 
 export async function PATCH(
@@ -38,6 +39,7 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
+    revalidarPortal();
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("Catch error in PATCH noticia:", err);
@@ -69,6 +71,7 @@ export async function DELETE(
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
+    revalidarPortal();
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("Catch error in DELETE noticia:", err);

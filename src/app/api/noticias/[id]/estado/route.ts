@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { esAdmin } from "@/lib/auth";
+import { revalidarPortal } from "@/lib/revalidar";
 
 /**
  * Devuelve una noticia a "pendiente": sirve para despublicar una publicada o
@@ -37,6 +38,7 @@ export async function POST(
     if (!data || data.length === 0) {
       return NextResponse.json({ ok: false, error: "La noticia no existe o ya está pendiente." }, { status: 404 });
     }
+    revalidarPortal();
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Catch error in POST noticia/estado:", err);

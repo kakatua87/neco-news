@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { esAdmin } from "@/lib/auth";
+import { revalidarPortal } from "@/lib/revalidar";
 
 export async function POST(
   request: Request,
@@ -34,6 +35,7 @@ export async function POST(
       if (updateError) {
         return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
       }
+      revalidarPortal();
       return NextResponse.json({ ok: true, en_carrusel: false });
     }
 
@@ -56,6 +58,7 @@ export async function POST(
       return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
     }
 
+    revalidarPortal();
     return NextResponse.json({ ok: true, en_carrusel: true, orden: siguienteOrden });
   } catch (err: any) {
     console.error("Catch error in POST portada:", err);

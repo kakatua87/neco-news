@@ -22,7 +22,9 @@ type Aviso = {
 };
 type Respuesta = { items: Aviso[]; noLeidas: number };
 
-const SONDEO_MS = 30_000;
+// Cada sondeo es una invocación de función en Vercel (plan gratis): 2 minutos alcanzan para los avisos, y al volver a
+// la pestaña se actualiza al instante.
+const SONDEO_MS = 120_000;
 
 function cuando(iso: string): string {
   return new Date(iso).toLocaleString("es-AR", {
@@ -70,9 +72,14 @@ export default function Avisos() {
     const id = setInterval(() => {
       if (document.visibilityState === "visible") cargar();
     }, SONDEO_MS);
+    const alVolver = () => {
+      if (document.visibilityState === "visible") cargar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
     return () => {
       clearTimeout(inicial);
       clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
     };
   }, [cargar]);
 

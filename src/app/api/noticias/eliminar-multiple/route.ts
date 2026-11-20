@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { esAdmin } from "@/lib/auth";
+import { revalidarPortal } from "@/lib/revalidar";
 import { esListaIds } from "@/lib/validar";
 
 type Body = {
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
     }
 
+    revalidarPortal();
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("Catch error in POST eliminar-multiple:", err);

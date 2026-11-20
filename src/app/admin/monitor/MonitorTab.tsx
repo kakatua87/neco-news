@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ErrorMonitor, FuenteMonitor, MonitorScraping } from "../_lib/monitor";
 
-const REFRESCO_MS = 60_000;
+// Cada refresco vuelve a renderizar toda la pantalla en el servidor (plan gratis de Vercel): 5 minutos; el botón
+// "Actualizar" sigue disponible para verlo al instante.
+const REFRESCO_MS = 300_000;
 
 function cuando(iso: string): string {
   return new Date(iso).toLocaleString("es-AR", {
