@@ -4,7 +4,7 @@ import { createSupabasePublicClient } from "@/lib/supabase/server";
 import { buscarRedireccionSeccion } from "@/lib/seccion-redirects";
 import { decodificarSeguro } from "@/lib/seccion-url";
 import { SELECT_LISTA, soloImagenPropia, type NoticiaLista } from "@/types/noticia";
-import { getCuerposPorId } from "@/lib/noticias";
+import { falloLectura, getCuerposPorId } from "@/lib/noticias";
 import BannerZone from "@/components/BannerZone";
 import SeccionGrid from "./SeccionGrid";
 
@@ -23,7 +23,7 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
   const { seccion } = await params;
   const normalized = decodificarSeguro(seccion).toLowerCase();
   const supabase = createSupabasePublicClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("noticias")
     .select(SELECT_LISTA)
     .eq("estado", "publicada")
@@ -31,6 +31,8 @@ export default async function SeccionPage({ params }: SeccionPageProps) {
     .order("fecha_publicacion", { ascending: false })
     .range(0, PAGE_SIZE);
 
+  // Un error de la base no es "sección sin notas" (daría una página vacía o un 404 cacheado): se lanza, ver falloLectura.
+  if (error) falloLectura(`Error al obtener la sección ${normalized}`, error);
   const traidas = ((data as unknown as NoticiaLista[]) ?? []).map(soloImagenPropia);
   // Sin notas: puede ser una sección que se renombró; si es así, 301 al nombre nuevo.
   if (traidas.length === 0) {

@@ -5,6 +5,18 @@ import { SELECT_LISTA, SELECT_PUBLICO, soloImagenPropia } from "@/types/noticia"
 import { rangoDiaArgentina } from "@/lib/fechas";
 import { escaparLike } from "@/lib/validar";
 
+/**
+ * Error de lectura de la base en una página CACHEADA (ISR: portada, secciones, notas, obituarios). Se LANZA en vez de
+ * devolver una lista vacía: si la regeneración lanza un error, Next.js sigue mostrando la última página buena y lo
+ * reintenta en la visita siguiente. Si en cambio devolviéramos [] / null, la regeneración "tendría éxito" con una
+ * portada vacía (con las notas de ejemplo) o una nota que da 404, y esa página rota quedaría cacheada varios minutos.
+ * La base gratis de Supabase se congela por momentos (timeouts), así que esto pasa de verdad.
+ */
+export function falloLectura(contexto: string, error: { message?: string } | null | undefined): never {
+  console.error(`${contexto}:`, error?.message);
+  throw new Error(`${contexto}: ${error?.message ?? "sin datos"}`);
+}
+
 /** Noticias publicadas ordenadas por fecha, más recientes primero. Excluye Obituarios. */
 export async function getPublicadas(limit = 30): Promise<NoticiaLista[]> {
   const supabase = createSupabasePublicClient();
@@ -17,10 +29,7 @@ export async function getPublicadas(limit = 30): Promise<NoticiaLista[]> {
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error) {
-    console.error("Error al obtener publicadas:", error.message);
-    return [];
-  }
+  if (error) falloLectura("Error al obtener publicadas", error);
   return (data as unknown as NoticiaLista[]).map(soloImagenPropia);
 }
 
@@ -62,10 +71,7 @@ export async function getCarruselPortada(): Promise<NoticiaLista[]> {
     .order("orden_portada", { ascending: true, nullsFirst: false })
     .limit(9);
 
-  if (error || !data) {
-    console.error("Error al obtener carrusel de portada:", error?.message);
-    return [];
-  }
+  if (error || !data) falloLectura("Error al obtener carrusel de portada", error);
   return (data as unknown as NoticiaLista[]).map(soloImagenPropia);
 }
 
@@ -81,10 +87,7 @@ export async function getPublicadasPorSeccion(seccion: string, limit = 3): Promi
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  if (error) {
-    console.error(`Error al obtener publicadas de ${seccion}:`, error.message);
-    return [];
-  }
+  if (error) falloLectura(`Error al obtener publicadas de ${seccion}`, error);
   return (data as unknown as NoticiaLista[]).map(soloImagenPropia);
 }
 
@@ -171,10 +174,8 @@ export const getNoticiaBySlug = cache(async (slug: string): Promise<NoticiaPubli
     .eq("slug", slug)
     .maybeSingle();
 
-  if (error) {
-    console.error("Error al obtener noticia por slug:", error.message);
-    return null;
-  }
+  // Un error de la base NO es "la nota no existe": se lanza (si no, una nota real daría 404 cacheado por 10 minutos).
+  if (error) falloLectura("Error al obtener noticia por slug", error);
   return data ? soloImagenPropia(data as unknown as NoticiaPublica) : null;
 });
 

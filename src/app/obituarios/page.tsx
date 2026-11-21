@@ -44,7 +44,9 @@ export default async function ObituariosPage() {
       .eq("estado", "publicada")
       .order("slug", { ascending: false });
 
-    if (!error && data) {
+    // Un error de la base se relanza (ver catch): así la página cacheada no se regenera vacía.
+    if (error) throw error;
+    if (data) {
       for (const row of data) {
         // Parse slug: "obituarios-2026-05" → mes=5, anio=2026
         const match = row.slug.match(/obituarios-(\d{4})-(\d{2})/);
@@ -71,6 +73,7 @@ export default async function ObituariosPage() {
     }
   } catch (error) {
     console.error("Error fetching obituarios:", error);
+    throw error;
   }
 
   return (

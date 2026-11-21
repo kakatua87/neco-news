@@ -48,12 +48,15 @@ export default async function ObituarioDetallePage({ params }: PageProps) {
       .eq("slug", slug)
       .single();
 
-    if (!error && data) {
+    // PGRST116 = "ninguna fila": slug inexistente, no es un fallo de la base.
+    if (error && error.code !== "PGRST116") throw error;
+    if (data) {
       titulo = data.titulo;
       cuerpo = data.cuerpo || "";
     }
   } catch (error) {
     console.error("Error fetching obituario detallado:", error);
+    throw error;
   }
 
   // Parse markdown-like content (### Nombre)
